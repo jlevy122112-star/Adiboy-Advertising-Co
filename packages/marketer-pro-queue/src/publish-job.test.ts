@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { PublishJobPayloadSchema } from "./publish-job.js";
+import {
+  PublishJobPayloadSchema,
+  PublishJobResultSchema,
+} from "./publish-job.js";
 
 describe("PublishJobPayloadSchema", () => {
   it("accepts minimal valid payload", () => {
@@ -26,5 +29,21 @@ describe("PublishJobPayloadSchema", () => {
         tenantId: "",
       }),
     ).toThrow();
+  });
+});
+
+describe("PublishJobResultSchema", () => {
+  it("preserves externalId returned by provider adapters and HTTP runner", () => {
+    const parsed = PublishJobResultSchema.parse({
+      ok: true,
+      detail: "published",
+      externalId: "meta:post_123",
+    });
+
+    expect(parsed).toEqual({
+      ok: true,
+      detail: "published",
+      externalId: "meta:post_123",
+    });
   });
 });
