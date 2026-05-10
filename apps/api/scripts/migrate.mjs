@@ -4,7 +4,7 @@
  *   DATABASE_URL=postgres://user:pass@127.0.0.1:5432/marketer npm run db:migrate -w @home-link/marketer-api
  */
 
-/* eslint-env node */
+/* global process, console */
 
 import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
