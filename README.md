@@ -284,6 +284,119 @@ nothing downstream proceeds until required decisions are committed.
 
 ---
 
+## Autonomous Run State Machine
+
+The autonomous run is the engine that drives a content campaign through the
+journey above without human babysitting. It is fully described by three
+contract files in `packages/marketer-pro-contract/src/`:
+
+- `autonomous-run-state.ts` — the 12-state machine and legal transitions.
+- `autonomous-run-events.ts` — the 10-type append-only event stream.
+- `autonomous-run.ts` — the composite `AutonomousRun` record and the
+  `applyEvent` reducer.
+
+### The 12 states
+
+States are grouped into three categories with strict bucket invariants
+(no state belongs to more than one bucket):
+
+| Bucket       | States                                                                                                     | Meaning                                                                 |
+|--------------|------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------|
+| **active**   | `requested`, `validating`, `planning`, `generating`, `scheduling`, `ready_to_publish`, `publishing`        | Run is making forward progress on its own.                              |
+| **blocking** | `awaiting_user`, `paused`                                                                                  | Run is parked. A user action (or `resume_requested`) is needed.         |
+| **terminal** | `completed`, `failed`, `cancelled`                                                                         | Run is finished. Events received in terminal state are silently ignored. |
+
+Helpers `isActiveState` / `isBlockingState` / `isTerminalState` are exported
+for callers that need to branch on bucket. `validateRunTransition(from, to)`
+returns either `{ ok: true }` or a structured rejection with reasons like
+`from_state_terminal`, `to_state_not_legal_from_origin`, or `same_state`.
+
+### The 10 event types
+
+Every meaningful runtime fact lands as a strict, immutable event:
+
+| Event type               | Purpose                                                                       |
+|--------------------------|-------------------------------------------------------------------------------|
+| `state_change`           | Records a transition. Always carries `fromState`, `toState`, and (when `failed`) a `failureKind`. |
+| `decision_committed`     | A `DecisionRecord` was written for one of the journey's decision points.      |
+| `provider_result`        | A network publish attempt succeeded or failed; carries `network`, `attempt`, optional `nextRetryAfterMs`. |
+| `user_override`          | The user replaced an AI-committed decision record.                            |
+| `timeout`                | A state exceeded its `stateTimeoutMs` budget; transitions the run to `failed`. |
+| `error`                  | An error occurred; recoverable errors stay in current state, non-recoverable transition to `failed`. |
+| `cancel_requested`       | User asked to abort. Transitions any non-terminal state to `cancelled`.       |
+| `pause_requested`        | User asked to park the run; only legal from active states.                    |
+| `resume_requested`       | User asked to unpark a blocking run; the reducer synthesizes a `state_change` back to `resumeState`. |
+| `notification_sent`      | Records that a user notification went out (carries `payloadDigest`, no PII).  |
+
+The pure resolver `eventToTargetState(event, currentState)` answers "what
+should the next state be?" without side-effects. The composite reducer
+layers retry-budget enforcement, resume bookkeeping, and decision-record
+appends on top.
+
+> **Audit-only vs. transition-driving.** `isAuditOnlyEvent(event)` returns
+> `true` only for events that **never** change run state under any
+> circumstance — `decision_committed`, `user_override`, `provider_result`,
+> `notification_sent`. `resume_requested` is **not** audit-only because the
+> reducer synthesizes a `state_change` from blocking states. The pure
+> resolver returning `null` for `resume_requested` is a layering artifact
+> (the resume target lives on the run record, not on the event); use the
+> reducer's returned `run.state` for the runtime answer.
+
+### Retry budget
+
+`RetryBudgetSchema` carries three knobs:
+
+- `maxPerAssetAttempts` — how many provider attempts per scheduled entry
+  before that asset is given up on. Default **5**.
+- `maxTotalRunErrors` — how many errors across the whole run before the
+  run transitions to `failed`. Default **20**.
+- `retryBackoffMs` — minimum delay before the next attempt on the same
+  asset. Default **1000 ms**.
+
+Helpers `assetAttempts`, `assetAttemptsExceeded`, and
+`totalErrorBudgetExceeded` let callers introspect without re-walking the
+event stream.
+
+### User-only decisions force `awaiting_user`
+
+When the run reaches a journey decision point whose
+`DecisionControlMode` is **`user_only`**, the reducer transitions to
+`awaiting_user` and records the blocking decision-point ID. The run
+**cannot** auto-commit `user_only` even when the workspace policy is
+`autonomous`. Helper `userOnlyDecisionsBlocking(run, catalog)` returns the
+list of points the user must clear before resume becomes legal.
+
+### Resume
+
+A `resume_requested` event applied to a blocking state synthesizes a
+`state_change` back to the run's stored `resumeState` (the active state the
+run was in when it parked). Applying `resume_requested` from a non-blocking
+state is rejected as `not_in_blocking_state`.
+
+### Failure taxonomy
+
+When a run terminates in `failed`, `failureKind` is required and is one of:
+
+- `validation_failed` — preconditions not met (missing connections, banned
+  content, etc.).
+- `connection_revoked` — required social-network token is dead.
+- `provider_exhausted` — retry budget hit on a critical asset.
+- `policy_blocked` — a workspace or platform policy explicitly blocked the run.
+- `timeout` — a state exceeded `stateTimeoutMs` before progressing.
+- `internal_error` — bug in the runner; the operator-facing error of last resort.
+
+### Read helpers
+
+- `requiresUserInterrupt(run)` — true while the run sits in any blocking state.
+- `runProgress(run)` — `{ stage, percentComplete, blockedOn }` summary for UI.
+- `isStuck(run, nowMs)` — true when a blocking run has been parked longer
+  than `STALE_BLOCKING_RUN_MS` (7 days) — operator nudge signal.
+- `firstSuccessfulPublishOf(run, scheduleEntryId)` — feeds the
+  "first publish notification" required by the default notification policy.
+- `isRunComplete(run)` / `isInActivePhase(run)` — convenience predicates.
+
+---
+
 ## Repository Layout
 
 - `packages/marketer-pro-contract/` — Zod schemas, asset-format catalog
