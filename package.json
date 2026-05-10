@@ -5,13 +5,14 @@
   "type": "module",
   "description": "Marketer-Pro — merge full upstream workspace definitions when syncing from canonical remote.",
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "apps/*"
   ],
   "scripts": {
     "prepare": "husky",
     "typecheck": "node node_modules/typescript/lib/tsc.js -b tsconfig.workspaces.json --pretty false",
-    "lint": "eslint packages --max-warnings 999",
-    "lint:fix": "eslint packages --fix --max-warnings 999",
+    "lint": "eslint packages apps --max-warnings 999",
+    "lint:fix": "eslint packages apps --fix --max-warnings 999",
     "verify": "node scripts/verify-workspace.mjs",
     "test:packages": "vitest run",
     "build:queue": "npm run build -w @home-link/marketer-pro-queue",

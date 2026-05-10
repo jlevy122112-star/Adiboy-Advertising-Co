@@ -1,0 +1,10 @@
+{
+  "extends": "../../packages/config/tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "tsBuildInfoFile": "node_modules/.cache/tsbuildinfo.marketer-api"
+  },
+  "include": ["src/**/*.ts"],
+  "references": [{ "path": "../../packages/marketer-pro-queue" }]
+}

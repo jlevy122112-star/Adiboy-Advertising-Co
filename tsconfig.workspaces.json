@@ -4,6 +4,7 @@
     { "path": "./packages/contracts" },
     { "path": "./packages/marketer-pro-contract" },
     { "path": "./packages/ui" },
-    { "path": "./packages/marketer-pro-queue" }
+    { "path": "./packages/marketer-pro-queue" },
+    { "path": "./apps/api" }
   ]
 }

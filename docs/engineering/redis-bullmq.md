@@ -16,6 +16,9 @@ This stack replaces **in-process** publish attempts when you need horizontal sca
 | `MARKETER_PUBLISH_JOB_ATTEMPTS` | Job attempts | `5` |
 | `MARKETER_PUBLISH_BACKOFF_MS` | Exponential backoff base delay (ms) | `2000` |
 | `MARKETER_PUBLISH_WORKER_CONCURRENCY` | Worker parallelism | `5` |
+| `MARKETER_PUBLISH_HTTP_URL` | When set, worker POSTs each job to this URL (see below) | _(unset → stub runner)_ |
+| `MARKETER_PUBLISH_HTTP_TOKEN` | Optional `Authorization: Bearer` for the HTTP runner | _(unset)_ |
+| `MARKETER_PUBLISH_HTTP_TIMEOUT_MS` | HTTP request timeout for the publish runner | `60000` |
 
 ## Implementation checklist (P3)
 
@@ -80,14 +83,12 @@ Use **`idempotencyKey`** for at-most-once semantics per logical publish when Red
 
 ## Worker — runner seam
 
-`worker-cli.ts` no longer hardcodes its processor. It composes a `PublishRunner` from `@home-link/marketer-pro-queue`:
+`worker-cli.ts` loads `resolvePublishRunnerFromEnv()`:
 
-```typescript
-import { createStubPublishRunner } from "@home-link/marketer-pro-queue";
-const runner = createStubPublishRunner();
-```
+- If **`MARKETER_PUBLISH_HTTP_URL`** is set → **`createHttpPublishRunner`** POSTs `{ payload, context }` and expects a JSON **`PublishJobResult`** response.
+- Otherwise → **`createStubPublishRunner`** (local dev without an API process).
 
-Replace `createStubPublishRunner()` with a real implementation (HTTP call into `apps/api`, or a shared module) without touching the BullMQ wiring. The runner returns the validated `PublishJobResult` directly.
+You can still compose a custom runner in your own worker entry by importing `createHttpPublishRunner` or `createStubPublishRunner` from `@home-link/marketer-pro-queue` without changing BullMQ wiring.
 
 ## Roundtrip integration test
 

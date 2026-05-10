@@ -8,5 +8,10 @@
 		"files.exclude": {
 			"": true
 		}
+	},
+	"extensions": {
+		"recommendations": [
+			"redis.redis-for-vscode"
+		]
 	}
 }

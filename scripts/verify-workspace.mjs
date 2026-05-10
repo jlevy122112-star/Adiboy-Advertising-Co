@@ -6,6 +6,8 @@ const rootDir = process.cwd();
 /** Required for any bootstrap / CI gate in this repo (packages + tooling). */
 const requiredPaths = [
   "packages",
+  "apps/api/package.json",
+  "apps/api/tsconfig.json",
   "packages/config/tsconfig.base.json",
   "packages/contracts/package.json",
   "packages/contracts/tsconfig.json",
@@ -23,9 +25,8 @@ const requiredPaths = [
   ".husky/pre-commit",
 ];
 
-/** Apps are restored from upstream over time — warn only. */
+/** Additional apps restored from upstream over time — warn only. */
 const recommendedAppPaths = [
-  ["apps/api/package.json", "Marketer HTTP API"],
   ["apps/web/package.json", "Marketer web (Vite)"],
   ["apps/marketer-pro-e2e/package.json", "Playwright E2E"],
   ["apps/marketer-pro-mobile/package.json", "Expo mobile"],
