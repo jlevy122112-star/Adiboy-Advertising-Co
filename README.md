@@ -1,2 +1,232 @@
-# Marketer Pro v1.0
-Local Files on my Hard Drive
+# Marketer Pro
+
+An **AI Content Generator, Planner, and Scheduler** for businesses and
+solopreneurs. Generate every common marketing asset — Facebook profile
+picture, YouTube banner, Instagram ad, LinkedIn cover, blog hero, podcast
+cover, print flyer, and 120+ more — at the exact pixel specs each network
+expects, then plan and schedule the publishes.
+
+The product's defining commitment is below. Read it first; everything else
+in the repo derives from it.
+
+---
+
+## The Four Control Modes
+
+> **Every feature in the app, from start to finish, presents the user with
+> exactly one of these four control modes. The user always has a say.**
+
+| # | Mode                          | Meaning                                                                |
+|---|-------------------------------|------------------------------------------------------------------------|
+| 1 | **`user_only`**               | User must pick. The AI is **not** involved in this decision.           |
+| 2 | **`ai_with_optional_override`** | AI auto-applies a value; the user can edit it at any time.            |
+| 3 | **`user_with_ai_assist`**     | User picks; user can ask the AI for suggestions on demand.            |
+| 4 | **`ai_suggest_user_confirm`** | AI proposes options; the user confirms, edits, or replaces each one.  |
+
+These modes are **canonical**. They are encoded as a Zod enum in
+[`packages/marketer-pro-contract/src/decision-point.ts`](packages/marketer-pro-contract/src/decision-point.ts)
+(`DecisionControlModeSchema`) and every UI surface that lets a user choose,
+edit, or approve something must declare which of the four it is operating
+in. The constant array `DECISION_CONTROL_MODES` lists them in canonical UI
+display order.
+
+### What this rules out
+
+- **No silent AI decisions.** AI never finalizes a value the user hasn't
+  been given the opportunity to see and override. Where an
+  `ai_with_optional_override` field auto-applies, the override affordance
+  must be visible in the same screen the value appears on.
+- **No "AI-only" mode.** Compliance text, forced disclaimers, or other
+  hard-coded invariants do not pass through this system at all — they are
+  not user decisions and must not pretend to be.
+- **No hidden defaults.** Every default value is provenanced. A
+  `DecisionRecord`'s `source` field declares where a committed value came
+  from (`user`, `ai`, `ai_edited`, `preset`, `system`).
+
+### How modes map to UI affordances
+
+| Mode                          | Required UI                                                                                  |
+|-------------------------------|----------------------------------------------------------------------------------------------|
+| `user_only`                   | Manual control only. No "let AI decide" button.                                              |
+| `ai_with_optional_override`   | Pre-filled value + visible "edit" / "replace" affordance + provenance badge.                 |
+| `user_with_ai_assist`         | User-driven editor + on-demand "Suggest with AI" button.                                     |
+| `ai_suggest_user_confirm`     | Side-by-side options + accept / edit / replace / regenerate / save-as-preset.                |
+
+---
+
+## Autonomy Modes
+
+The four control modes describe what the user *can* do at any decision point.
+**Autonomy mode** is a workspace-level setting that decides whether the AI
+auto-commits decisions on the user's behalf — it does **not** add a fifth
+control mode.
+
+| Mode               | Behaviour                                                                                    |
+|--------------------|----------------------------------------------------------------------------------------------|
+| `manual_review`    | Default. Nothing commits without the user. The four control modes drive the UI as declared. |
+| `autonomous`       | AI auto-commits decisions whose control mode permits it. Every commit stays editable.        |
+
+**Auto-commit eligibility under `autonomous`:**
+
+| Control mode                  | Auto-commits?                                       |
+|-------------------------------|-----------------------------------------------------|
+| `user_only`                   | **Never.** Surfaced in the "needs your attention" queue. |
+| `user_with_ai_assist`         | Only when `policy.autoCommitUserAssistedPoints = true`. |
+| `ai_suggest_user_confirm`     | Yes — AI confirms its top option.                   |
+| `ai_with_optional_override`   | Yes — already automatic by definition.              |
+
+### Autonomous Trigger UX
+
+To kick off an autonomous run, the user provides exactly two things:
+
+1. **Which platforms** to publish to (any subset of the connected social
+   accounts).
+2. **Scope**: `single_post` or `full_campaign`.
+
+Everything else — concept, copy, design, SEO, schedule, publish — is
+generated by the AI within the journey's decision points. See
+`AutonomousJobRequestSchema` in
+[`packages/marketer-pro-contract/src/workspace-autonomy.ts`](packages/marketer-pro-contract/src/workspace-autonomy.ts).
+
+### Notifications
+
+The default notification policy ships with **`firstPublishPerPost: true`**
+— every post going live triggers a notification on the user's configured
+channels (in-app + email by default). Other reasons that fire under
+autonomous operation:
+
+- `decision_needs_attention` — the run hit a `user_only` point.
+- `connection_needs_reconnect` — a social account's token expired or was revoked.
+- `error_alert` — non-recoverable publish error.
+- `daily_summary` — opt-in rollup.
+
+---
+
+## Social Connections
+
+Autonomous mode (and live publishing in general) requires connected
+social accounts. Each connection is a `{workspace, network, account}`
+triple plus an OAuth grant. Tokens never leave the API server — the
+contract carries opaque `accessTokenRef` pointers.
+
+- `PUBLISHABLE_NETWORKS` enumerates the OAuth-required networks
+  (Facebook, Instagram, X, LinkedIn, YouTube, TikTok, Pinterest, Snapchat,
+  Reddit, Threads, Discord, Twitch). `email`, `web`, `print`, `podcast`,
+  and `generic` are export-only and never need a connection.
+- `NETWORK_CAPABILITIES` declares per-network static facts
+  (`canSchedule`, `mediaTypes`, `requiresBusinessAccount`, `exposesAnalytics`).
+- Picking which connection to publish from when a workspace has multiple
+  accounts on the same network is **`user_only`** by product invariant — the
+  AI never silently picks an account.
+
+See `packages/marketer-pro-contract/src/social-connections.ts` for the
+full schema and helpers (`needsReconnect`, `resolvePublishTarget`, etc.).
+
+---
+
+## Plan Tiers
+
+| Capability                           | Free   | Pro       | Enterprise |
+|--------------------------------------|--------|-----------|------------|
+| Calendar window                      | 7 d    | 30 d      | 60 d       |
+| AI generation                        | —      | yes       | yes        |
+| Live publishing                      | —      | yes       | yes        |
+| **Autonomous mode**                  | —      | yes       | yes        |
+| Social connections per network       | 1      | 5         | 50         |
+| Analytics depth                      | basic  | standard  | advanced   |
+
+Analytics depth deepens with tier and is intended to grow further in
+later versions. The shape lives in `MarketerEntitlementsSchema` (see
+`packages/marketer-pro-contract/src/index.ts`).
+
+---
+
+## SEO & Image Optimization
+
+Every published image and every published page carries customizable SEO
+metadata. Two contracts power this:
+
+### `ImageOptimizationSettings`
+
+GSC-friendly defaults shipped in `DEFAULT_IMAGE_OPTIMIZATION`:
+
+- **Format**: WebP preferred, JPG fallback.
+- **Quality**: 85 (sweet spot).
+- **Color profile**: sRGB.
+- **CLS-prevention**: explicit width/height enforced; LQIP placeholder on.
+- **SEO**: alt text required; EXIF metadata stripped.
+- **Responsive**: srcset breakpoints `[320, 640, 768, 1024, 1280, 1920]`.
+- **Loading**: `lazy` + `decoding="async"`.
+
+`lintImageOptimization()` returns warnings if the user weakens any of
+these (e.g. switches off CLS-friendly explicit dimensions). Every setting
+remains user-customizable per the spec — warnings are advisory, never
+hard errors.
+
+### `SeoMetadata` and `ImageSeoMetadata`
+
+Page-level: title, meta description, focus keyword, secondary keywords,
+canonical, OG (title/description/image/type/locale/site), Twitter card
+(summary / summary_large_image / app / player), schema.org type
+(Article, Product, Event, FAQPage, etc. + custom JSON-LD), robots, hashtags.
+
+Per-image: alt text (required unless `decorativeOnly`), title attribute,
+caption, credit, license, focus keyword, kebab-case filename slug.
+
+`lintSeoMetadata` and `lintImageSeoMetadata` surface ranked warnings
+(title length vs Google SERP truncation, focus keyword missing from
+title or description, Twitter `summary_large_image` with no image, missing
+canonical, etc.).
+
+### Override chain
+
+Every setting flows through `workspace → format → asset` overrides:
+
+```
+resolveImageOptimization({ workspace, format?, asset? })
+resolveSeoMetadata({ workspace, format?, asset })
+```
+
+The user can:
+- Set workspace-wide defaults once.
+- Adjust per format (e.g. print formats use `cmyk` + `printDpi: 300`).
+- Tweak per individual asset (the AI auto-fills these on
+  `seo-meta.title-source: ai_auto`; the user edits whenever they want).
+
+Source: `packages/marketer-pro-contract/src/image-optimization.ts` and
+`packages/marketer-pro-contract/src/seo-metadata.ts`.
+
+---
+
+## Customer-Journey Stages
+
+Every piece of content moves through these stages in order. Each stage
+exposes one or more **decision points** (one of the four modes above), and
+nothing downstream proceeds until required decisions are committed.
+
+1. **`intake`** — campaign brief, voice, geography
+2. **`strategy`** — goals, channels, audience, tone
+3. **`format_select`** — which Canva-style asset formats to render in
+4. **`concept`** — big idea + variant directions
+5. **`draft_copy`** — generate copy variants per format
+6. **`design`** — colors, layout, imagery on the canvas
+7. **`seo_meta`** — titles, alt text, OG/Twitter, schema.org metadata
+8. **`review`** — human review/approval gate
+9. **`schedule`** — pick dates yourself, let the AI plan them, or have the
+   AI propose and you confirm each one
+10. **`publish`** — route to networks
+11. **`measure`** — performance feedback loop
+
+---
+
+## Repository Layout
+
+- `packages/marketer-pro-contract/` — Zod schemas, asset-format catalog
+  (130+ formats), the decision-point primitive, and the customer-journey
+  definitions. **The product principle above lives here.**
+- `packages/marketer-pro-queue/` — BullMQ-based publish queue + workers.
+- `apps/api/` — REST API + producer-side scheduler HTTP server.
+
+See `docs/engineering/redis-bullmq.md` for the queue architecture and
+`packages/marketer-pro-contract/src/decision-point.ts` for the
+authoritative source of the four control modes.

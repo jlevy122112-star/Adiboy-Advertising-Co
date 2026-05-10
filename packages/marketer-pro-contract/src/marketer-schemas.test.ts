@@ -51,7 +51,10 @@ const sampleEntitlementsFree = {
   maxScheduleDays: 7,
   canUseAiGenerate: false,
   canLivePublish: false,
+  canUseAutonomousMode: false,
   maxVariantLines: 10,
+  maxSocialConnectionsPerNetwork: 1,
+  analyticsDepth: "basic" as const,
 };
 
 describe("MarketerStateSchema", () => {
@@ -74,7 +77,19 @@ describe("MarketerStateSchema", () => {
       ],
       publishStatus: "Draft",
       firstEngagement: false,
-      socialConnections: { meta: "connected" },
+      socialConnections: [
+        {
+          connectionId: "conn-fb",
+          workspaceId: "00000000-0000-0000-0000-000000000000",
+          network: "facebook",
+          accountId: "fb-page-1",
+          accountHandle: "Test Page",
+          scopes: ["pages_manage_posts"],
+          status: "active",
+          connectedAt: "2026-04-01T00:00:00.000Z",
+          connectedByUserId: "u1",
+        },
+      ],
       branding: {},
       plan: "free",
       onboarding: sampleOnboarding,

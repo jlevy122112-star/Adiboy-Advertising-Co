@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { SocialConnectionSchema } from "./social-connections.js";
+
 export {
   BUSINESS_CATEGORY_CATALOG,
   categoryHeroDefaultSrc,
@@ -35,6 +37,142 @@ export {
   type ContentAssetNetwork,
   type ContentAssetSafeZone,
 } from "./content-asset-formats.js";
+
+export {
+  commitDecision,
+  DECISION_CONTROL_MODES,
+  DecisionControlModeSchema,
+  DecisionOptionSchema,
+  DecisionPointSchema,
+  DecisionRecordSchema,
+  DecisionSourceSchema,
+  isDecisionSatisfied,
+  resolveCommittedValue,
+  validateDecisionRecord,
+  type CommitDecisionArgs,
+  type DecisionControlMode,
+  type DecisionOption,
+  type DecisionPoint,
+  type DecisionRecord,
+  type DecisionSource,
+  type DecisionValidationReason,
+  type DecisionValidationResult,
+} from "./decision-point.js";
+
+export {
+  computeBlockedStages,
+  DEFAULT_DECISION_POINTS,
+  findDecisionPoint,
+  getDecisionPointsForStage,
+  JOURNEY_STAGE_DESCRIPTORS,
+  JOURNEY_STAGES,
+  JourneyStageSchema,
+  nextRequiredStage,
+  type JourneyStage,
+  type JourneyStageDescriptor,
+} from "./customer-journey.js";
+
+export {
+  ConnectionStatusSchema,
+  findUsableConnectionsForNetwork,
+  isConnectionUsable,
+  listConnectedNetworks,
+  needsReconnect,
+  NETWORK_CAPABILITIES,
+  PUBLISHABLE_NETWORKS,
+  PublishableNetworkSchema,
+  resolvePublishTarget,
+  SocialConnectionSchema,
+  type ConnectionStatus,
+  type NetworkCapabilities,
+  type PublishableNetwork,
+  type ResolveTargetResult,
+  type SocialConnection,
+} from "./social-connections.js";
+
+export {
+  allowAutonomousAutoCommit,
+  AutonomousJobRequestSchema,
+  AutonomousJobScopeSchema,
+  AutonomyModeSchema,
+  AutonomyNotificationPolicySchema,
+  DEFAULT_AUTONOMY_NOTIFICATION_POLICY,
+  DEFAULT_AUTONOMY_POLICY,
+  listMissingConnections,
+  listPendingUserOnlyPoints,
+  notificationChannelsFor,
+  NotificationChannelSchema,
+  NotificationReasonSchema,
+  planAutonomousCommits,
+  validateAutonomousJobPreconditions,
+  WorkspaceAutonomyPolicySchema,
+  type AutonomousJobRequest,
+  type AutonomousJobScope,
+  type AutonomousJobValidation,
+  type AutonomyMode,
+  type AutonomyNotificationPolicy,
+  type NotificationChannel,
+  type NotificationReason,
+  type ValidateAutonomousJobArgs,
+  type WorkspaceAutonomyPolicy,
+} from "./workspace-autonomy.js";
+
+export {
+  ColorProfileSchema,
+  DecodingStrategySchema,
+  DEFAULT_IMAGE_OPTIMIZATION,
+  ImageOptimizationOverrideSchema,
+  ImageOptimizationSettingsSchema,
+  ImageRenderFormatSchema,
+  lintImageOptimization,
+  LoadingStrategySchema,
+  normaliseSrcsetWidths,
+  PrintDpiSchema,
+  resolveImageOptimization,
+  suggestImageFilenameSlug,
+  type ColorProfile,
+  type DecodingStrategy,
+  type ImageOptimizationOverride,
+  type ImageOptimizationSettings,
+  type ImageOptimizationWarning,
+  type ImageRenderFormat,
+  type LoadingStrategy,
+  type PrintDpi,
+} from "./image-optimization.js";
+
+export {
+  DEFAULT_SEO_WORKSPACE_DEFAULTS,
+  deriveOpenGraphDefaults,
+  deriveTwitterDefaults,
+  IMAGE_ALT_HARD_MAX,
+  IMAGE_ALT_RECOMMENDED_MAX,
+  ImageSeoMetadataSchema,
+  lintImageSeoMetadata,
+  lintSeoMetadata,
+  OpenGraphTypeSchema,
+  resolveSeoMetadata,
+  RobotsDirectiveSchema,
+  SchemaOrgTypeSchema,
+  SEO_DESCRIPTION_HARD_MAX,
+  SEO_DESCRIPTION_RECOMMENDED_MAX,
+  SEO_DESCRIPTION_RECOMMENDED_MIN,
+  SEO_TITLE_HARD_MAX,
+  SEO_TITLE_RECOMMENDED_MAX,
+  SeoMetadataOverrideSchema,
+  SeoMetadataSchema,
+  SeoWorkspaceDefaultsSchema,
+  TwitterCardSchema,
+  type ImageSeoMetadata,
+  type ImageSeoWarning,
+  type OpenGraphType,
+  type RobotsDirective,
+  type SchemaOrgType,
+  type SeoMetadata,
+  type SeoMetadataOverride,
+  type SeoMetadataWarning,
+  type SeoWorkspaceDefaults,
+  type TwitterCard,
+} from "./seo-metadata.js";
 
 /** Workspace-scoped white-label fields (stored per tenant on `workspaces.branding_json`). */
 export const WorkspaceBrandingSchema = z
@@ -104,17 +242,23 @@ export const OnboardingSchema = z.object({
   percentComplete: z.number().min(0).max(100),
 });
 
+export const AnalyticsDepthSchema = z.enum(["basic", "standard", "advanced"]);
+
 export const MarketerEntitlementsSchema = z.object({
   maxScheduleDays: z.number().int().min(1).max(366),
   canUseAiGenerate: z.boolean(),
   canLivePublish: z.boolean(),
+  canUseAutonomousMode: z.boolean(),
   maxVariantLines: z.number().int().min(1).max(80),
+  maxSocialConnectionsPerNetwork: z.number().int().min(0).max(1000),
+  analyticsDepth: AnalyticsDepthSchema,
 });
 
 export type MarketerEntitlements = z.infer<typeof MarketerEntitlementsSchema>;
 
 export {
   marketerEntitlementsForPlan,
+  type AnalyticsDepth,
   type MarketerPlan,
 } from "./plan-entitlements.js";
 
@@ -140,7 +284,7 @@ export const MarketerStateSchema = z.object({
   schedule: z.array(MarketerScheduleEntrySchema),
   publishStatus: z.enum(["Draft", "Scheduled", "Published", "Failed"]),
   firstEngagement: z.boolean(),
-  socialConnections: z.record(z.string(), z.string()).optional(),
+  socialConnections: z.array(SocialConnectionSchema).default([]),
   branding: WorkspaceBrandingSchema.default({}),
   plan: MarketerPlanSchema,
   onboarding: OnboardingSchema,
