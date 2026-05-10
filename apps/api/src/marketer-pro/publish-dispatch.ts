@@ -15,6 +15,11 @@ import {
   type ScheduleEntryRow,
   resolveScheduleEntryForPublish,
 } from "../db/schedule-entry.js";
+import { metaPublishProvider } from "./providers/meta.js";
+import { stubProviderResult } from "./providers/stub.js";
+import { tiktokPublishProvider } from "./providers/tiktok.js";
+import type { PublishProviderInput } from "./providers/types.js";
+import { xPublishProvider } from "./providers/x.js";
 
 /** Same shape as {@link PublishRunnerContext} in `publish-execute.ts`. */
 export interface PublishDispatchContext {
@@ -28,28 +33,29 @@ type PublishHandler = (
   row: ScheduleEntryRow | undefined,
 ) => Promise<PublishJobResult>;
 
-function stubOk(
-  network: PublishNetworkSlug | "generic",
+function toProviderInput(
   payload: PublishJobPayload,
+  context: PublishDispatchContext,
   row: ScheduleEntryRow | undefined,
-): PublishJobResult {
-  const idPart = row?.id ?? payload.scheduleEntryId;
-  const db = row ? "_db_loaded" : "";
-  return {
-    ok: true,
-    detail: `p4_stub_${network}_wire_sdk${db}`,
-    externalId: `${network}:${idPart}`,
-  };
+): PublishProviderInput {
+  return { payload, context, row };
 }
 
 const handlers: Record<PublishNetworkSlug | "generic", PublishHandler> = {
-  meta: async (payload, _ctx, row) => stubOk("meta", payload, row),
-  instagram: async (payload, _ctx, row) => stubOk("instagram", payload, row),
-  x: async (payload, _ctx, row) => stubOk("x", payload, row),
-  tiktok: async (payload, _ctx, row) => stubOk("tiktok", payload, row),
-  linkedin: async (payload, _ctx, row) => stubOk("linkedin", payload, row),
-  youtube: async (payload, _ctx, row) => stubOk("youtube", payload, row),
-  generic: async (payload, _ctx, row) => stubOk("generic", payload, row),
+  meta: async (payload, context, row) =>
+    metaPublishProvider.publish(toProviderInput(payload, context, row)),
+  instagram: async (payload, context, row) =>
+    stubProviderResult("instagram", toProviderInput(payload, context, row)),
+  x: async (payload, context, row) =>
+    xPublishProvider.publish(toProviderInput(payload, context, row)),
+  tiktok: async (payload, context, row) =>
+    tiktokPublishProvider.publish(toProviderInput(payload, context, row)),
+  linkedin: async (payload, context, row) =>
+    stubProviderResult("linkedin", toProviderInput(payload, context, row)),
+  youtube: async (payload, context, row) =>
+    stubProviderResult("youtube", toProviderInput(payload, context, row)),
+  generic: async (payload, context, row) =>
+    stubProviderResult("generic", toProviderInput(payload, context, row)),
 };
 
 function dispatchWithRow(
