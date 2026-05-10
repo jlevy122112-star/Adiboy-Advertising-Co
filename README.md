@@ -198,6 +198,71 @@ Source: `packages/marketer-pro-contract/src/image-optimization.ts` and
 
 ---
 
+## Brand Theme & White-Label
+
+Tenants can fully re-skin the product. Two layers cooperate:
+
+- `WorkspaceBrandingSchema` (in `index.ts`) is the **persistence shape** —
+  the tiny row stored on `workspaces.branding_json` (display name,
+  tagline, logo URL, primary/accent hex). Used by the existing UI today.
+- `BrandThemeSchema` (in `brand-theme.ts`) is the **render shape** — a
+  fully populated theme used at asset-generation time.
+
+The two are bridged by `brandingToTheme(branding)` so legacy data lifts
+into the rich theme without a migration.
+
+### What a `BrandTheme` ships
+
+- **Logos**: up to 20 variants keyed by `LogoVariantKind` (`primary`,
+  `dark`, `light`, `icon`, `monochrome`, `favicon`) with intrinsic
+  dimensions and optional safe zones.
+- **Palette**: four scales (`primary`, `secondary`, `accent`, `neutral`)
+  each with the full Tailwind-style `50..950` ladder, plus four semantic
+  pairs (`success`, `warning`, `danger`, `info`) with explicit `on`-colors
+  for foreground content. `DEFAULT_BRAND_THEME` ships swatches whose
+  on/base contrast all meet WCAG AA Normal (≥ 4.5:1).
+- **Typography**: heading + body + mono families with required generic
+  fallback tails, full size (`xs..6xl`) and weight (`thin..black`)
+  scales, configurable baseline grid.
+- **Voice**: formality, persona, banned phrases, preferred phrases,
+  reading level — wired through to AI copy generation.
+- **UI prefs**: density, radius/shadow/motion scales, motion preference,
+  dark-mode strategy (`class | media | both | off`).
+- **Watermark policy**: enable/disable, logo variant kind, position
+  (9-point grid), opacity, scale percentage, applicable mediums.
+
+### Override chain
+
+Same `workspace → format → asset` cascade as image-opt and SEO:
+
+```
+resolveBrandTheme({ workspace, format?, asset? })
+```
+
+Top-level slices use shallow merge by key, so a format that tweaks only
+voice formality keeps every other field from the workspace.
+
+### Render exports
+
+- `themeToCssVariables(theme, { prefix?: "brand-" })` → deterministic
+  `Record<string, string>` of CSS custom properties (no `--` prefix on
+  keys; render layer prepends).
+- `themeToTokensJson(theme)` → flat dotted-key map sorted alphabetically
+  for byte-stable JSON.stringify output.
+
+### Lint
+
+`lintBrandTheme(theme)` returns `{ severity, code, message, field }`
+warnings without blocking. Codes: contrast checks (primary-on-neutral,
+body-text, semantic on/base), generic-fallback-tail, watermark opacity
+and missing-variant, voice banned/preferred overlap and duplicates,
+darkPalette advisory.
+
+Source: `packages/marketer-pro-contract/src/brand-theme.ts` and
+`packages/marketer-pro-contract/src/brand-theme-tokens.ts`.
+
+---
+
 ## Customer-Journey Stages
 
 Every piece of content moves through these stages in order. Each stage
