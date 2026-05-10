@@ -12,6 +12,7 @@
  */
 
 import {
+  PublishJobResultSchema,
   type PublishJobPayload,
   type PublishJobResult,
 } from "./publish-job.js";
@@ -77,4 +78,119 @@ export function withoutContext(
 ): PublishRunner {
   return (payload) =>
     runner(payload, { jobId: undefined, attempt: 1 });
+}
+
+/** POST JSON body sent by {@link createHttpPublishRunner}. */
+export interface HttpPublishRequestBody {
+  readonly payload: PublishJobPayload;
+  readonly context: PublishRunnerContext;
+}
+
+export interface HttpPublishRunnerOptions {
+  /** Full URL (e.g. `https://api.example/internal/publish/execute`). */
+  readonly url: string;
+  /** Override for tests; defaults to `globalThis.fetch`. */
+  readonly fetchFn?: typeof fetch;
+  /** Request timeout (ms). Env fallback: `MARKETER_PUBLISH_HTTP_TIMEOUT_MS`. */
+  readonly timeoutMs?: number;
+  /** Extra headers (e.g. auth); merged after `Content-Type`. */
+  readonly headers?: Record<string, string>;
+}
+
+/**
+ * Calls an internal HTTP endpoint that performs the real publish (same code as
+ * synchronously invoked from `apps/api`, or a thin relay). The worker POSTs:
+ *
+ * `{ "payload": PublishJobPayload, "context": PublishRunnerContext }`
+ *
+ * The response body must be JSON matching {@link PublishJobResult}.
+ *
+ * - **2xx** + valid JSON → returned as the job result (completed).
+ * - **4xx** → `{ ok: false, detail: ... }` without throwing (completed failure; adjust API if retries are desired).
+ * - **5xx / network / timeout / invalid JSON** → throws so BullMQ can retry.
+ */
+export function createHttpPublishRunner(
+  options: HttpPublishRunnerOptions,
+): PublishRunnerWithContext {
+  const fetchFn = options.fetchFn ?? globalThis.fetch.bind(globalThis);
+  const timeoutMs =
+    options.timeoutMs ??
+    Number(process.env.MARKETER_PUBLISH_HTTP_TIMEOUT_MS ?? 60_000);
+
+  return async (payload, context) => {
+    const signal = AbortSignal.timeout(timeoutMs);
+    const res = await fetchFn(options.url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...options.headers,
+      },
+      body: JSON.stringify({ payload, context }),
+      signal,
+    });
+
+    if (!res.ok) {
+      if (res.status >= 500) {
+        throw new Error(`publish_http_upstream_${res.status}`);
+      }
+      const snippet = (await res.text()).slice(0, 500);
+      return {
+        ok: false,
+        detail: `publish_http_client_error:${res.status}:${snippet}`,
+      };
+    }
+
+    const text = await res.text();
+    if (!text.trim()) {
+      return {
+        ok: true,
+        detail: "publish_http_empty_body",
+      };
+    }
+
+    let json: unknown;
+    try {
+      json = JSON.parse(text) as unknown;
+    } catch {
+      throw new Error("publish_http_invalid_json_body");
+    }
+
+    const parsed = PublishJobResultSchema.safeParse(json);
+    if (!parsed.success) {
+      throw new Error(
+        `publish_http_result_invalid: ${parsed.error.message}`,
+      );
+    }
+    return parsed.data;
+  };
+}
+
+export interface ResolvePublishRunnerFromEnvOptions {
+  /** Primarily for tests; production uses `globalThis.fetch`. */
+  readonly fetchFn?: typeof fetch;
+}
+
+/**
+ * **Production worker:** set `MARKETER_PUBLISH_HTTP_URL` to use the HTTP
+ * runner; otherwise the stub runner is used (local dev without an API).
+ *
+ * Optional `MARKETER_PUBLISH_HTTP_TOKEN`: when non-empty, sends
+ * `Authorization: Bearer <token>`.
+ */
+export function resolvePublishRunnerFromEnv(
+  options: ResolvePublishRunnerFromEnvOptions = {},
+): PublishRunnerWithContext {
+  const url = process.env.MARKETER_PUBLISH_HTTP_URL?.trim();
+  if (url) {
+    const token = process.env.MARKETER_PUBLISH_HTTP_TOKEN?.trim();
+    return createHttpPublishRunner({
+      url,
+      fetchFn: options.fetchFn,
+      headers:
+        token !== undefined && token.length > 0
+          ? { Authorization: `Bearer ${token}` }
+          : undefined,
+    });
+  }
+  return createStubPublishRunner();
 }

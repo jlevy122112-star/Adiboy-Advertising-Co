@@ -1,0 +1,19 @@
+{
+  "name": "@home-link/marketer-api",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json --pretty false",
+    "typecheck": "tsc -p tsconfig.json --pretty false"
+  },
+  "dependencies": {
+    "@home-link/marketer-pro-queue": "*",
+    "bullmq": "^5.76.6",
+    "ioredis": "^5.10.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.8.3"
+  }
+}

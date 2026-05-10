@@ -7,18 +7,23 @@
 import { createRedisConnection } from "./redis.js";
 import { createPublishWorker } from "./publish-worker.js";
 import {
-  createStubPublishRunner,
+  resolvePublishRunnerFromEnv,
   type PublishRunnerWithContext,
 } from "./publish-runner.js";
 
 const connection = createRedisConnection();
 
-/**
- * Replace with a real runner once `apps/api` exposes a shared publish module
- * or internal HTTP endpoint. The worker stays the same — only the runner
- * implementation changes.
- */
-const runner: PublishRunnerWithContext = createStubPublishRunner();
+const runner: PublishRunnerWithContext = resolvePublishRunnerFromEnv();
+
+console.log(
+  JSON.stringify({
+    level: "info",
+    event: "publish_runner_selected",
+    runner: process.env.MARKETER_PUBLISH_HTTP_URL?.trim()
+      ? "http"
+      : "stub",
+  }),
+);
 
 const worker = createPublishWorker(connection, async (job) => {
   const payload = job.data;

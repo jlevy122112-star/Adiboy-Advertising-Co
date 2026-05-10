@@ -3,10 +3,8 @@
  * a `marketer-publish` job onto the BullMQ queue managed in
  * `@home-link/marketer-pro-queue`.
  *
- * STATUS: scaffold. `apps/api` is currently a hollow shell (no
- * `package.json`/`tsconfig.json`); this module activates once the API package
- * is restored to the workspace. It compiles untouched as soon as the package
- * gets `@home-link/marketer-pro-queue` as a dependency.
+ * STATUS: `apps/api` is a workspace package (`@home-link/marketer-api`) with
+ * `@home-link/marketer-pro-queue` wired via npm workspaces.
  *
  * Why a thin shim?
  * - `apps/api` should not import `bullmq` / `ioredis` directly. The queue

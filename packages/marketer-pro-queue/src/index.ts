@@ -21,11 +21,16 @@ export {
 } from "./publish-worker.js";
 
 export {
+  createHttpPublishRunner,
   createStubPublishRunner,
+  resolvePublishRunnerFromEnv,
   STUB_PUBLISH_RUNNER_DETAIL,
   withoutContext,
+  type HttpPublishRequestBody,
+  type HttpPublishRunnerOptions,
   type PublishRunner,
   type PublishRunnerContext,
   type PublishRunnerWithContext,
+  type ResolvePublishRunnerFromEnvOptions,
   type StubPublishRunnerOptions,
 } from "./publish-runner.js";
