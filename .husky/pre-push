@@ -1,0 +1,7 @@
+#!/usr/bin/env sh
+set -e
+echo "pre-push: workspace verify + typecheck + lint + tests"
+npm run verify
+npm run typecheck
+npm run lint
+npm run test:packages

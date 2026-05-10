@@ -49,4 +49,13 @@ Desktop.ini
 .cache/
 *.pem
 
+# Nested full-repo clones under this monorepo (each has its own `.git/`).
+# Tracking them produced broken submodule pointers (mode 160000) with no `.gitmodules`.
+# Keep clones locally; canonical app code lives under `apps/`, `packages/`, `docs/`.
+GitHub/
+Wholesaler-Pro-b01-bootstrap-upgrades/
+
+# Cursor plugin vendor clones (nested `.git`, huge; reinstall plugins if needed)
+plugins/cache/
+
 # Husky is tracked; leave hooks executable via git attributes if needed

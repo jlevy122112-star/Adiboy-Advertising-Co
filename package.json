@@ -1,0 +1,30 @@
+{
+  "name": "marketer-pro-monorepo",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Marketer-Pro — merge full upstream workspace definitions when syncing from canonical remote.",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "prepare": "husky",
+    "typecheck": "node node_modules/typescript/lib/tsc.js -b tsconfig.workspaces.json --pretty false",
+    "lint": "eslint packages --max-warnings 999",
+    "lint:fix": "eslint packages --fix --max-warnings 999",
+    "verify": "node scripts/verify-workspace.mjs",
+    "test:packages": "vitest run",
+    "build:queue": "npm run build -w @home-link/marketer-pro-queue",
+    "queue:worker": "npm run build -w @home-link/marketer-pro-queue && node packages/marketer-pro-queue/dist/worker-cli.js",
+    "queue:enqueue-smoke": "npm run build -w @home-link/marketer-pro-queue && node scripts/enqueue-publish-smoke.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.16.0",
+    "eslint": "^9.16.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.4.3",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.18.0",
+    "vitest": "^3.2.4"
+  }
+}

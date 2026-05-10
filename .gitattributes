@@ -1,0 +1,4 @@
+# Normalize text files; avoid silent CRLF/LF drift across machines (esp. Windows + CI).
+* text=auto eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf
