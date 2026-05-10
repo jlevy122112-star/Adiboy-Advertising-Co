@@ -8,7 +8,7 @@ export const PublishJobPayloadSchema = z.object({
   tenantId: z.string().min(1),
   /** Optional dedupe key — passed through as BullMQ `jobId` when present. */
   idempotencyKey: z.string().min(1).optional(),
-  /** Provider hint for routing workers (meta, x, tiktok, linkedin, …). */
+  /** Provider hint — see `classifyPublishNetwork` / `PUBLISH_NETWORK_SLUGS`. Unknown → generic route. */
   network: z.string().min(1).optional(),
   /** Opaque correlation for logs (request id, trace id). */
   correlationId: z.string().min(1).optional(),

@@ -6,6 +6,7 @@
 
 import { createRedisConnection } from "./redis.js";
 import { createPublishWorker } from "./publish-worker.js";
+import { classifyPublishNetwork } from "./publish-network.js";
 import {
   resolvePublishRunnerFromEnv,
   type PublishRunnerWithContext,
@@ -38,6 +39,8 @@ const worker = createPublishWorker(connection, async (job) => {
       tenantId: payload.tenantId,
       attempt,
       correlationId: payload.correlationId ?? null,
+      publishNetwork: classifyPublishNetwork(payload.network),
+      networkRaw: payload.network ?? null,
     }),
   );
 

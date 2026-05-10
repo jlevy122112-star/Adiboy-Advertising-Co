@@ -5,6 +5,13 @@ export {
   type PublishJobResult,
 } from "./publish-job.js";
 
+export {
+  classifyPublishNetwork,
+  isPublishNetworkSlug,
+  PUBLISH_NETWORK_SLUGS,
+  type PublishNetworkSlug,
+} from "./publish-network.js";
+
 export { createRedisConnection, DEFAULT_REDIS_URL } from "./redis.js";
 
 export {

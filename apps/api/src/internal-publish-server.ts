@@ -1,25 +1,21 @@
 /**
- * Producer-facing HTTP server: external triggers POST a publish-schedule
- * request, the server validates + dispatches via `PublishScheduler` to the
- * `marketer-publish` BullMQ queue.
+ * Minimal internal HTTP server for worker → API publish execution.
  *
  *   npm run build -w @home-link/marketer-api
- *   node apps/api/dist/scheduler-publish-server.js
+ *   node apps/api/dist/internal-publish-server.js
  *
  * Env:
- *   SCHEDULER_PUBLISH_HOST  (default 127.0.0.1)
- *   SCHEDULER_PUBLISH_PORT  (default 8791)
- *   SCHEDULER_PUBLISH_PATH  (default /api/marketer-pro/publish/schedule)
- *   MARKETER_SCHEDULER_HTTP_TOKEN — if set, require matching Bearer token
- *
- * The scheduler holds its own Redis connection lifecycle and is closed on
- * SIGINT/SIGTERM so jobs in-flight finish enqueueing before exit.
+ *   INTERNAL_PUBLISH_HOST (default 127.0.0.1)
+ *   INTERNAL_PUBLISH_PORT (default 8790)
+ *   INTERNAL_PUBLISH_PATH (default /internal/publish/execute)
+ *   MARKETER_PUBLISH_HTTP_TOKEN — if set, require matching Bearer token
  */
 
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { closePostgres } from "./db/postgres.js";
-import { createPublishScheduler } from "./marketer-pro/schedule-publish.js";
-import { executeSchedulePublishRequest } from "./marketer-pro/schedule-publish-route.js";
+import {
+  executeInternalPublish,
+} from "./marketer-pro/publish-execute.js";
 
 const MAX_BODY_BYTES = 256 * 1024;
 
@@ -55,7 +51,7 @@ function unauthorized(res: ServerResponse) {
 }
 
 function checkBearer(req: IncomingMessage, res: ServerResponse): boolean {
-  const expected = process.env.MARKETER_SCHEDULER_HTTP_TOKEN?.trim();
+  const expected = process.env.MARKETER_PUBLISH_HTTP_TOKEN?.trim();
   if (!expected) {
     return true;
   }
@@ -72,12 +68,10 @@ function checkBearer(req: IncomingMessage, res: ServerResponse): boolean {
   return true;
 }
 
-const host = process.env.SCHEDULER_PUBLISH_HOST ?? "127.0.0.1";
-const port = Number(process.env.SCHEDULER_PUBLISH_PORT ?? 8791);
+const host = process.env.INTERNAL_PUBLISH_HOST ?? "127.0.0.1";
+const port = Number(process.env.INTERNAL_PUBLISH_PORT ?? 8790);
 const path =
-  process.env.SCHEDULER_PUBLISH_PATH ?? "/api/marketer-pro/publish/schedule";
-
-const scheduler = createPublishScheduler();
+  process.env.INTERNAL_PUBLISH_PATH ?? "/internal/publish/execute";
 
 const server = createServer(async (req, res) => {
   if (req.method !== "POST") {
@@ -104,7 +98,7 @@ const server = createServer(async (req, res) => {
 
   try {
     const body = await readJsonBody(req);
-    const outcome = await executeSchedulePublishRequest(body, scheduler);
+    const outcome = await executeInternalPublish(body);
 
     if (!outcome.ok) {
       json(res, outcome.status, {
@@ -114,7 +108,7 @@ const server = createServer(async (req, res) => {
       return;
     }
 
-    json(res, 202, outcome.result);
+    json(res, 200, outcome.result);
   } catch (err) {
     if (err instanceof SyntaxError) {
       json(res, 400, { error: "invalid_json" });
@@ -127,7 +121,7 @@ const server = createServer(async (req, res) => {
     console.error(
       JSON.stringify({
         level: "error",
-        event: "scheduler_publish_unhandled",
+        event: "internal_publish_unhandled",
         message: err instanceof Error ? err.message : String(err),
       }),
     );
@@ -139,11 +133,12 @@ server.listen(port, host, () => {
   console.log(
     JSON.stringify({
       level: "info",
-      event: "scheduler_publish_server_listen",
+      event: "internal_publish_server_listen",
       host,
       port,
       path,
-      auth: process.env.MARKETER_SCHEDULER_HTTP_TOKEN ? "bearer" : "none",
+      auth: process.env.MARKETER_PUBLISH_HTTP_TOKEN ? "bearer" : "none",
+      database: process.env.DATABASE_URL ? "postgres" : "none",
     }),
   );
 });
@@ -152,31 +147,18 @@ async function shutdown(signal: string) {
   console.log(
     JSON.stringify({
       level: "info",
-      event: "scheduler_publish_server_shutdown",
+      event: "internal_publish_server_shutdown",
       signal,
     }),
   );
-  /** Stop accepting new connections, then drain scheduler to flush any
-   * pending enqueues before exiting. */
   await new Promise<void>((resolve) => server.close(() => resolve()));
-  try {
-    await scheduler.close();
-  } catch (err) {
-    console.error(
-      JSON.stringify({
-        level: "error",
-        event: "scheduler_publish_close_failed",
-        message: err instanceof Error ? err.message : String(err),
-      }),
-    );
-  }
   try {
     await closePostgres();
   } catch (err) {
     console.error(
       JSON.stringify({
         level: "error",
-        event: "scheduler_publish_postgres_close_failed",
+        event: "internal_publish_postgres_close_failed",
         message: err instanceof Error ? err.message : String(err),
       }),
     );

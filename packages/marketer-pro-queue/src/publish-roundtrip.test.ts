@@ -142,7 +142,7 @@ describe.skipIf(!redisAvailable)("publish queue roundtrip (real Redis)", () => {
       tenantId: "tenant-roundtrip",
       idempotencyKey,
       correlationId: "publish-roundtrip.test",
-      network: "test",
+      network: "meta",
     });
 
     expect(enqueued.id).toBe(idempotencyKey);

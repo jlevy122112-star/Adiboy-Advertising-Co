@@ -19,6 +19,19 @@ This stack replaces **in-process** publish attempts when you need horizontal sca
 | `MARKETER_PUBLISH_HTTP_URL` | When set, worker POSTs each job to this URL (see below) | _(unset → stub runner)_ |
 | `MARKETER_PUBLISH_HTTP_TOKEN` | Optional `Authorization: Bearer` for the HTTP runner | _(unset)_ |
 | `MARKETER_PUBLISH_HTTP_TIMEOUT_MS` | HTTP request timeout for the publish runner | `60000` |
+| `MARKETER_SCHEDULER_HTTP_TOKEN` | Optional Bearer token required by the producer-side scheduler server | _(unset → no auth)_ |
+| `SCHEDULER_PUBLISH_HOST` / `SCHEDULER_PUBLISH_PORT` / `SCHEDULER_PUBLISH_PATH` | Bind/path overrides for the scheduler HTTP server | `127.0.0.1` / `8791` / `/api/marketer-pro/publish/schedule` |
+| `DATABASE_URL` | When set, internal publish loads **`schedule_entries`** in Postgres before routing; missing rows → **`schedule_entry_not_found_in_postgres`** | _(unset → in-memory stub path only)_ |
+
+## Postgres (roadmap **P3**)
+
+- **Migrate:** from repo root, `npm run db:migrate` (requires `DATABASE_URL`). SQL lives in [`apps/api/db/migrations`](../../apps/api/db/migrations).
+- **Local DB (example):** `docker run -d --name marketer-pg -e POSTGRES_PASSWORD=dev -e POSTGRES_DB=marketer -p 5432:5432 postgres:16-alpine` then `DATABASE_URL=postgres://postgres:dev@127.0.0.1:5432/marketer`.
+- **Seed a row** for smoke tests: `INSERT INTO schedule_entries (tenant_id, id, network, status) VALUES ('tenant-1', 'sched-1', 'meta', 'scheduled');` (`tenant_id` + `id` must match the publish job payload and form the composite primary key).
+
+## Multi-network routing (roadmap **P4**)
+
+Jobs carry optional **`network`** (string). **`classifyPublishNetwork`** ([`publish-network.ts`](../../packages/marketer-pro-queue/src/publish-network.ts)) maps synonyms (`facebook` → `meta`, `twitter` → `x`) and unknown labels (smoke tests, experiments) → **`generic`**. If Postgres is enabled, **`payload.network`** overrides the row’s **`network`** column when present. The internal publish server dispatches per slug in [`publish-dispatch.ts`](../../apps/api/src/marketer-pro/publish-dispatch.ts) — stubs today; swap in Meta Graph / X API v2 / TikTok partner calls per handler. Worker logs include **`publishNetwork`** (classified) and **`networkRaw`**.
 
 ## Implementation checklist (P3)
 
@@ -39,6 +52,9 @@ npm run queue:worker
 
 # Enqueue one smoke job (needs Redis; run worker in another terminal to process it)
 npm run queue:enqueue-smoke
+
+# Apply Postgres migrations (needs DATABASE_URL)
+npm run db:migrate
 ```
 
 ## Producer (API) integration
@@ -59,6 +75,54 @@ await scheduler.schedulePublish({
 // graceful shutdown
 await scheduler.close();
 ```
+
+### Internal publish HTTP server (`apps/api`)
+
+For local / staging wiring without the full API surface, run the minimal listener:
+
+```bash
+npm run start:internal -w @home-link/marketer-api
+```
+
+Defaults: **`127.0.0.1:8790`**, path **`/internal/publish/execute`**. Override with **`INTERNAL_PUBLISH_HOST`**, **`INTERNAL_PUBLISH_PORT`**, **`INTERNAL_PUBLISH_PATH`**. Set **`MARKETER_PUBLISH_HTTP_TOKEN`** on both this process and the worker when you want Bearer auth.
+
+Point the worker at:
+
+`MARKETER_PUBLISH_HTTP_URL=http://127.0.0.1:8790/internal/publish/execute`
+
+### Producer-side scheduler HTTP server (`apps/api`)
+
+External triggers (cron, manual ops, third-party webhooks) call this server to enqueue publish jobs. It hosts the route handler in [`apps/api/src/marketer-pro/schedule-publish-route.ts`](../../apps/api/src/marketer-pro/schedule-publish-route.ts) and owns its `PublishScheduler` lifecycle.
+
+```bash
+npm run start:scheduler -w @home-link/marketer-api
+```
+
+Defaults: **`127.0.0.1:8791`**, path **`/api/marketer-pro/publish/schedule`**. Override with **`SCHEDULER_PUBLISH_HOST`**, **`SCHEDULER_PUBLISH_PORT`**, **`SCHEDULER_PUBLISH_PATH`**. Set **`MARKETER_SCHEDULER_HTTP_TOKEN`** to require Bearer auth on the producer endpoint (independent of the worker's `MARKETER_PUBLISH_HTTP_TOKEN`).
+
+Request body (Zod-validated):
+
+```json
+{
+  "scheduleEntryId": "sched_123",
+  "tenantId": "tenant_a",
+  "idempotencyKey": "publish:sched_123:2026-05-10T12:00:00Z",
+  "correlationId": "trace-abc",
+  "network": "meta",
+  "jobOptions": { "priority": 5, "delay": 0 }
+}
+```
+
+`jobOptions` is a strict subset (`priority`, `delay`, `jobId`); anything else is rejected with **400** so external callers can't reach into broker internals (`removeOnComplete`, locks, rate limits, etc.).
+
+Responses:
+
+- **202** — `{ "jobId": "...", "queueName": "marketer-publish" }` (job accepted; processing is async)
+- **400** — `{ "error": "validation_error", "message": "..." }` or `{ "error": "invalid_json" }`
+- **401** — `{ "error": "unauthorized" }` (when `MARKETER_SCHEDULER_HTTP_TOKEN` is set)
+- **404 / 405 / 413 / 500** — standard transport-level errors
+
+---
 
 For ad-hoc enqueues outside the API, the lower-level primitives are still exported:
 

@@ -29,7 +29,7 @@ try {
     tenantId: "smoke-tenant",
     idempotencyKey: stamp,
     correlationId: "enqueue-publish-smoke.mjs",
-    network: "smoke",
+    network: "meta",
   });
   console.log(
     JSON.stringify({

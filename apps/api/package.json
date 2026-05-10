@@ -5,12 +5,17 @@
   "type": "module",
   "scripts": {
     "build": "tsc -p tsconfig.json --pretty false",
-    "typecheck": "tsc -p tsconfig.json --pretty false"
+    "typecheck": "tsc -p tsconfig.json --pretty false",
+    "start:internal": "node dist/internal-publish-server.js",
+    "start:scheduler": "node dist/scheduler-publish-server.js",
+    "db:migrate": "node scripts/migrate.mjs"
   },
   "dependencies": {
     "@home-link/marketer-pro-queue": "*",
     "bullmq": "^5.76.6",
-    "ioredis": "^5.10.1"
+    "ioredis": "^5.10.1",
+    "postgres": "^3.4.5",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

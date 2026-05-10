@@ -23,7 +23,7 @@ Complete in order. Use [`docs/engineering/redis-bullmq.md`](./engineering/redis-
 
 3. From monorepo root: `npm install`
 4. `npm run build -w @home-link/marketer-pro-queue` (or rely on `queue:worker`, which builds first)
-5. **`npm run queue:worker`** — worker listens on queue **`marketer-publish`**; processor today is a **stub** in [`packages/marketer-pro-queue/src/worker-cli.ts`](../packages/marketer-pro-queue/src/worker-cli.ts) (replace with real publish runner).
+5. **`npm run queue:worker`** — worker listens on queue **`marketer-publish`**. [`worker-cli.ts`](../packages/marketer-pro-queue/src/worker-cli.ts) uses **`resolvePublishRunnerFromEnv()`**: set **`MARKETER_PUBLISH_HTTP_URL`** for the HTTP runner, or omit it for the **stub** (local dev).
 
 ### 3. Producer (`apps/api` or scheduler)
 
@@ -34,7 +34,7 @@ Complete in order. Use [`docs/engineering/redis-bullmq.md`](./engineering/redis-
 
 ### 4. Replace stub processor
 
-10. In `worker-cli.ts`, swap the stub return for: **internal HTTP** to your publish endpoint, **or** a **shared module** that runs the same code path as in-process publish today — keep **`PublishJobResult`** shape (`ok`, `detail`, `externalId`).
+10. **Worker → publish execution:** `worker-cli.ts` calls **`createHttpPublishRunner`** when `MARKETER_PUBLISH_HTTP_URL` is set (POST body `{ payload, context }`, response JSON **`PublishJobResult`**). Implement that route in **`apps/api`** (or point the URL at a sidecar that imports your publisher module). Alternative: swap `resolvePublishRunnerFromEnv()` for a **shared module** runner that invokes the same code as in-process publish — keep **`PublishJobResult`** (`ok`, `detail`, `externalId`).
 
 ### 5. Verify
 

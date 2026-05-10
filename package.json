@@ -17,7 +17,9 @@
     "test:packages": "vitest run",
     "build:queue": "npm run build -w @home-link/marketer-pro-queue",
     "queue:worker": "npm run build -w @home-link/marketer-pro-queue && node packages/marketer-pro-queue/dist/worker-cli.js",
-    "queue:enqueue-smoke": "npm run build -w @home-link/marketer-pro-queue && node scripts/enqueue-publish-smoke.mjs"
+    "queue:enqueue-smoke": "npm run build -w @home-link/marketer-pro-queue && node scripts/enqueue-publish-smoke.mjs",
+    "api:internal": "npm run build -w @home-link/marketer-api && npm run start:internal -w @home-link/marketer-api",
+    "db:migrate": "npm run db:migrate -w @home-link/marketer-api"
   },
   "devDependencies": {
     "@eslint/js": "^9.16.0",
