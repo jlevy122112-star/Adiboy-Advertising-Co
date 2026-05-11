@@ -15,6 +15,7 @@
     "lint:fix": "eslint packages apps --fix --max-warnings 999",
     "verify": "node scripts/verify-workspace.mjs",
     "test:packages": "vitest run",
+    "check": "npm run verify && npm run typecheck && npm run lint && npm run test:packages",
     "build:queue": "npm run build -w @home-link/marketer-pro-queue",
     "queue:worker": "npm run build -w @home-link/marketer-pro-queue && node packages/marketer-pro-queue/dist/worker-cli.js",
     "queue:enqueue-smoke": "npm run build -w @home-link/marketer-pro-queue && node scripts/enqueue-publish-smoke.mjs",
