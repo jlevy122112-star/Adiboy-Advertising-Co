@@ -584,6 +584,94 @@ when the operator UI needs to surface the full registry.
 
 ---
 
+## Decision Audit Log
+
+The audit log is the append-only ledger that backs the "user has a say
+in every choice" product principle. Every committed decision (whether
+the user made it, the AI made it on the user's behalf, or an autonomous
+run made it) gets one row. The UI's history timeline, the compliance
+export, and the "why did this value change?" tooltip all read the same
+log.
+
+**The audit entry vs. the decision record.** `DecisionRecord` (from
+`decision-point.ts`) captures *what was decided* at one decision point.
+`DecisionAuditEntry` wraps that record with the *context around* the
+decision:
+
+- **Target.** Which entity the decision was about — `workspace`,
+  `campaign`, `schedule_entry`, `brief`, `asset`, or `run`. Together
+  with `target.path` (e.g. `"copy.headline"`) it pinpoints a sub-field.
+- **Alternatives offered.** A snapshot of which options were on the
+  table at commit time. Powers the "what would we have chosen instead?"
+  view without re-running the generator.
+- **Supersede chain.** When an entry replaces an earlier one, the new
+  entry carries `supersedes.entryId` and a structured `supersedes.reason`
+  (`user_edit`, `ai_regenerate`, `autonomous_override`,
+  `validation_failure`, `policy_change`, `rollback`). The timeline shows
+  *why* a value flipped — never a bare "value changed".
+- **Cross-system join keys.** `runId`, `briefId`, `scheduleEntryId` —
+  optional but heavily encouraged. They make the unified timeline
+  possible across autonomous runs, generation briefs, and scheduled
+  posts.
+
+**The six entry kinds.** Stable, additive vocabulary:
+
+- `decision_committed` — a fresh `DecisionRecord` was written.
+- `decision_superseded` — an older `decision_committed` is being
+  replaced; `supersedes` is required.
+- `ai_suggestion_offered` — AI proposed options; user has not committed
+  yet. `record` is `null`; `alternativesOffered` is populated.
+- `ai_suggestion_rejected` — user dismissed an AI suggestion without
+  picking it.
+- `autonomous_override` — an autonomous run wrote a decision without
+  surfacing it to the user first. Requires `runId` and a non-`user`
+  source on the underlying record.
+- `user_override` — user explicitly overrode an AI or autonomous
+  decision. May carry a `supersedes` block.
+
+**Append-only invariants.** `appendAuditEntry` rejects writes that
+break any of:
+
+1. `entryId` already exists in the log.
+2. `createdAt` is earlier than the head's `createdAt` (monotonic time;
+   equal is allowed).
+3. `supersedes.entryId` points at an entry not present in the log.
+4. `workspaceId` differs from the rest of the log (keep one log per
+   workspace).
+
+**The user-only invariant.** A `user_only` decision point can never
+accept a record with `source = "ai"` or `"ai_edited"`. This is enforced
+at the record level (`validateDecisionRecord`) and again at the audit
+level (`validateAuditEntryAgainstPoint`) so neither the autonomous
+orchestrator nor a misbehaving import path can sneak an AI-authored
+value into a user-only slot.
+
+**Projections.** The contract ships read helpers ready for the UI:
+
+- `findCurrentDecision(log, target, decisionPointId)` — head of trail.
+  Walks the log, ignoring offer/reject entries and any entry that is
+  pointed to by a later `supersedes.entryId`. Returns `null` when no
+  committed decision exists yet.
+- `decisionTrailFor(log, target, decisionPointId)` — full timeline,
+  including superseded entries, for the "you decided X at T1, AI
+  suggested Y at T2, you reverted at T3" UI.
+- `auditEntriesForRun(log, runId)`,
+  `auditEntriesForBrief(log, briefId)`,
+  `auditEntriesForScheduleEntry(log, scheduleEntryId)` — forensics
+  views for the operator dashboard.
+- `wasOverriddenByUser(log, target, decisionPointId)` — predicate for
+  "you've already adjusted this" badges.
+- `isHeadDecisionAutonomous(log, target, decisionPointId)` — predicate
+  for "AI-authored" badges.
+
+**What lives outside this module.** Storage (SQL, blob), pagination
+cursors, real-time streaming, and the UI components are not in the
+contract layer. The contract guarantees the *shape* of the log and the
+*invariants* every writer must respect; persistence belongs in
+`apps/api`.
+
+---
+
 ## Repository Layout
 
 - `packages/marketer-pro-contract/` — Zod schemas, asset-format catalog
