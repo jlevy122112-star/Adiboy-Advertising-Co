@@ -509,6 +509,81 @@ a safe no-op.
 
 ---
 
+## Provider Capability
+
+The **provider capability** registry answers two questions for the autonomous
+orchestrator:
+
+1. *"I have a brief for (network=instagram, capability=image_generation).
+   Which providers CAN do this?"*
+2. *"Of the providers that CAN, which one SHOULD we try first?"*
+
+It is **purely declarative** — no API calls, no health checks, no auth.
+Connection auth state lives on the workspace connection records; runtime
+health / circuit-breaker state lives on a future per-workspace
+`ProviderHealth` record. See
+`packages/marketer-pro-contract/src/provider-capability.ts`.
+
+### Catalogs
+
+- **`PROVIDER_IDS`** — canonical 10 providers (additive only):
+  `openai`, `anthropic`, `stability_ai`, `meta_graph` (Facebook +
+  Instagram), `x_api`, `linkedin_api`, `youtube_api`, `tiktok_api`,
+  `pinterest_api`, `mock` (test-only, disabled in the seed catalog).
+- **`PROVIDER_CAPABILITIES`** — coarse-grained intent vocabulary:
+  `text_generation`, `image_generation`, `image_editing`,
+  `social_publish`, `social_schedule_native`.
+- **`PROVIDER_COST_TIERS`** — `free` | `low` | `mid` | `high` | `premium`.
+- **`PROVIDER_QUALITY_TIERS`** — `experimental` | `standard` | `premium`.
+- **`PROVIDER_AUTH_METHODS`** — `api_key` | `oauth2` | `service_account` |
+  `platform_token` | `none`.
+
+### Network coupling is per-capability
+
+The `network` field on a row is required for publish-side capabilities
+(`social_publish` / `social_schedule_native`) and forbidden otherwise.
+`ProviderCapabilityRecordSchema` enforces this via a `.refine`, and the
+helper `capabilityRequiresNetwork(c)` exposes the rule for callers.
+
+### Deterministic selection
+
+Selection is **never random**. Two helpers are exposed:
+
+- `compareCapabilityRecords(a, b)` — the comparator. Sort key is
+  `(qualityTier desc, costTier asc, providerId asc)`.
+- `rankCapableProviders(query)` — capable rows sorted by the comparator.
+  The autonomous orchestrator iterates this list as its retry order.
+- `selectFirstCapableProvider(query)` — convenience that returns the
+  top-ranked row or `null`.
+
+Same registry + same query → same order. This makes autonomous runs
+reproducible across attempts and trivially testable.
+
+### Lookups
+
+- `getProviderCapabilities(providerId, registry?)` — every row for one
+  provider.
+- `listCapabilitiesOf(providerId, registry?)` — deduplicated capability
+  list (e.g. for the `meta_graph` provider, `social_publish` only
+  appears once even though it has rows for both Facebook and Instagram).
+- `findCapableProviders({capability, network?, includeDisabled?}, registry?)` —
+  every enabled row that matches. Throws when the query shape doesn't
+  match the capability's network requirement (publish-side capability
+  with no network, or generator capability with a network) so callers
+  can't silently mismatch.
+- `providerSupports(providerId, query, registry?)` — boolean predicate.
+- `listAllProviders()` / `listAllCapabilities()` /
+  `listProvidersInRegistry(registry?)` — for UI dropdowns and validation.
+
+### Why "disabled" rows exist
+
+A row marked `enabled: false` is *known to the catalog but inactive*
+(under maintenance, deprecated, or test-only like `mock`). The lookups
+filter them out by default; pass `includeDisabled: true` to override
+when the operator UI needs to surface the full registry.
+
+---
+
 ## Repository Layout
 
 - `packages/marketer-pro-contract/` — Zod schemas, asset-format catalog
