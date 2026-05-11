@@ -398,6 +398,21 @@ export {
 } from "./decision-audit-log.js";
 
 export {
+  buildDecisionTimeline,
+  currentDecisionsForTarget,
+  DECISION_TIMELINE_SOURCES,
+  DecisionTimelineEntrySchema,
+  DecisionTimelineSourceSchema,
+  summarizeDecisionActivityForTarget,
+  type BuildDecisionTimelineArgs,
+  type CurrentDecisionsForTargetArgs,
+  type DecisionActivitySummary,
+  type DecisionTimelineEntry,
+  type DecisionTimelineFilter,
+  type DecisionTimelineSource,
+} from "./decision-aggregator.js";
+
+export {
   capabilityRequiresNetwork,
   compareCapabilityRecords,
   findCapableProviders,

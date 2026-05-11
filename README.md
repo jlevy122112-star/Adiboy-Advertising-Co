@@ -672,6 +672,29 @@ contract layer. The contract guarantees the *shape* of the log and the
 
 ---
 
+## Decision Aggregator
+
+The decision aggregator is the read-side bridge between the Decision Audit
+Log and the Autonomous Run event stream. Audit rows own committed decisions;
+run events own runtime facts. The aggregator normalizes both into one
+timeline for the UI and operator dashboard.
+
+- `buildDecisionTimeline({ auditLog, runEvents, filter })` returns a stable
+  chronological stream of decision activity from both sources. Filters can
+  narrow by target, run, brief, schedule entry, source, or decision point.
+- `currentDecisionsForTarget({ auditLog, target })` returns one current
+  record-bearing audit entry per decision point, ignoring entries superseded
+  by later rows.
+- `summarizeDecisionActivityForTarget(...)` combines both views for one
+  target and exposes `latestActivityAt` for timeline badges and freshness
+  indicators.
+
+This is intentionally a pure projection layer. It does not write audit rows,
+mutate autonomous runs, or resolve storage. It lets the app answer "what is
+current?" and "what happened?" with the same contracts everywhere.
+
+---
+
 ## Repository Layout
 
 - `packages/marketer-pro-contract/` — Zod schemas, asset-format catalog
