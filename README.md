@@ -397,6 +397,118 @@ When a run terminates in `failed`, `failureKind` is required and is one of:
 
 ---
 
+## Generation Brief
+
+The **generation brief** is the structured "work order" the asset generator
+consumes to produce ONE concrete piece of content for ONE platform/format.
+Every brief packages identity, directives, provenance, and lifecycle into
+one validated record. See `packages/marketer-pro-contract/src/generation-brief.ts`.
+
+### Status lifecycle (6 statuses)
+
+```
+draft ──▶ validated ──▶ generating ──┬─▶ generated ─▶ obsolete
+  ▲          │              │        ├─▶ failed    ─▶ obsolete
+  └──────────┘              └────────┴─▶ obsolete  (cancel in-flight)
+```
+
+- **`draft`** — initial state; user is composing directives.
+- **`validated`** — passed `validateBriefForGeneration`, ready for the
+  generator. `isReadyForGenerator(brief)` returns true.
+- **`generating`** — checked out by the generator (provider call in flight).
+- **`generated`** — success terminal-ish; `resultId` points at the asset.
+- **`failed`** — failure terminal-ish; `failureKind` + `failureMessage` set.
+- **`obsolete`** — only true terminal; covers cancellation, supersession,
+  and post-mortem of generated/failed briefs. Required `finalisedAt`.
+
+`isTerminalBriefStatus` returns true *only* for `obsolete`. The wider
+"finalised" concept — statuses that set `finalisedAt` — covers
+`generated` / `failed` / `obsolete`; check it via the `isFinalised(brief)`
+helper.
+
+### Directives (the "work" the brief carries)
+
+| Field | Purpose |
+|---|---|
+| `copy` (CopyDirectives) | headline, subhead, body, cta, hashtags, link, optional `maxBodyChars` cap |
+| `design` (DesignDirectives) | paletteMode, customPaletteHex, imageryDirection, imageryQuery/AssetId, layoutIntent, mood |
+| `voice` (VoiceDirectives) | toneShift, formalityOverride, banned/preferred phrases — relative to workspace voice |
+| `seo` | per-brief override of workspace SEO defaults |
+| `imageOpt` | per-brief override of workspace image-optimisation settings |
+| `themeOverride` | per-brief override of workspace brand theme |
+
+Directives use the same **override chain** pattern documented under
+"SEO & Image Optimization" and "Brand Theme & White-Label" — the brief
+carries deltas, the resolver merges them with workspace + format defaults.
+
+### Provenance (`fieldSources`)
+
+Every brief tracks **per-field provenance** as a sparse map:
+
+```ts
+{
+  "copy.headline": "user",
+  "design.paletteMode": "ai_edited",
+  "voice.toneShift": "ai",
+}
+```
+
+Values are `DecisionSource`s (`user` | `ai` | `ai_edited` | …). The map
+caps at 200 entries. `recordFieldSource(brief, path, source, now)` returns
+a new brief with the entry added/updated — never mutates input. This
+backs the "user has a say in every decision" product principle: the UI
+can surface "this was AI-generated" hints, and the audit log can show
+exactly who/what authored each field.
+
+### Source taxonomy
+
+`brief.source` records the upstream that created the brief:
+
+- `manual_user` — user typed/edited it themselves.
+- `ai_proposed` — AI drafted it; user has not yet committed.
+- `ai_committed` — AI drafted and the user accepted without edits.
+- `autonomous_run` — emitted by an `AutonomousRun` (requires non-null `runId`).
+
+### Validation gate
+
+`validateBriefForGeneration(brief)` is the single source of truth for
+"is this brief complete enough to send to the generator?". It is **stricter
+than the schema** — a brief can parse cleanly through `GenerationBriefSchema`
+yet still be missing fields the generator needs. Every issue carries a
+stable `code` so the UI can map it to a fix-it action:
+
+- `missing_copy_headline`
+- `missing_copy_body_for_long_form` (only fires when `maxBodyChars >= longFormBodyThreshold`, default 280)
+- `missing_design`
+- `missing_imagery_query`
+- `missing_custom_palette`
+- `format_unknown`
+- `format_network_mismatch` (only flagged when the format's network is publishable)
+
+### Deterministic IDs (`briefIdFor`)
+
+```ts
+briefIdFor({ runId, scheduleEntryId, formatId })
+// "brief_HHHHHHHH_HHHHHHHH_HHHHHHHH"  (3× 8-char SHA-1 prefix)
+```
+
+Same inputs always produce the same id, so re-enqueueing the same
+`(run, schedule entry, format)` tuple in the autonomous orchestrator is
+a safe no-op.
+
+### Read helpers
+
+- `isReadyForGenerator(brief)` — exactly `validated`.
+- `isPendingGenerator(brief)` — `validated` or `generating`.
+- `isFinalised(brief)` — `generated` / `failed` / `obsolete`.
+- `isTerminalBriefStatus(status)` — `obsolete` only.
+- `transitionBriefStatus(brief, args)` — pure status transition; returns
+  a new brief on success, the original brief plus a structured rejection
+  reason on illegal transitions, and throws only when required-companion
+  args are missing (`failure` for `failed`, `resultId` for `generated`).
+
+---
+
 ## Repository Layout
 
 - `packages/marketer-pro-contract/` — Zod schemas, asset-format catalog
