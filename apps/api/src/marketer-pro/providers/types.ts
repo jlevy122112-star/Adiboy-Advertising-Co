@@ -1,3 +1,4 @@
+import type { PlatformAdaptationResult } from "@home-link/marketer-pro-contract";
 import type {
   PublishJobPayload,
   PublishJobResult,
@@ -10,6 +11,8 @@ export interface PublishProviderInput {
   readonly payload: PublishJobPayload;
   readonly context: PublishDispatchContext;
   readonly row: ScheduleEntryRow | undefined;
+  /** Present when `payload.copy` was adapted for the resolved publish route. */
+  readonly adaptedCopy?: PlatformAdaptationResult;
 }
 
 export interface PublishProviderAdapter {

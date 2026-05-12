@@ -42,4 +42,33 @@ describe("dispatchPublishByNetwork", () => {
     );
     expect(r.externalId).toBe("meta:s3");
   });
+
+  it("includes adaptation marker in stub detail when copy is present", async () => {
+    const r = await dispatchPublishByNetwork(
+      {
+        scheduleEntryId: "s9",
+        tenantId: "t1",
+        network: "x",
+        copy: { body: "z".repeat(400) },
+      },
+      ctx,
+    );
+    expect(r.ok).toBe(true);
+    expect(r.detail).toMatch(/p4_stub_x_wire_sdk/);
+    expect(r.detail).toContain("_adapted:w=");
+  });
+
+  it("does not adapt copy for generic route", async () => {
+    const r = await dispatchPublishByNetwork(
+      {
+        scheduleEntryId: "s10",
+        tenantId: "t1",
+        network: "smoke",
+        copy: { body: "hello" },
+      },
+      ctx,
+    );
+    expect(r.ok).toBe(true);
+    expect(r.detail).not.toContain("_adapted:");
+  });
 });

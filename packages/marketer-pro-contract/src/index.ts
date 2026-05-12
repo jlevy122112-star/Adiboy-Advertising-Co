@@ -512,6 +512,7 @@ export {
   BriefSourceSchema,
   BriefStatusSchema,
   briefIdFor,
+  COPY_DIRECTIVES_HEADLINE_SUBHEAD_MAX_CHARS,
   CopyDirectivesSchema,
   createBrief,
   DesignDirectivesSchema,
@@ -556,6 +557,32 @@ export {
   type VoiceDirectives,
   type VoiceToneShift,
 } from "./generation-brief.js";
+
+export {
+  adaptCopyToPlatform,
+  adaptationWarningsNeedReview,
+  listPublishableNetworksForAdaptation,
+  PLATFORM_ADAPTATION_ISSUE_CODES,
+  PLATFORM_ADAPTATION_STRATEGIES,
+  PLATFORM_ADAPTATION_WARNING_CODES,
+  PLATFORM_COPY_LIMITS,
+  platformCopyLimits,
+  PlatformAdaptationIssueCodeSchema,
+  PlatformAdaptationResultSchema,
+  PlatformAdaptationStrategySchema,
+  PlatformAdaptationWarningCodeSchema,
+  PlatformAdaptationWarningSchema,
+  validateAdaptedCopyForNetwork,
+  type AdaptCopyToPlatformOptions,
+  type PlatformAdaptationIssue,
+  type PlatformAdaptationIssueCode,
+  type PlatformAdaptationResult,
+  type PlatformAdaptationStrategy,
+  type PlatformAdaptationValidationResult,
+  type PlatformAdaptationWarning,
+  type PlatformAdaptationWarningCode,
+  type PlatformCopyLimits,
+} from "./platform-adaptation.js";
 
 /** Workspace-scoped white-label fields (stored per tenant on `workspaces.branding_json`). */
 export const WorkspaceBrandingSchema = z

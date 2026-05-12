@@ -16,6 +16,7 @@
     "typecheck": "tsc -p tsconfig.json --pretty false"
   },
   "dependencies": {
+    "@home-link/marketer-pro-contract": "*",
     "bullmq": "^5.76.6",
     "ioredis": "^5.10.1",
     "zod": "^4.4.3"

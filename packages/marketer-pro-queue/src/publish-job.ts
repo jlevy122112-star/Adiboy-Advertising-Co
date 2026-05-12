@@ -1,3 +1,4 @@
+import { CopyDirectivesSchema } from "@home-link/marketer-pro-contract";
 import { z } from "zod";
 
 /** Payload for a single publish attempt (enqueue from API / scheduler). */
@@ -12,6 +13,11 @@ export const PublishJobPayloadSchema = z.object({
   network: z.string().min(1).optional(),
   /** Opaque correlation for logs (request id, trace id). */
   correlationId: z.string().min(1).optional(),
+  /**
+   * Optional canonical copy to adapt for the target network before SDK publish.
+   * When set, the worker may run `adaptCopyToPlatform` from `@home-link/marketer-pro-contract`.
+   */
+  copy: CopyDirectivesSchema.optional(),
 });
 
 export type PublishJobPayload = z.infer<typeof PublishJobPayloadSchema>;

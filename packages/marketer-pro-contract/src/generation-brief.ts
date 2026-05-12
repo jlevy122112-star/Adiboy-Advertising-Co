@@ -124,11 +124,20 @@ export const VoiceToneShiftSchema = z.enum(VOICE_TONE_SHIFTS);
 /** 3- or 6-digit hex colour with leading `#`. */
 const HEX_COLOR = /^#(?:[0-9a-fA-F]{3}){1,2}$/;
 
+/** Matches `headline` / `subhead` `.max()` on {@link CopyDirectivesSchema}. */
+export const COPY_DIRECTIVES_HEADLINE_SUBHEAD_MAX_CHARS = 280 as const;
+
 /** Copy / text directives that the generator should honour. */
 export const CopyDirectivesSchema = z
   .object({
-    headline: z.string().max(280).optional(),
-    subhead: z.string().max(280).optional(),
+    headline: z
+      .string()
+      .max(COPY_DIRECTIVES_HEADLINE_SUBHEAD_MAX_CHARS)
+      .optional(),
+    subhead: z
+      .string()
+      .max(COPY_DIRECTIVES_HEADLINE_SUBHEAD_MAX_CHARS)
+      .optional(),
     body: z.string().max(10_000).optional(),
     cta: z.string().max(80).optional(),
     hashtags: z.array(z.string().max(60)).max(40).optional(),

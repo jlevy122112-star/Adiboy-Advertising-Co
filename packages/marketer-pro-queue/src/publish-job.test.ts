@@ -30,6 +30,15 @@ describe("PublishJobPayloadSchema", () => {
       }),
     ).toThrow();
   });
+
+  it("accepts optional copy directives", () => {
+    const parsed = PublishJobPayloadSchema.parse({
+      scheduleEntryId: "sched_1",
+      tenantId: "tenant_a",
+      copy: { headline: "Hi", body: "There" },
+    });
+    expect(parsed.copy?.headline).toBe("Hi");
+  });
 });
 
 describe("PublishJobResultSchema", () => {

@@ -3,18 +3,17 @@
  * With `DATABASE_URL`, loads `schedule_entries` before publishing; stubs remain until SDK calls land.
  */
 
-import type {
-  PublishJobPayload,
-  PublishJobResult,
-} from "@home-link/marketer-pro-queue";
 import {
   classifyPublishNetwork,
+  type PublishJobPayload,
+  type PublishJobResult,
   type PublishNetworkSlug,
 } from "@home-link/marketer-pro-queue";
 import {
   type ScheduleEntryRow,
   resolveScheduleEntryForPublish,
 } from "../db/schedule-entry.js";
+import { computeAdaptedPublishCopy } from "./publish-copy-adaptation.js";
 import { metaPublishProvider } from "./providers/meta.js";
 import { stubProviderResult } from "./providers/stub.js";
 import { tiktokPublishProvider } from "./providers/tiktok.js";
@@ -37,25 +36,37 @@ function toProviderInput(
   payload: PublishJobPayload,
   context: PublishDispatchContext,
   row: ScheduleEntryRow | undefined,
+  adaptedCopy?: PublishProviderInput["adaptedCopy"],
 ): PublishProviderInput {
-  return { payload, context, row };
+  return { payload, context, row, adaptedCopy };
+}
+
+function buildHandler(
+  route: PublishNetworkSlug | "generic",
+  impl: (input: PublishProviderInput) => Promise<PublishJobResult>,
+): PublishHandler {
+  return async (payload, context, row) => {
+    const adaptedCopy = computeAdaptedPublishCopy(payload, route);
+    return impl(toProviderInput(payload, context, row, adaptedCopy));
+  };
 }
 
 const handlers: Record<PublishNetworkSlug | "generic", PublishHandler> = {
-  meta: async (payload, context, row) =>
-    metaPublishProvider.publish(toProviderInput(payload, context, row)),
-  instagram: async (payload, context, row) =>
-    stubProviderResult("instagram", toProviderInput(payload, context, row)),
-  x: async (payload, context, row) =>
-    xPublishProvider.publish(toProviderInput(payload, context, row)),
-  tiktok: async (payload, context, row) =>
-    tiktokPublishProvider.publish(toProviderInput(payload, context, row)),
-  linkedin: async (payload, context, row) =>
-    stubProviderResult("linkedin", toProviderInput(payload, context, row)),
-  youtube: async (payload, context, row) =>
-    stubProviderResult("youtube", toProviderInput(payload, context, row)),
-  generic: async (payload, context, row) =>
-    stubProviderResult("generic", toProviderInput(payload, context, row)),
+  meta: buildHandler("meta", (input) => metaPublishProvider.publish(input)),
+  instagram: buildHandler("instagram", async (input) =>
+    stubProviderResult("instagram", input),
+  ),
+  x: buildHandler("x", (input) => xPublishProvider.publish(input)),
+  tiktok: buildHandler("tiktok", (input) => tiktokPublishProvider.publish(input)),
+  linkedin: buildHandler("linkedin", async (input) =>
+    stubProviderResult("linkedin", input),
+  ),
+  youtube: buildHandler("youtube", async (input) =>
+    stubProviderResult("youtube", input),
+  ),
+  generic: buildHandler("generic", async (input) =>
+    stubProviderResult("generic", input),
+  ),
 };
 
 function dispatchWithRow(
