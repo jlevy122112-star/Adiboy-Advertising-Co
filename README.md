@@ -9,6 +9,8 @@ expects, then plan and schedule the publishes.
 The product's defining commitment is below. Read it first; everything else
 in the repo derives from it.
 
+**Phased product roadmap (phases 1–14):** [`docs/full-build-plan.md`](docs/full-build-plan.md) — brand intelligence through security and auto-remediation.
+
 ---
 
 ## The Four Control Modes
@@ -697,6 +699,7 @@ current?" and "what happened?" with the same contracts everywhere.
 
 ## Repository Layout
 
+- `docs/full-build-plan.md` — **full product build plan** (phases 1–14); strategic roadmap for the whole product.
 - `packages/marketer-pro-contract/` — Zod schemas, asset-format catalog
   (130+ formats), the decision-point primitive, and the customer-journey
   definitions. **The product principle above lives here.**
