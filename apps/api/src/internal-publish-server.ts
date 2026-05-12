@@ -13,9 +13,7 @@
 
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { closePostgres } from "./db/postgres.js";
-import {
-  executeInternalPublish,
-} from "./marketer-pro/publish-execute.js";
+import { executeInternalPublishHttp } from "./marketer-pro/publish-execute.js";
 
 const MAX_BODY_BYTES = 256 * 1024;
 
@@ -98,17 +96,14 @@ const server = createServer(async (req, res) => {
 
   try {
     const body = await readJsonBody(req);
-    const outcome = await executeInternalPublish(body);
+    const http = await executeInternalPublishHttp(body);
 
-    if (!outcome.ok) {
-      json(res, outcome.status, {
-        error: "validation_error",
-        message: outcome.message,
-      });
+    if (http.status !== 200) {
+      json(res, http.status, http.body);
       return;
     }
 
-    json(res, 200, outcome.result);
+    json(res, 200, http.body);
   } catch (err) {
     if (err instanceof SyntaxError) {
       json(res, 400, { error: "invalid_json" });

@@ -123,6 +123,19 @@ describe("adaptCopyToPlatform", () => {
     expect(r.warnings.some((w) => w.code === "overflow_blocked")).toBe(true);
     expect(r.copy.headline).toBeUndefined();
     expect(r.copy.body).toBeUndefined();
+    expect(r.copy.hashtags).toBeUndefined();
+  });
+
+  it("preserves trimmed hashtags on fail_on_overflow when primary still overflows", () => {
+    const source: CopyDirectives = {
+      body: "b".repeat(300),
+      hashtags: ["a", "b"],
+    };
+    const r = adaptCopyToPlatform(source, "x", {
+      strategy: "fail_on_overflow",
+    });
+    expect(r.warnings.some((w) => w.code === "overflow_blocked")).toBe(true);
+    expect(r.copy.hashtags).toEqual(["a", "b"]);
   });
 });
 

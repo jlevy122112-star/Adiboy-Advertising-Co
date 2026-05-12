@@ -28,6 +28,7 @@ This stack replaces **in-process** publish attempts when you need horizontal sca
 - **Migrate:** from repo root, `npm run db:migrate` (requires `DATABASE_URL`). SQL lives in [`apps/api/db/migrations`](../../apps/api/db/migrations).
 - **Local DB (example):** `docker run -d --name marketer-pg -e POSTGRES_PASSWORD=dev -e POSTGRES_DB=marketer -p 5432:5432 postgres:16-alpine` then `DATABASE_URL=postgres://postgres:dev@127.0.0.1:5432/marketer`.
 - **Seed a row** for smoke tests: `INSERT INTO schedule_entries (tenant_id, id, network, status) VALUES ('tenant-1', 'sched-1', 'meta', 'scheduled');` (`tenant_id` + `id` must match the publish job payload and form the composite primary key).
+- **Post-publish:** when `DATABASE_URL` is set, `runPublishForScheduleEntry` updates matching rows to **`published`** or **`failed`** (see `persistScheduleEntryPublishOutcome` in [`schedule-entry.ts`](../../apps/api/src/db/schedule-entry.ts)); skips when the row was never loaded (`schedule_entry_not_found_in_postgres`) or the read errored (`postgres_query_failed:*`).
 
 ## Multi-network routing (roadmap **P4**)
 
@@ -52,6 +53,12 @@ npm run queue:worker
 
 # Enqueue one smoke job (needs Redis; run worker in another terminal to process it)
 npm run queue:enqueue-smoke
+
+# Build API + start scheduler HTTP (enqueue producer; needs Redis for BullMQ)
+npm run api:scheduler
+
+# Build API + start internal publish HTTP (worker POST target)
+npm run api:internal
 
 # Apply Postgres migrations (needs DATABASE_URL)
 npm run db:migrate

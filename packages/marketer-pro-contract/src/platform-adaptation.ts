@@ -328,8 +328,8 @@ export function adaptCopyToPlatform(
       subhead: undefined,
       body: undefined,
       cta: undefined,
-      hashtags: tags,
-      link: link ?? undefined,
+      hashtags: tags.length ? tags : undefined,
+      link: link && link.length > 0 ? link : undefined,
       maxBodyChars: source.maxBodyChars,
     };
     warnings.push({
