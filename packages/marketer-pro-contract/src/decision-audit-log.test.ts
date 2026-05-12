@@ -60,7 +60,6 @@ import {
 const T0 = "2026-05-11T05:00:00.000Z";
 const T1 = "2026-05-11T05:01:00.000Z";
 const T2 = "2026-05-11T05:02:00.000Z";
-const T3 = "2026-05-11T05:03:00.000Z";
 
 function buildRecord(
   overrides: Partial<DecisionRecord> = {},

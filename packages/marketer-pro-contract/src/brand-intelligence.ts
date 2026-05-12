@@ -151,6 +151,40 @@ export const DEFAULT_HUMAN_OVERSIGHT_POLICY: HumanOversightPolicy = {
   allowUserOverride: true,
 };
 
+/** Required legal / compliance copy surfaced during generation (Phase 1). */
+export const BrandRequiredDisclaimerSchema = z
+  .object({
+    disclaimerId: z.string().min(1).max(120),
+    text: z.string().min(1).max(2_000),
+    appliesWhen: z.string().max(500).optional(),
+  })
+  .strict();
+export type BrandRequiredDisclaimer = z.infer<
+  typeof BrandRequiredDisclaimerSchema
+>;
+
+/** Forbidden claims, regulated tags, and disclaimer templates for safe generation. */
+export const BrandComplianceRulesSchema = z
+  .object({
+    forbiddenClaims: z.array(z.string().min(1).max(500)).max(100),
+    regulatedContentTags: z.array(z.string().min(1).max(80)).max(40),
+    requiredDisclaimers: z.array(BrandRequiredDisclaimerSchema).max(20),
+    notes: z.string().max(2_000).optional(),
+  })
+  .strict();
+export type BrandComplianceRules = z.infer<typeof BrandComplianceRulesSchema>;
+
+/** Structured product / service facts the model must respect (Phase 1). */
+export const BrandProductFactSchema = z
+  .object({
+    factId: z.string().min(1).max(120),
+    label: z.string().min(1).max(200),
+    body: z.string().min(1).max(4_000),
+    sourceId: z.string().min(1).max(120).optional(),
+  })
+  .strict();
+export type BrandProductFact = z.infer<typeof BrandProductFactSchema>;
+
 export const BrandIntelligenceProfileSchema = z
   .object({
     profileId: z.string().min(1).max(120),
@@ -161,6 +195,9 @@ export const BrandIntelligenceProfileSchema = z
     knowledgeSources: z.array(BrandKnowledgeSourceSchema).max(500),
     defaultAudienceId: z.string().min(1).max(120).nullable(),
     humanOversight: HumanOversightPolicySchema,
+    /** Optional until UI captures it — generation should treat absence as "not yet specified". */
+    compliance: BrandComplianceRulesSchema.optional(),
+    productFacts: z.array(BrandProductFactSchema).max(200).optional(),
     version: z.number().int().min(1),
     updatedAt: z.string().datetime(),
   })
@@ -168,6 +205,19 @@ export const BrandIntelligenceProfileSchema = z
 export type BrandIntelligenceProfile = z.infer<
   typeof BrandIntelligenceProfileSchema
 >;
+
+/**
+ * Full-build-plan Phase 1 output name — identical to {@link BrandIntelligenceProfile}.
+ * Prefer this alias in product docs; the longer name stays for historical imports.
+ */
+export const BrandProfileSchema = BrandIntelligenceProfileSchema;
+export type BrandProfile = BrandIntelligenceProfile;
+
+/**
+ * Full-build-plan Phase 1 output name — same shape as {@link BrandVoice} on the profile.
+ */
+export const BrandVoiceGuidelinesSchema = BrandVoiceSchema;
+export type BrandVoiceGuidelines = BrandVoice;
 
 export const BrandGenerationContextSchema = z
   .object({
@@ -181,6 +231,8 @@ export const BrandGenerationContextSchema = z
     appliedVoiceDirectives: VoiceDirectivesSchema.optional(),
     trustedSourceIds: z.array(z.string().min(1).max(120)).max(500),
     humanOversight: HumanOversightPolicySchema,
+    compliance: BrandComplianceRulesSchema.optional(),
+    productFacts: z.array(BrandProductFactSchema).max(200).optional(),
   })
   .strict();
 export type BrandGenerationContext = z.infer<
@@ -391,7 +443,95 @@ export function buildBrandGenerationContext(
     appliedVoiceDirectives: args.voiceDirectives,
     trustedSourceIds,
     humanOversight: args.humanOversight ?? profile.humanOversight,
+    compliance: profile.compliance,
+    productFacts: profile.productFacts,
   });
+}
+
+/**
+ * Deterministic plain-text block for LLM system / developer messages.
+ * Surfaces voice, audience, retrieval, compliance, and product facts.
+ */
+export function formatBrandGenerationContextForPrompt(
+  context: BrandGenerationContext,
+): string {
+  const lines: string[] = [];
+  lines.push(`## Brand: ${context.displayName}`);
+  lines.push(`workspaceId: ${context.workspaceId}`);
+  lines.push(`profileId: ${context.profileId}`);
+  lines.push("");
+  lines.push("### Voice summary");
+  lines.push(context.voiceSummary);
+  lines.push("");
+
+  if (context.audience) {
+    const a = context.audience;
+    lines.push("### Audience");
+    lines.push(`- id: ${a.audienceId}`);
+    lines.push(`- name: ${a.name}`);
+    if (a.description) lines.push(`- description: ${a.description}`);
+    lines.push(`- lifecycle: ${a.lifecycleStage}`);
+    lines.push(`- geography: ${a.geography.join(", ")}`);
+    lines.push(`- preferred channels: ${a.preferredChannels.join(", ")}`);
+    lines.push("");
+  } else {
+    lines.push("### Audience");
+    lines.push("(none selected)");
+    lines.push("");
+  }
+
+  if (context.retrievalSnippets.length > 0) {
+    lines.push("### Retrieved knowledge (cite by label when using)");
+    for (const s of context.retrievalSnippets) {
+      lines.push(`- [${s.citationLabel}] (score ${s.score.toFixed(3)})`);
+      lines.push(`  ${s.textExcerpt}`);
+    }
+    lines.push("");
+  }
+
+  if (context.compliance) {
+    const c = context.compliance;
+    lines.push("### Compliance (must follow)");
+    if (c.forbiddenClaims.length > 0) {
+      lines.push("Forbidden claims / statements:");
+      for (const claim of c.forbiddenClaims) {
+        lines.push(`- ${claim}`);
+      }
+    }
+    if (c.regulatedContentTags.length > 0) {
+      lines.push(`Regulated content tags: ${c.regulatedContentTags.join(", ")}`);
+    }
+    if (c.requiredDisclaimers.length > 0) {
+      lines.push("Required disclaimers:");
+      for (const d of c.requiredDisclaimers) {
+        const when = d.appliesWhen ? ` (when: ${d.appliesWhen})` : "";
+        lines.push(`- [${d.disclaimerId}]${when}: ${d.text}`);
+      }
+    }
+    if (c.notes?.trim()) {
+      lines.push(`Notes: ${c.notes.trim()}`);
+    }
+    lines.push("");
+  }
+
+  if (context.productFacts && context.productFacts.length > 0) {
+    lines.push("### Product / service facts (must be accurate)");
+    for (const f of context.productFacts) {
+      const src = f.sourceId ? ` (source: ${f.sourceId})` : "";
+      lines.push(`- **${f.label}**${src}`);
+      lines.push(`  ${f.body}`);
+    }
+    lines.push("");
+  }
+
+  lines.push("### Trusted source ids");
+  lines.push(
+    context.trustedSourceIds.length > 0
+      ? context.trustedSourceIds.join(", ")
+      : "(none)",
+  );
+
+  return lines.join("\n").trimEnd();
 }
 
 export function audiencePrefersChannel(

@@ -2,7 +2,7 @@
 
 **Purpose:** Single strategic reference for **service boundaries**, **compliance**, and **phased capabilities**. Day-to-day execution is tracked in [`engineering/daily/`](engineering/daily/) (granular steps), not as substitute for this file.
 
-**Broader product phases (1–14):** [`full-build-plan.md`](./full-build-plan.md) — brand intelligence through security and collaboration.
+**Broader product phases (1–14):** [`full-build-plan.md`](./full-build-plan.md) — brand intelligence through security and auto-remediation.
 
 ## Baseline (this product)
 

@@ -22,11 +22,12 @@ This document is the **repo-wide phased roadmap** for the product. It complement
 
 **Output**
 
-- `BrandProfile`  
-- `AudienceProfile`  
-- `BrandKnowledgeSource`  
-- `BrandVoiceGuidelines`  
-- Vector-backed retrieval for generation context  
+- `BrandProfile` — same as `BrandIntelligenceProfile` in `@home-link/marketer-pro-contract` (`brand-intelligence.ts` / `BrandProfileSchema`).
+- `AudienceProfile`
+- `BrandKnowledgeSource`
+- `BrandVoiceGuidelines` — same as `BrandVoice` on the profile (`BrandVoiceGuidelinesSchema`).
+- `BrandComplianceRules` + `BrandProductFact` — forbidden claims / disclaimers / regulated tags and structured product facts (same module).
+- Vector-backed retrieval for generation context
 
 ---
 

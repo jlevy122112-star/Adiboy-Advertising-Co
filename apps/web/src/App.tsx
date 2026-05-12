@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { BrandProfileDraftPanel } from './BrandProfileDraftPanel'
 import reactLogo from './assets/react.svg'
 import viteLogo from './assets/vite.svg'
 import heroImg from './assets/hero.png'
@@ -114,6 +115,9 @@ function App() {
       </section>
 
       <div className="ticks"></div>
+
+      <BrandProfileDraftPanel />
+
       <section id="spacer"></section>
     </>
   )

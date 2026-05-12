@@ -11,9 +11,11 @@ import {
   BrandIntelligenceProfileSchema,
   BrandKnowledgeSourceKindSchema,
   BrandKnowledgeSourceSchema,
+  BrandProfileSchema,
   BrandRetrievalSnippetSchema,
   buildBrandGenerationContext,
   DEFAULT_HUMAN_OVERSIGHT_POLICY,
+  formatBrandGenerationContextForPrompt,
   HUMAN_OVERSIGHT_CHECKPOINTS,
   HUMAN_OVERSIGHT_MODES,
   HumanOversightCheckpointSchema,
@@ -357,6 +359,38 @@ describe("buildBrandGenerationContext", () => {
     expect(context.humanOversight).toEqual(DEFAULT_HUMAN_OVERSIGHT_POLICY);
   });
 
+  it("carries compliance rules and product facts from the profile into context", () => {
+    const compliance = {
+      forbiddenClaims: ["Guaranteed 10x returns in 30 days"],
+      regulatedContentTags: ["financial_services"],
+      requiredDisclaimers: [
+        {
+          disclaimerId: "fin_general",
+          text: "Not investment advice.",
+          appliesWhen: "Discussing performance or ROI",
+        },
+      ],
+    };
+    const productFacts = [
+      {
+        factId: "fact_pricing",
+        label: "Starter price",
+        body: "Starter tier is $49/mo billed annually.",
+        sourceId: "src_website",
+      },
+    ];
+
+    const context = buildBrandGenerationContext({
+      profile: profile({ compliance, productFacts }),
+    });
+
+    expect(context.compliance).toEqual(compliance);
+    expect(context.productFacts).toEqual(productFacts);
+    expect(BrandProfileSchema.parse(profile({ compliance, productFacts }))).toEqual(
+      profile({ compliance, productFacts }),
+    );
+  });
+
   it("honors an explicit audience and retrieval snippet cap", () => {
     const secondAudience: AudienceProfile = {
       ...baseAudience,
@@ -388,5 +422,32 @@ describe("audiencePrefersChannel", () => {
   it("checks platform preference against the audience profile", () => {
     expect(audiencePrefersChannel(baseAudience, "linkedin")).toBe(true);
     expect(audiencePrefersChannel(baseAudience, "instagram")).toBe(false);
+  });
+});
+
+describe("formatBrandGenerationContextForPrompt", () => {
+  it("includes compliance and product facts sections when present", () => {
+    const compliance = {
+      forbiddenClaims: ["No medical cures"],
+      regulatedContentTags: ["health"],
+      requiredDisclaimers: [
+        { disclaimerId: "h1", text: "Consult a physician.", appliesWhen: "Health claims" },
+      ],
+    };
+    const productFacts = [
+      { factId: "f1", label: "SKU", body: "Widget Pro ships in 2 days." },
+    ];
+    const text = formatBrandGenerationContextForPrompt(
+      buildBrandGenerationContext({
+        profile: profile({ compliance, productFacts }),
+        retrievalSnippets: [snippet({ citationLabel: "FAQ", textExcerpt: "Returns within 30 days." })],
+      }),
+    );
+
+    expect(text).toContain("### Compliance (must follow)");
+    expect(text).toContain("No medical cures");
+    expect(text).toContain("### Product / service facts");
+    expect(text).toContain("Widget Pro ships in 2 days.");
+    expect(text).toContain("[FAQ]");
   });
 });
