@@ -51,15 +51,65 @@
 }
 
 #root {
-  width: 1126px;
+  width: min(1200px, 100%);
   max-width: 100%;
   margin: 0 auto;
-  text-align: center;
+  text-align: left;
   border-inline: 1px solid var(--border);
   min-height: 100svh;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
+}
+
+.marketer-shell {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 1.25rem 1rem 2.5rem;
+}
+
+.marketer-hero {
+  margin-bottom: 1.25rem;
+}
+
+.marketer-kicker {
+  margin: 0 0 0.35rem;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.marketer-title {
+  margin: 0 0 0.5rem;
+  font-size: clamp(1.65rem, 4vw, 2.25rem);
+  letter-spacing: -0.03em;
+}
+
+.marketer-lead {
+  margin: 0;
+  max-width: 52ch;
+  font-size: 0.95rem;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.marketer-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 2rem 0 1.5rem;
+}
+
+.marketer-foot {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.85rem;
+}
+
+.marketer-foot a {
+  color: var(--text-h);
 }
 
 body {

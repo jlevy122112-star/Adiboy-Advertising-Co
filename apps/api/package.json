@@ -4,9 +4,13 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "prebuild": "npm run build -w @home-link/marketer-pro-contract --prefix ../..",
     "build": "tsc -p tsconfig.json --pretty false",
     "typecheck": "tsc -p tsconfig.json --pretty false",
     "start:internal": "node dist/internal-publish-server.js",
+    "start:generation-draft": "node dist/generation-draft-server.js",
+    "start:campaign": "node dist/campaign-server.js",
+    "start:brand-profile": "node dist/brand-profile-server.js",
     "start:scheduler": "node dist/scheduler-publish-server.js",
     "db:migrate": "node scripts/migrate.mjs"
   },

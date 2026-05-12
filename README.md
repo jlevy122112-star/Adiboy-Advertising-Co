@@ -9,7 +9,7 @@ expects, then plan and schedule the publishes.
 The product's defining commitment is below. Read it first; everything else
 in the repo derives from it.
 
-**Phased product roadmap (phases 1–14):** [`docs/full-build-plan.md`](docs/full-build-plan.md) — brand intelligence through security and auto-remediation.
+**What we are building (canonical):** [`docs/full-build-plan.md`](docs/full-build-plan.md) — phased product roadmap (phases 1–14), from brand intelligence through security and auto-remediation. That document is the **authoritative build intent** for scope and phase order; align major work to it and revise the doc when scope changes.
 
 ---
 
@@ -704,7 +704,7 @@ current?" and "what happened?" with the same contracts everywhere.
   (130+ formats), the decision-point primitive, and the customer-journey
   definitions. **The product principle above lives here.**
 - `packages/marketer-pro-queue/` — BullMQ-based publish queue + workers.
-- `apps/api/` — REST API + producer-side scheduler HTTP server.
+- `apps/api/` — REST API plus small HTTP servers: scheduler enqueue, internal publish execution, generation drafts (Phase 2), and campaigns (Phase 4); see `docs/engineering/redis-bullmq.md`.
 
 See `docs/engineering/redis-bullmq.md` for the queue architecture and
 `packages/marketer-pro-contract/src/decision-point.ts` for the

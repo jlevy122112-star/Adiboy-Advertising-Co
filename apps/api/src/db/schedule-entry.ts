@@ -1,19 +1,23 @@
 /**
- * Schedule row lookup for publish jobs — migrations `001` / `002` under `apps/api/db/migrations`.
+ * Schedule row lookup for publish jobs — migrations `001`–`003` under `apps/api/db/migrations`.
  */
 
+import type { ScheduleEntrySqlRow } from "@home-link/marketer-pro-contract";
 import type {
   PublishJobPayload,
   PublishJobResult,
 } from "@home-link/marketer-pro-queue";
 import { getPostgresClient } from "./postgres.js";
 
-export interface ScheduleEntryRow {
-  readonly id: string;
-  readonly tenant_id: string;
-  readonly network: string | null;
-  readonly status: string;
-  readonly content_summary: string | null;
+/** `schedule_entries` row — matches {@link ScheduleEntrySqlRow} in contract. */
+export type ScheduleEntryRow = ScheduleEntrySqlRow;
+
+function pgErrorCode(err: unknown): string | undefined {
+  if (typeof err !== "object" || err === null) {
+    return undefined;
+  }
+  const code = (err as { code?: unknown }).code;
+  return typeof code === "string" ? code : undefined;
 }
 
 export type ScheduleResolve =
@@ -32,7 +36,7 @@ export async function resolveScheduleEntryForPublish(
 
   try {
     const rows = await sql<ScheduleEntryRow[]>`
-      SELECT id, tenant_id, network, status, content_summary
+      SELECT id, tenant_id, campaign_id, network, status, content_summary, created_at, updated_at
       FROM schedule_entries
       WHERE id = ${payload.scheduleEntryId}
         AND tenant_id = ${payload.tenantId}
@@ -43,6 +47,120 @@ export async function resolveScheduleEntryForPublish(
       return { mode: "not_found" };
     }
     return { mode: "ok", row };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    return { mode: "error", message };
+  }
+}
+
+export type UpdateScheduleEntryCampaignResult =
+  | { readonly ok: true; readonly row: ScheduleEntryRow }
+  | {
+      readonly ok: false;
+      readonly code:
+        | "no_database"
+        | "not_found"
+        | "campaign_not_found"
+        | "foreign_key_violation"
+        | "error";
+      readonly message: string;
+    };
+
+/**
+ * Set `schedule_entries.campaign_id` (same tenant). When `campaignId` is
+ * non-null, the campaign row must exist (checked before update). `null` clears
+ * the link.
+ */
+export async function updateScheduleEntryCampaignId(args: {
+  readonly tenantId: string;
+  readonly scheduleEntryId: string;
+  readonly campaignId: string | null;
+}): Promise<UpdateScheduleEntryCampaignResult> {
+  const sql = getPostgresClient();
+  if (!sql) {
+    return { ok: false, code: "no_database", message: "no_database" };
+  }
+
+  if (args.campaignId !== null) {
+    try {
+      const exists = await sql<{ one: number }[]>`
+        SELECT 1 AS one FROM campaigns
+        WHERE tenant_id = ${args.tenantId} AND id = ${args.campaignId}
+        LIMIT 1
+      `;
+      if (!exists[0]) {
+        return {
+          ok: false,
+          code: "campaign_not_found",
+          message: "campaign_not_found_for_tenant",
+        };
+      }
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      return { ok: false, code: "error", message };
+    }
+  }
+
+  try {
+    const rows = await sql<ScheduleEntryRow[]>`
+      UPDATE schedule_entries
+      SET campaign_id = ${args.campaignId},
+          updated_at = now()
+      WHERE tenant_id = ${args.tenantId}
+        AND id = ${args.scheduleEntryId}
+      RETURNING id, tenant_id, campaign_id, network, status, content_summary,
+                created_at, updated_at
+    `;
+    const row = rows[0];
+    if (!row) {
+      return {
+        ok: false,
+        code: "not_found",
+        message: "schedule_entry_not_found",
+      };
+    }
+    return { ok: true, row };
+  } catch (e) {
+    if (pgErrorCode(e) === "23503") {
+      return {
+        ok: false,
+        code: "foreign_key_violation",
+        message: "schedule_entries_campaign_fk_violation",
+      };
+    }
+    const message = e instanceof Error ? e.message : String(e);
+    return { ok: false, code: "error", message };
+  }
+}
+
+export type ListScheduleEntriesForCampaignResult =
+  | { readonly mode: "no_database" }
+  | { readonly mode: "error"; readonly message: string }
+  | { readonly mode: "ok"; readonly rows: ScheduleEntryRow[] };
+
+/**
+ * List `schedule_entries` rows for a tenant where `campaign_id` matches (Phase 4
+ * calendar — “entries in this campaign”), newest `updated_at` first.
+ */
+export async function listScheduleEntriesForCampaign(args: {
+  readonly tenantId: string;
+  readonly campaignId: string;
+  readonly limit: number;
+}): Promise<ListScheduleEntriesForCampaignResult> {
+  const sql = getPostgresClient();
+  if (!sql) {
+    return { mode: "no_database" };
+  }
+  try {
+    const rows = await sql<ScheduleEntryRow[]>`
+      SELECT id, tenant_id, campaign_id, network, status, content_summary, created_at, updated_at
+      FROM schedule_entries
+      WHERE tenant_id = ${args.tenantId}
+        AND campaign_id = ${args.campaignId}
+      ORDER BY updated_at DESC
+      LIMIT ${args.limit}
+    `;
+    return { mode: "ok", rows };
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
     return { mode: "error", message };

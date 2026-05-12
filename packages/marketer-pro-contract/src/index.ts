@@ -339,6 +339,28 @@ export {
 } from "./brand-profile-draft.js";
 
 export {
+  DEFAULT_BRAND_PROFILE_HTTP_PATH_GET,
+  DEFAULT_BRAND_PROFILE_HTTP_PATH_LIST,
+  DEFAULT_BRAND_PROFILE_HTTP_PATH_UPSERT,
+  GetBrandProfileQuerySchema,
+  ListBrandProfilesQuerySchema,
+  UpsertBrandProfileBodySchema,
+  type GetBrandProfileQuery,
+  type ListBrandProfilesQuery,
+  type UpsertBrandProfileBody,
+} from "./brand-profile-http.js";
+
+export {
+  cosineSimilarityEmbedding,
+  lexicalRetrievalSnippetsFromProfile,
+  rankBrandSnippetsByEmbedding,
+  tokenizeRetrievalText,
+  type EmbeddingRetrievalCandidate,
+  type LexicalRetrievalFromProfileOptions,
+  type RankBrandSnippetsByEmbeddingArgs,
+} from "./brand-retrieval.js";
+
+export {
   AUTONOMOUS_RUN_FAILURE_KINDS,
   AUTONOMOUS_RUN_STATES,
   AutonomousRunFailureKindSchema,
@@ -583,6 +605,37 @@ export {
   type PlatformAdaptationWarningCode,
   type PlatformCopyLimits,
 } from "./platform-adaptation.js";
+
+export {
+  AttachScheduleEntryCampaignBodySchema,
+  isKnownScheduleEntryStatus,
+  isTerminalScheduleEntryStatus,
+  ListScheduleEntriesForCampaignQuerySchema,
+  SCHEDULE_ENTRY_STATUS_VALUES,
+  scheduleEntryRecordFromSqlRow,
+  ScheduleEntryRecordSchema,
+  ScheduleEntryStatusSchema,
+  TERMINAL_SCHEDULE_ENTRY_STATUSES,
+  type AttachScheduleEntryCampaignBody,
+  type ListScheduleEntriesForCampaignQuery,
+  type ScheduleEntryRecord,
+  type ScheduleEntrySqlRow,
+  type ScheduleEntryStatus,
+  type TerminalScheduleEntryStatus,
+} from "./content-calendar.js";
+
+export {
+  CAMPAIGN_STATUS_VALUES,
+  campaignRecordFromSqlRow,
+  CampaignRecordSchema,
+  CampaignStatusSchema,
+  CreateCampaignBodySchema,
+  isKnownCampaignStatus,
+  type CampaignRecord,
+  type CampaignSqlRow,
+  type CampaignStatus,
+  type CreateCampaignBody,
+} from "./campaign.js";
 
 /** Workspace-scoped white-label fields (stored per tenant on `workspaces.branding_json`). */
 export const WorkspaceBrandingSchema = z

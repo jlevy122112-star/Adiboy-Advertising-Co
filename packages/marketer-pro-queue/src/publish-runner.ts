@@ -107,6 +107,8 @@ export interface HttpPublishRunnerOptions {
  *
  * - **2xx** + valid JSON → returned as the job result (completed).
  * - **4xx** → `{ ok: false, detail: ... }` without throwing (completed failure; adjust API if retries are desired).
+ *   The internal publish server (`apps/api` `executeInternalPublishHttp`) returns **400** with JSON
+ *   `{ error: "validation_error", message, issues }`; that payload is embedded in `detail` (truncated) for logs.
  * - **5xx / network / timeout / invalid JSON** → throws so BullMQ can retry.
  */
 export function createHttpPublishRunner(
@@ -129,18 +131,20 @@ export function createHttpPublishRunner(
       signal,
     });
 
+    // Read body once — `Response` bodies are single-use streams.
+    const text = await res.text();
+
     if (!res.ok) {
       if (res.status >= 500) {
         throw new Error(`publish_http_upstream_${res.status}`);
       }
-      const snippet = (await res.text()).slice(0, 500);
+      const snippet = text.slice(0, 500);
       return {
         ok: false,
         detail: `publish_http_client_error:${res.status}:${snippet}`,
       };
     }
 
-    const text = await res.text();
     if (!text.trim()) {
       return {
         ok: true,

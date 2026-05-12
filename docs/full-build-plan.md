@@ -5,6 +5,8 @@
 
 This document is the **repo-wide phased roadmap** for the product. It complements the north-star architecture in [`marketer-pro-target-architecture.md`](./marketer-pro-target-architecture.md) and the contract-first details in the root [`README.md`](../README.md).
 
+**Authoritative build intent.** Treat this file as the **canonical statement of what Marketer Pro is meant to become**: scope, order of major capabilities, and the checkpoints that count as “done” for each phase. Other docs explain *how* (architecture, contracts, ops); **this doc is what we agreed to build**, phase by phase. When implementation choices conflict with the plan, update the plan explicitly rather than drifting.
+
 ---
 
 ## Phase 1: Brand intelligence core
@@ -28,6 +30,12 @@ This document is the **repo-wide phased roadmap** for the product. It complement
 - `BrandVoiceGuidelines` — same as `BrandVoice` on the profile (`BrandVoiceGuidelinesSchema`).
 - `BrandComplianceRules` + `BrandProductFact` — forbidden claims / disclaimers / regulated tags and structured product facts (same module).
 - Vector-backed retrieval for generation context
+
+**Repo checkpoint (Phase 1 — keep current)**
+
+- Contract: [`packages/marketer-pro-contract/src/brand-intelligence.ts`](../packages/marketer-pro-contract/src/brand-intelligence.ts) (`BrandProfile` / `BrandIntelligenceProfile`, audiences, knowledge sources, compliance, product facts, generation context + prompt formatting); [`brand-retrieval.ts`](../packages/marketer-pro-contract/src/brand-retrieval.ts) — lexical snippets from trusted sources + embedding cosine ranking for caller-supplied vectors; [`brand-profile-draft.ts`](../packages/marketer-pro-contract/src/brand-profile-draft.ts) — browser draft key helpers; [`brand-profile-http.ts`](../packages/marketer-pro-contract/src/brand-profile-http.ts) — upsert/list/get query + body schemas.
+- Web: [`apps/web/src/BrandProfileDraftPanel.tsx`](../apps/web/src/BrandProfileDraftPanel.tsx) — JSON draft, localStorage, lexical retrieval preview, optional API sync when `VITE_BRAND_PROFILE_API_ORIGIN` is set.
+- Postgres: [`apps/api/db/migrations/005_brand_profiles.sql`](../apps/api/db/migrations/005_brand_profiles.sql) — `brand_profiles` (tenant + profile id, JSON body); persistence [`apps/api/src/db/brand-profile.ts`](../apps/api/src/db/brand-profile.ts); HTTP [`apps/api/src/brand-profile-server.ts`](../apps/api/src/brand-profile-server.ts) (`npm run start:brand-profile -w @home-link/marketer-api`) and routes in [`apps/api/src/marketer-pro/brand-profile-route.ts`](../apps/api/src/marketer-pro/brand-profile-route.ts). Optional **`MARKETER_BRAND_PROFILE_HTTP_CORS`** for browser `fetch` (same pattern as campaign server).
 
 ---
 
@@ -56,6 +64,16 @@ This document is the **repo-wide phased roadmap** for the product. It complement
 - Brand-voice scoring  
 - Search-intent scoring  
 - Audit trail of AI choices  
+
+**Repo checkpoint (keep current)**
+
+- Generation brief and copy directive schemas live in [`packages/marketer-pro-contract/src/generation-brief.ts`](../packages/marketer-pro-contract/src/generation-brief.ts) (shared with publish `copy` on jobs).
+- **Brief → stub draft + human approval or reject (Postgres + audit):** migration [`apps/api/db/migrations/004_generation_drafts.sql`](../apps/api/db/migrations/004_generation_drafts.sql); service [`apps/api/src/marketer-pro/draft-from-brief.ts`](../apps/api/src/marketer-pro/draft-from-brief.ts); draft text seam [`apps/api/src/marketer-pro/generate-draft-body.ts`](../apps/api/src/marketer-pro/generate-draft-body.ts) (`generateDraftBodyFromBrief`, stub today); HTTP entry [`apps/api/src/generation-draft-server.ts`](../apps/api/src/generation-draft-server.ts) (`npm run start:generation-draft -w @home-link/marketer-api`) — create / approve / **reject** POST paths; **GET** one draft and **GET** list-by-brief (summaries) via `GENERATION_DRAFT_PATH_GET` and `GENERATION_DRAFT_PATH_LIST_BY_BRIEF`. Approve/reject use conditional `UPDATE` on `pending_approval` plus `brief.workspaceId === tenantId` alignment with create.
+
+**Next slices (Phase 2)**
+
+- Replace stub draft text with the real generator; multi-field draft transactions if the product needs them.
+- Variants by goal, brand-voice scoring, and search-intent scoring on top of the approval seam above.
 
 ---
 
@@ -111,6 +129,13 @@ This document is the **repo-wide phased roadmap** for the product. It complement
 **Output**
 
 - Unified content calendar across all platforms  
+
+**Repo checkpoint (Phase 4 slice)**
+
+- Postgres: `apps/api/db/migrations/003_campaigns_and_schedule_campaign_id.sql` (`campaigns` + optional `schedule_entries.campaign_id` FK).  
+- Contract: `packages/marketer-pro-contract/src/campaign.ts` (`CampaignRecord`, `CreateCampaignBodySchema`, `campaignRecordFromSqlRow`).  
+- API persistence: `apps/api/src/db/campaign.ts` (`insertCampaign`, `listCampaignsByTenant`, `resolveCampaign`).  
+- HTTP: `npm run start:campaign -w @home-link/marketer-api` — `apps/api/src/campaign-server.ts`, routes in `apps/api/src/marketer-pro/campaign-route.ts` (POST create, GET list, GET one, **GET schedule-entries** — list `schedule_entries` for `tenantId` + `campaignId`, **POST schedule-attach** → `updateScheduleEntryCampaignId` in `apps/api/src/db/schedule-entry.ts`). See `docs/engineering/redis-bullmq.md` for env vars. Optional **`MARKETER_CAMPAIGN_HTTP_CORS`** (`*` or comma-separated origins) enables browser `fetch` from `apps/web` when `VITE_CAMPAIGN_API_ORIGIN` points at this server (`CampaignSyncPanel`).
 
 ---
 

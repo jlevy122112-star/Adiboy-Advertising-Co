@@ -9,6 +9,9 @@
  *   INTERNAL_PUBLISH_PORT (default 8790)
  *   INTERNAL_PUBLISH_PATH (default /internal/publish/execute)
  *   MARKETER_PUBLISH_HTTP_TOKEN — if set, require matching Bearer token
+ *
+ * Success **200** body: flat {@link PublishJobResult}. Validation **400** body:
+ * `{ error: "validation_error", message, issues[] }` (see `executeInternalPublishHttp`).
  */
 
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";

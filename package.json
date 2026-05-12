@@ -15,12 +15,15 @@
     "lint:fix": "eslint packages apps --fix --max-warnings 999",
     "verify": "node scripts/verify-workspace.mjs",
     "test:packages": "vitest run",
+    "test:check": "npm run typecheck && npm run test:packages",
     "check": "npm run verify && npm run typecheck && npm run lint && npm run test:packages",
     "build:queue": "npm run build -w @home-link/marketer-pro-queue",
     "queue:worker": "npm run build -w @home-link/marketer-pro-queue && node packages/marketer-pro-queue/dist/worker-cli.js",
     "queue:enqueue-smoke": "npm run build -w @home-link/marketer-pro-queue && node scripts/enqueue-publish-smoke.mjs",
     "api:internal": "npm run build -w @home-link/marketer-api && npm run start:internal -w @home-link/marketer-api",
     "api:scheduler": "npm run build -w @home-link/marketer-api && npm run start:scheduler -w @home-link/marketer-api",
+    "api:campaign": "npm run build -w @home-link/marketer-api && npm run start:campaign -w @home-link/marketer-api",
+    "api:brand": "npm run build -w @home-link/marketer-api && npm run start:brand-profile -w @home-link/marketer-api",
     "db:migrate": "npm run db:migrate -w @home-link/marketer-api"
   },
   "devDependencies": {
