@@ -67,7 +67,7 @@ function loadVideoOptions(postId: string, fromDb?: Record<string, unknown> | nul
 }
 
 function saveVideoOptions(postId: string, opts: VideoOptions) {
-  try { sessionStorage.setItem(`video-opts:${postId}`, JSON.stringify(opts)) } catch {}
+  try { sessionStorage.setItem(`video-opts:${postId}`, JSON.stringify(opts)) } catch { /* storage unavailable */ }
 }
 
 function defaultMetadata(): PostMetadata {

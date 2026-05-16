@@ -32,7 +32,7 @@ function loadTheme(): BrandTheme {
 function saveTheme(t: BrandTheme) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(t))
-  } catch {}
+  } catch { /* storage unavailable */ }
 }
 
 export function applyBrandTheme(t: BrandTheme) {
@@ -57,7 +57,7 @@ export function useBrandTheme() {
   // Apply on mount
   useEffect(() => {
     applyBrandTheme(theme)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, []) // eslint-disable-line
 
   return { theme, setTheme }
 }

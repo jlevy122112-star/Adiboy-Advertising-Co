@@ -602,7 +602,6 @@ export function MarketerCalendar() {
   const [importText, setImportText]     = useState('')
   const [importMsg, setImportMsg]       = useState<string | null>(null)
   const [draggedPost, setDraggedPost]   = useState<{ post: PlannedPost; fromDayKey: DayKey } | null>(null)
-  const [dragOverDay, setDragOverDay]   = useState<DayKey | null>(null)
   const [editingPost, setEditingPost]   = useState<{ post: PlannedPost; dayKey: DayKey } | null>(null)
   const [focusedDayKey, setFocusedDayKey] = useState<DayKey | null>(null)
 
