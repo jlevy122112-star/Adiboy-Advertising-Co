@@ -8,6 +8,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // Mock DB credential lookup before importing providers
 vi.mock("../../db/social-credentials.js", () => ({
   lookupSocialCredential: vi.fn(),
+  isTokenExpiredOrExpiringSoon: vi.fn().mockReturnValue(false),
+  refreshSocialCredential: vi.fn().mockResolvedValue({ ok: false }),
 }));
 
 vi.mock("../../db/workspace-branding.js", () => ({
