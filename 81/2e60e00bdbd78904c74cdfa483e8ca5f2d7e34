@@ -1,0 +1,22 @@
+apps/api/src/brand-profile-server.ts
+  h_1870c8647c3a49 98
+packages/marketer-pro-contract/src/rev.txt
+  h_1870c8647c3a49 1-636
+packages/contracts/Marketer-Pro.code-workspace
+  h_1870c8647c3a49 10-29,33-36
+docs/full-build-plan.md
+  h_1870c8647c3a49 3-5,15,17,26,35,40,46,48,53,57,63,70,73-75,77,79-80,86,88,97,114,122,124,133,137,148,150,158,168,176,184,186,203,211,213,224,231,239,241,251,265,267,284,286,296,302,304,310,312,319,326,332,341,343,355,361,363
+packages/marketer-pro-contract/src/index.ts
+  h_1870c8647c3a49 354-374,383,560-562,576,581,597
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "812e60e00bdbd78904c74cdfa483e8ca5f2d7e34",
+  "prompts": {},
+  "humans": {
+    "h_1870c8647c3a49": {
+      "author": "Jacob Levy <jlevy122112@gmail.com>"
+    }
+  }
+}
