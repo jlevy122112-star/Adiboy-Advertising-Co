@@ -14,12 +14,14 @@ import {
   resolveScheduleEntryForPublish,
 } from "../db/schedule-entry.js";
 import { computeAdaptedPublishCopy } from "./publish-copy-adaptation.js";
+import { instagramPublishProvider } from "./providers/instagram.js";
 import { linkedinPublishProvider } from "./providers/linkedin.js";
 import { metaPublishProvider } from "./providers/meta.js";
 import { stubProviderResult } from "./providers/stub.js";
 import { tiktokPublishProvider } from "./providers/tiktok.js";
 import type { PublishProviderInput } from "./providers/types.js";
 import { xPublishProvider } from "./providers/x.js";
+import { youtubePublishProvider } from "./providers/youtube.js";
 
 /** Same shape as {@link PublishRunnerContext} in `publish-execute.ts`. */
 export interface PublishDispatchContext {
@@ -54,15 +56,11 @@ function buildHandler(
 
 const handlers: Record<PublishNetworkSlug | "generic", PublishHandler> = {
   meta: buildHandler("meta", (input) => metaPublishProvider.publish(input)),
-  instagram: buildHandler("instagram", async (input) =>
-    stubProviderResult("instagram", input),
-  ),
+  instagram: buildHandler("instagram", (input) => instagramPublishProvider.publish(input)),
   x: buildHandler("x", (input) => xPublishProvider.publish(input)),
   tiktok: buildHandler("tiktok", (input) => tiktokPublishProvider.publish(input)),
   linkedin: buildHandler("linkedin", (input) => linkedinPublishProvider.publish(input)),
-  youtube: buildHandler("youtube", async (input) =>
-    stubProviderResult("youtube", input),
-  ),
+  youtube: buildHandler("youtube", (input) => youtubePublishProvider.publish(input)),
   generic: buildHandler("generic", async (input) =>
     stubProviderResult("generic", input),
   ),

@@ -40,6 +40,7 @@ import {
   updateScheduleEntry,
   type CalendarApiConfig,
 } from './calendarApi.js'
+import { PostEditModal } from '../PostEditModal.js'
 
 const NETWORK_OPTIONS: Array<NonNullable<PlannedPost['network']>> = [
   'instagram',
@@ -129,6 +130,10 @@ export function MarketerCalendar() {
     fromDayKey: DayKey
   } | null>(null)
   const [dragOverDay, setDragOverDay] = useState<DayKey | null>(null)
+  const [editingPost, setEditingPost] = useState<{
+    post: PlannedPost
+    dayKey: DayKey
+  } | null>(null)
 
   const apiConfig = useMemo<CalendarApiConfig | null>(() => {
     const origin = import.meta.env.VITE_CAMPAIGN_API_ORIGIN
@@ -262,6 +267,44 @@ export function MarketerCalendar() {
     })
   }, [])
 
+  const handlePostSaved = useCallback(
+    (id: string, newTitle: string, network: PlannedPost['network']) => {
+      setState((s) => {
+        const newDays = { ...s.days }
+        for (const dk of Object.keys(newDays)) {
+          const day = newDays[dk]
+          if (!day) continue
+          const idx = day.posts.findIndex((p) => p.id === id)
+          if (idx !== -1) {
+            newDays[dk] = {
+              ...day,
+              posts: day.posts.map((p) =>
+                p.id === id ? { ...p, title: newTitle, network } : p,
+              ),
+            }
+            break
+          }
+        }
+        return { ...s, days: newDays }
+      })
+    },
+    [],
+  )
+
+  const handlePostDeleted = useCallback((id: string, dayKey: DayKey) => {
+    setState((s) => {
+      const day = s.days[dayKey]
+      if (!day) return s
+      return {
+        ...s,
+        days: {
+          ...s.days,
+          [dayKey]: { ...day, posts: day.posts.filter((p) => p.id !== id) },
+        },
+      }
+    })
+  }, [])
+
   const goPrev = () =>
     setAnchor((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1))
   const goNext = () =>
@@ -348,6 +391,7 @@ export function MarketerCalendar() {
       : undefined
 
   return (
+    <>
     <div
       className="mc-root"
       style={
@@ -511,6 +555,19 @@ export function MarketerCalendar() {
                           key={post.id}
                           className="mc-post-chip"
                           draggable
+                          role="button"
+                          tabIndex={0}
+                          aria-label={`Edit post: ${post.title}`}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setEditingPost({ post, dayKey: key })
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.stopPropagation()
+                              setEditingPost({ post, dayKey: key })
+                            }
+                          }}
                           onDragStart={(e) => {
                             e.stopPropagation()
                             setDraggedPost({ post, fromDayKey: key })
@@ -859,6 +916,18 @@ export function MarketerCalendar() {
         </>
       ) : null}
     </div>
+
+    {editingPost && (
+      <PostEditModal
+        post={editingPost.post}
+        dayKey={editingPost.dayKey}
+        onClose={() => setEditingPost(null)}
+        onSaved={handlePostSaved}
+        onDeleted={handlePostDeleted}
+        apiConfig={apiConfig}
+      />
+    )}
+  </>
   )
 }
 
