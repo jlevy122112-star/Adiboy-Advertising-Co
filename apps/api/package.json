@@ -13,6 +13,7 @@
     "start:brand-profile": "node dist/brand-profile-server.js",
     "start:brand-memory": "node dist/brand-memory-server.js",
     "start:scheduler": "node dist/scheduler-publish-server.js",
+    "start:image-gen": "node dist/image-gen-server.js",
     "db:migrate": "node scripts/migrate.mjs"
   },
   "dependencies": {
