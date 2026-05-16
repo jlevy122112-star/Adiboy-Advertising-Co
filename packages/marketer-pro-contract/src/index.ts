@@ -3,6 +3,19 @@ import { z } from "zod";
 import { SocialConnectionSchema } from "./social-connections.js";
 
 export {
+  SerpBriefSchema,
+  SerpBriefStatusSchema,
+  SerpIntentSchema,
+  SerpResultSchema,
+  ContentGapSchema,
+  type SerpBrief,
+  type SerpBriefStatus,
+  type SerpIntent,
+  type SerpResult,
+  type ContentGap,
+} from "./serp-brief.js";
+
+export {
   BUSINESS_CATEGORY_CATALOG,
   categoryHeroDefaultSrc,
   categoryHeroSizes,
