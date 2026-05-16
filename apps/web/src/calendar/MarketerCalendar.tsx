@@ -175,7 +175,6 @@ export function MarketerCalendar() {
         return { ...s, days }
       })
     })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const p = state.preferences
