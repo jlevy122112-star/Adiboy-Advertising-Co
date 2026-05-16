@@ -17,8 +17,13 @@
  * by the separate 'instagram' route once igUserId is available in metadata.
  */
 
-import { lookupSocialCredential } from "../../db/social-credentials.js";
+import {
+  lookupSocialCredential,
+  isTokenExpiredOrExpiringSoon,
+  refreshSocialCredential,
+} from "../../db/social-credentials.js";
 import { stubProviderResult } from "./stub.js";
+import { isRateLimited, rateLimitResult } from "./rate-limit.js";
 import type { PublishProviderAdapter, PublishProviderInput } from "./types.js";
 
 const GRAPH_VERSION = "v19.0";
@@ -70,6 +75,10 @@ export const metaPublishProvider: PublishProviderAdapter = {
 
     if (credResult.mode === "ok") {
       credRow = credResult.row;
+      if (isTokenExpiredOrExpiringSoon(credRow)) {
+        const refreshed = await refreshSocialCredential(payload.tenantId, "meta")
+        if (refreshed.ok) credRow = { ...credRow, access_token: refreshed.accessToken }
+      }
     } else if (credResult.mode === "error") {
       console.warn(
         JSON.stringify({
@@ -109,6 +118,8 @@ export const metaPublishProvider: PublishProviderAdapter = {
           access_token: creds.accessToken,
         }),
       });
+
+      if (isRateLimited(res)) return rateLimitResult(res, "meta")
 
       const body = (await res.json().catch(() => ({}))) as GraphFeedResponse;
 

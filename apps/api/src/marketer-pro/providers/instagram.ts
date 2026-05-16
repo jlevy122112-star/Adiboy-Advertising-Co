@@ -27,8 +27,13 @@
  * API reference: https://developers.facebook.com/docs/instagram-api/guides/content-publishing
  */
 
-import { lookupSocialCredential } from "../../db/social-credentials.js";
+import {
+  lookupSocialCredential,
+  isTokenExpiredOrExpiringSoon,
+  refreshSocialCredential,
+} from "../../db/social-credentials.js";
 import { stubProviderResult } from "./stub.js";
+import { isRateLimited, rateLimitResult } from "./rate-limit.js";
 import type { PublishProviderAdapter, PublishProviderInput } from "./types.js";
 
 const GRAPH_VERSION = "v19.0";
@@ -84,6 +89,10 @@ export const instagramPublishProvider: PublishProviderAdapter = {
 
     if (credResult.mode === "ok") {
       credRow = credResult.row;
+      if (isTokenExpiredOrExpiringSoon(credRow)) {
+        const refreshed = await refreshSocialCredential(payload.tenantId, "instagram")
+        if (refreshed.ok) credRow = { ...credRow, access_token: refreshed.accessToken }
+      }
     } else if (credResult.mode === "error") {
       console.warn(
         JSON.stringify({
@@ -137,6 +146,8 @@ export const instagramPublishProvider: PublishProviderAdapter = {
         }),
       });
 
+      if (isRateLimited(containerRes)) return rateLimitResult(containerRes, "instagram")
+
       const containerBody = (await containerRes.json().catch(() => ({}))) as MediaContainerResponse;
 
       if (!containerRes.ok || containerBody.error) {
@@ -169,6 +180,8 @@ export const instagramPublishProvider: PublishProviderAdapter = {
           access_token: creds.accessToken,
         }),
       });
+
+      if (isRateLimited(publishRes)) return rateLimitResult(publishRes, "instagram")
 
       const publishBody = (await publishRes.json().catch(() => ({}))) as MediaPublishResponse;
 

@@ -405,9 +405,11 @@ export async function persistScheduleEntryPublishOutcome(
     return;
   }
   try {
+    const externalId = result.ok && result.externalId ? result.externalId : null;
     await sql`
       UPDATE schedule_entries
       SET status = ${plan.status},
+          external_id = COALESCE(${externalId}, external_id),
           updated_at = now()
       WHERE tenant_id = ${payload.tenantId}
         AND id = ${payload.scheduleEntryId}

@@ -11,8 +11,13 @@
  * API reference: https://developer.twitter.com/en/docs/twitter-api/tweets/manage-tweets/api-reference/post-tweets
  */
 
-import { lookupSocialCredential } from "../../db/social-credentials.js";
+import {
+  lookupSocialCredential,
+  isTokenExpiredOrExpiringSoon,
+  refreshSocialCredential,
+} from "../../db/social-credentials.js";
 import { stubProviderResult } from "./stub.js";
+import { isRateLimited, rateLimitResult } from "./rate-limit.js";
 import type { PublishProviderAdapter, PublishProviderInput } from "./types.js";
 
 const X_TWEETS_URL = "https://api.twitter.com/2/tweets";
@@ -47,7 +52,12 @@ export const xPublishProvider: PublishProviderAdapter = {
     let accessToken: string | undefined;
 
     if (credResult.mode === "ok") {
-      accessToken = resolveAccessToken(credResult.row.access_token);
+      let row = credResult.row
+      if (isTokenExpiredOrExpiringSoon(row)) {
+        const refreshed = await refreshSocialCredential(payload.tenantId, "x")
+        if (refreshed.ok) row = { ...row, access_token: refreshed.accessToken }
+      }
+      accessToken = resolveAccessToken(row.access_token);
     } else if (credResult.mode === "not_found" || credResult.mode === "no_database") {
       accessToken = resolveAccessToken(undefined);
     } else {
@@ -88,6 +98,8 @@ export const xPublishProvider: PublishProviderAdapter = {
         },
         body: JSON.stringify({ text }),
       });
+
+      if (isRateLimited(res)) return rateLimitResult(res, "x")
 
       const body = (await res.json().catch(() => ({}))) as XTweetResponse;
 

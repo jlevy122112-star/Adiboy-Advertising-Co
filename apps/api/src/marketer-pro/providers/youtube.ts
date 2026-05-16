@@ -29,7 +29,12 @@
  */
 
 import { readFile, unlink } from "node:fs/promises";
-import { lookupSocialCredential } from "../../db/social-credentials.js";
+import {
+  lookupSocialCredential,
+  isTokenExpiredOrExpiringSoon,
+  refreshSocialCredential,
+} from "../../db/social-credentials.js";
+import { isRateLimited, rateLimitResult } from "./rate-limit.js";
 import { getWorkspaceBranding } from "../../db/workspace-branding.js";
 import { isS3Configured } from "../../storage/s3.js";
 import { buildSlideshowVideo, type VideoFormat, type VideoSticker } from "../video-builder.js";
@@ -117,7 +122,7 @@ async function resumableUploadToYoutube(
   videoBuffer: Buffer,
   title: string,
   description: string,
-): Promise<{ ok: true; videoId: string } | { ok: false; detail: string }> {
+): Promise<{ ok: true; videoId: string } | { ok: false; detail: string; retryAfterMs?: number }> {
   // Step 1: Initiate the resumable upload session
   const initRes = await fetch(YOUTUBE_UPLOAD_URL, {
     method: "POST",
@@ -140,6 +145,7 @@ async function resumableUploadToYoutube(
     }),
   });
 
+  if (isRateLimited(initRes)) return rateLimitResult(initRes, "youtube") as { ok: false; detail: string; retryAfterMs?: number }
   if (!initRes.ok) {
     const body = await initRes.text().catch(() => "");
     return { ok: false, detail: `youtube_upload_init_error:http_${initRes.status}:${body.slice(0, 200)}` };
@@ -161,6 +167,7 @@ async function resumableUploadToYoutube(
     body: videoBuffer as unknown as BodyInit,
   });
 
+  if (isRateLimited(uploadRes)) return rateLimitResult(uploadRes, "youtube") as { ok: false; detail: string; retryAfterMs?: number }
   if (!uploadRes.ok) {
     const body = await uploadRes.text().catch(() => "");
     return { ok: false, detail: `youtube_upload_error:http_${uploadRes.status}:${body.slice(0, 200)}` };
@@ -186,6 +193,10 @@ export const youtubePublishProvider: PublishProviderAdapter = {
 
     if (credResult.mode === "ok") {
       credRow = credResult.row;
+      if (isTokenExpiredOrExpiringSoon(credRow)) {
+        const refreshed = await refreshSocialCredential(payload.tenantId, "youtube")
+        if (refreshed.ok) credRow = { ...credRow, access_token: refreshed.accessToken }
+      }
     } else if (credResult.mode === "error") {
       console.warn(
         JSON.stringify({

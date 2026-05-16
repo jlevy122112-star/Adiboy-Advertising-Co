@@ -85,6 +85,7 @@ function credOk(accessToken: string, extras: Record<string, unknown> = {}) {
       network: "x",
       access_token: accessToken,
       token_secret: null,
+      refresh_token: null,
       expires_at: null,
       metadata: extras,
     },

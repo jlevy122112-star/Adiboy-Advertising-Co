@@ -26,6 +26,8 @@ export const PublishJobResultSchema = z.object({
   ok: z.boolean(),
   detail: z.string().optional(),
   externalId: z.string().optional(),
+  /** ms to wait before retrying — set when the provider returns HTTP 429 with a Retry-After header */
+  retryAfterMs: z.number().int().positive().optional(),
 });
 
 export type PublishJobResult = z.infer<typeof PublishJobResultSchema>;

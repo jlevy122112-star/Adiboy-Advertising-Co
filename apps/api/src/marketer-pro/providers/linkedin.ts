@@ -12,8 +12,13 @@
  * API reference: https://learn.microsoft.com/en-us/linkedin/marketing/integrations/community-management/shares/ugc-post-api
  */
 
-import { lookupSocialCredential } from "../../db/social-credentials.js";
+import {
+  lookupSocialCredential,
+  isTokenExpiredOrExpiringSoon,
+  refreshSocialCredential,
+} from "../../db/social-credentials.js";
 import { stubProviderResult } from "./stub.js";
+import { isRateLimited, rateLimitResult } from "./rate-limit.js";
 import type { PublishProviderAdapter, PublishProviderInput } from "./types.js";
 
 const LINKEDIN_UGC_URL = "https://api.linkedin.com/v2/ugcPosts";
@@ -78,6 +83,10 @@ export const linkedinPublishProvider: PublishProviderAdapter = {
 
     if (credResult.mode === "ok") {
       credRow = credResult.row;
+      if (isTokenExpiredOrExpiringSoon(credRow)) {
+        const refreshed = await refreshSocialCredential(payload.tenantId, "linkedin")
+        if (refreshed.ok) credRow = { ...credRow, access_token: refreshed.accessToken }
+      }
     } else if (credResult.mode === "error") {
       console.warn(
         JSON.stringify({
@@ -115,6 +124,8 @@ export const linkedinPublishProvider: PublishProviderAdapter = {
         },
         body: JSON.stringify(buildUgcBody(creds.authorUrn, text)),
       });
+
+      if (isRateLimited(res)) return rateLimitResult(res, "linkedin")
 
       const body = (await res.json().catch(() => ({}))) as LinkedInUgcResponse;
 
