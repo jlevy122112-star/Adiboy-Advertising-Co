@@ -32,9 +32,11 @@ import {
   executeListScheduleEntriesByTenantRequestFromSearchParams,
   executeListScheduleEntriesForCampaignRequestFromSearchParams,
   executeUpdateScheduleEntryRequest,
+  executeUploadMediaRequest,
 } from "./marketer-pro/campaign-route.js";
 
 const MAX_BODY_BYTES = 256 * 1024;
+const MAX_MEDIA_BYTES = 10 * 1024 * 1024; // 10 MB
 
 function corsHeaders(req: IncomingMessage): Record<string, string> | undefined {
   const raw = process.env.MARKETER_CAMPAIGN_HTTP_CORS?.trim();
@@ -74,6 +76,20 @@ function json(
   }
   res.writeHead(status, headers);
   res.end(payload);
+}
+
+async function readRawBody(req: IncomingMessage, maxBytes: number): Promise<Buffer> {
+  const chunks: Buffer[] = [];
+  let total = 0;
+  for await (const chunk of req) {
+    const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    total += buf.length;
+    if (total > maxBytes) {
+      throw new Error("request_entity_too_large");
+    }
+    chunks.push(buf);
+  }
+  return Buffer.concat(chunks);
 }
 
 async function readJsonBody(req: IncomingMessage): Promise<unknown> {
@@ -143,6 +159,9 @@ const pathScheduleDelete =
 const pathScheduleUpdate =
   process.env.CAMPAIGN_HTTP_PATH_SCHEDULE_UPDATE ??
   "/api/marketer-pro/schedule-entries/update";
+const pathMediaUpload =
+  process.env.CAMPAIGN_HTTP_PATH_MEDIA_UPLOAD ??
+  "/api/marketer-pro/media/upload";
 
 const knownPaths = new Set([
   pathCreate,
@@ -154,6 +173,7 @@ const knownPaths = new Set([
   pathScheduleListByTenant,
   pathScheduleDelete,
   pathScheduleUpdate,
+  pathMediaUpload,
 ]);
 
 const server = createServer(async (req, res) => {
@@ -346,6 +366,30 @@ const server = createServer(async (req, res) => {
     return;
   }
 
+  if (req.method === "POST" && pathname === pathMediaUpload) {
+    const tenantId = fullUrl.searchParams.get("tenantId") ?? "";
+    const contentType = req.headers["content-type"] ?? "";
+    try {
+      const buffer = await readRawBody(req, MAX_MEDIA_BYTES);
+      const outcome = await executeUploadMediaRequest(tenantId, buffer, contentType);
+      json(req, res, outcome.status, outcome.body);
+    } catch (err) {
+      if (err instanceof Error && err.message === "request_entity_too_large") {
+        json(req, res, 413, { error: "payload_too_large" });
+        return;
+      }
+      console.error(
+        JSON.stringify({
+          level: "error",
+          event: "campaign_server_unhandled",
+          message: err instanceof Error ? err.message : String(err),
+        }),
+      );
+      json(req, res, 500, { error: "internal_error" });
+    }
+    return;
+  }
+
   json(req, res, 405, { error: "method_not_allowed" });
 });
 
@@ -362,6 +406,7 @@ server.listen(port, host, () => {
       pathScheduleCreate,
       pathScheduleAttach,
       pathScheduleList,
+      pathMediaUpload,
       auth: process.env.MARKETER_CAMPAIGN_HTTP_TOKEN ? "bearer" : "none",
       cors: process.env.MARKETER_CAMPAIGN_HTTP_CORS ? "on" : "off",
       database: process.env.DATABASE_URL ? "postgres" : "none",

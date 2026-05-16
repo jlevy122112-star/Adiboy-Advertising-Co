@@ -36,6 +36,7 @@
     "vitest": "^3.2.4"
   },
   "dependencies": {
+    "claude": "^0.1.1",
     "github": "^14.0.0"
   }
 }

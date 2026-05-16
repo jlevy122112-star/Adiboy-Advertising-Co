@@ -21,6 +21,7 @@ import {
   listCampaignsByTenant,
   resolveCampaign,
 } from "../db/campaign.js";
+import { uploadBufferToS3 } from "../storage/s3.js";
 import {
   deleteScheduleEntry,
   insertScheduleEntry,
@@ -488,4 +489,36 @@ export async function executeAttachScheduleEntryCampaignRequest(
       scheduleEntry: scheduleEntryRecordFromSqlRow(updated.row),
     },
   };
+}
+
+const ALLOWED_IMAGE_TYPES: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/gif": "gif",
+  "image/webp": "webp",
+};
+
+export async function executeUploadMediaRequest(
+  tenantId: string,
+  buffer: Buffer,
+  contentType: string,
+): Promise<CampaignHttpOutcome> {
+  if (!tenantId.trim()) {
+    return { ok: false, status: 400, body: { error: "validation_error", message: "tenantId is required" } };
+  }
+
+  const mimeType = contentType.split(";")[0]?.trim() ?? "";
+  const ext = ALLOWED_IMAGE_TYPES[mimeType];
+  if (!ext) {
+    return { ok: false, status: 415, body: { error: "unsupported_media_type", message: `Supported types: ${Object.keys(ALLOWED_IMAGE_TYPES).join(", ")}` } };
+  }
+
+  const key = `media/${tenantId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+  const result = await uploadBufferToS3(buffer, key, mimeType);
+
+  if (!result.ok) {
+    return { ok: false, status: 502, body: { error: "s3_upload_failed", message: result.error } };
+  }
+
+  return { ok: true, status: 200, body: { key: result.key, url: result.url } };
 }

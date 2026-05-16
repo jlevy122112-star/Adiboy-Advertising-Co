@@ -1,1 +1,164 @@
-/* App-level overrides — Vite starter boilerplate removed */
+/* App shell — full-viewport layout with collapsible sidebar */
+
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100svh;
+  overflow: hidden;
+}
+
+/* ── Top nav ──────────────────────────────────────────────────────────── */
+
+.app-nav {
+  flex-shrink: 0;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1rem;
+  background: color-mix(in srgb, var(--bg) 96%, transparent);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border);
+  gap: 0.75rem;
+  z-index: 10;
+}
+
+.app-nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.app-nav-logo {
+  height: 28px;
+  max-width: 110px;
+  object-fit: contain;
+}
+
+.app-nav-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text-h);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.app-nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.app-nav-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+}
+
+.app-nav-toggle:hover {
+  background: var(--accent-bg);
+  color: var(--accent);
+  border-color: var(--accent-border);
+}
+
+.app-nav-toggle--active {
+  background: var(--accent-bg);
+  color: var(--accent);
+  border-color: var(--accent-border);
+}
+
+/* ── Body (calendar + sidebar) ───────────────────────────────────────── */
+
+.app-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* ── Calendar main area ──────────────────────────────────────────────── */
+
+.app-main {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Remove card styling when calendar fills the shell */
+.app-main .mc-root {
+  border-radius: 0;
+  box-shadow: none;
+  min-height: 100%;
+}
+
+/* ── Sidebar ──────────────────────────────────────────────────────────── */
+
+.app-sidebar {
+  flex-shrink: 0;
+  width: 0;
+  overflow: hidden;
+  border-left: 1px solid var(--border);
+  background: var(--bg);
+  transition: width 0.22s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-sidebar--open {
+  width: 310px;
+  overflow-y: auto;
+}
+
+.sidebar-inner {
+  width: 310px;
+  padding: 0 0 2rem;
+}
+
+.sidebar-section {
+  padding: 1.1rem 1rem 0.75rem;
+}
+
+.sidebar-section-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text);
+  margin: 0 0 0.9rem;
+  opacity: 0.7;
+}
+
+.sidebar-divider {
+  height: 1px;
+  background: var(--border);
+}
+
+/* Mobile: sidebar overlays calendar */
+@media (max-width: 768px) {
+  .app-sidebar--open {
+    position: fixed;
+    top: 52px;
+    right: 0;
+    bottom: 0;
+    width: 290px;
+    z-index: 100;
+    box-shadow: -6px 0 24px rgba(0, 0, 0, 0.18);
+  }
+
+  .sidebar-inner {
+    width: 290px;
+  }
+}

@@ -113,28 +113,6 @@ function activityStreak(days: CalendarPersisted['days']): number {
   return streak
 }
 
-const DAY_ABBRS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const
-
-function getWeekStart(from: Date, weekStartsOn: 0 | 1): Date {
-  const d = new Date(from)
-  d.setHours(0, 0, 0, 0)
-  const dow = d.getDay()
-  const offset = weekStartsOn === 1 ? (dow === 0 ? -6 : 1 - dow) : -dow
-  d.setDate(d.getDate() + offset)
-  return d
-}
-
-function mobileWeekRangeLabel(start: Date): string {
-  const end = new Date(start)
-  end.setDate(end.getDate() + 6)
-  const sm = start.toLocaleString(undefined, { month: 'short' })
-  const sd = start.getDate()
-  const em = end.toLocaleString(undefined, { month: 'short' })
-  const ed = end.getDate()
-  return start.getMonth() === end.getMonth()
-    ? `${sm} ${sd}–${ed}`
-    : `${sm} ${sd} – ${em} ${ed}`
-}
 
 export function MarketerCalendar() {
   const [state, setState] = useState<CalendarPersisted>(loadCalendarState)
@@ -157,14 +135,9 @@ export function MarketerCalendar() {
     post: PlannedPost
     dayKey: DayKey
   } | null>(null)
-  const [mobileWeekStart, setMobileWeekStart] = useState<Date>(() =>
-    getWeekStart(new Date(), loadCalendarState().preferences.weekStartsOn),
-  )
-  const touchStartX = useRef<number | null>(null)
-
   const apiConfig = useMemo<CalendarApiConfig | null>(() => {
     const origin = import.meta.env.VITE_CAMPAIGN_API_ORIGIN
-    const tenantId = import.meta.env.VITE_DEFAULT_TENANT_ID
+    const tenantId = import.meta.env.VITE_TENANT_ID
     if (!origin?.trim() || !tenantId?.trim()) return null
     return {
       apiOrigin: origin.trim().replace(/\/$/, ''),

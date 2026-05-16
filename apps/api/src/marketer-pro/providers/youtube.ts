@@ -30,8 +30,9 @@
 
 import { readFile, unlink } from "node:fs/promises";
 import { lookupSocialCredential } from "../../db/social-credentials.js";
+import { getWorkspaceBranding } from "../../db/workspace-branding.js";
 import { isS3Configured } from "../../storage/s3.js";
-import { buildSlideshowVideo, type VideoFormat } from "../video-builder.js";
+import { buildSlideshowVideo, type VideoFormat, type VideoSticker } from "../video-builder.js";
 import { stubProviderResult } from "./stub.js";
 import type { PublishProviderAdapter, PublishProviderInput } from "./types.js";
 
@@ -243,11 +244,25 @@ export const youtubePublishProvider: PublishProviderAdapter = {
         }),
       );
 
+      // Inject brand logo as a bottom-right watermark sticker if configured
+      const stickers: VideoSticker[] = [];
+      const brandingResult = await getWorkspaceBranding(payload.tenantId);
+      if (brandingResult.ok && brandingResult.branding.logoUrl) {
+        stickers.push({
+          url: brandingResult.branding.logoUrl,
+          x: "W-w-20",
+          y: "H-h-20",
+          width: 150,
+          opacity: 0.75,
+        });
+      }
+
       const buildResult = await buildSlideshowVideo({
         imageUrls: creds.imageUrls,
         secondsPerImage: creds.secondsPerImage,
         format: creds.videoFormat,
         text: { caption: description.slice(0, 200) },
+        stickers,
       });
 
       if (!buildResult.ok) {

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { BrandProfileDraftPanel } from './BrandProfileDraftPanel'
 import { BrandThemePanel, useBrandTheme, type BrandingApiConfig } from './BrandThemePanel'
 import { CampaignSyncPanel } from './CampaignSyncPanel'
@@ -12,58 +13,76 @@ const brandingApiConfig: BrandingApiConfig | null =
     ? { tenantId: TENANT_ID, apiOrigin: BRAND_API_ORIGIN }
     : null
 
+function SettingsIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+    </svg>
+  )
+}
+
 function App() {
   const { theme, setTheme } = useBrandTheme()
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   const brandName = theme.displayName.trim() || 'Marketer Pro'
 
   return (
-    <div className="marketer-shell">
-      <header className="marketer-hero">
-        {/* Brand logo + name */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, justifyContent: 'center', marginBottom: 12 }}>
+    <div className="app-shell">
+      <nav className="app-nav">
+        <div className="app-nav-brand">
           {theme.logoUrl && (
             <img
               src={theme.logoUrl}
-              alt={`${brandName} logo`}
-              style={{ height: 48, maxWidth: 160, objectFit: 'contain' }}
+              alt={brandName}
+              className="app-nav-logo"
               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
             />
           )}
-          <p className="marketer-kicker" style={{ margin: 0 }}>{brandName}</p>
+          <span className="app-nav-name">{brandName}</span>
         </div>
 
-        <h1 className="marketer-title" style={theme.primaryHex ? { color: theme.primaryHex } : {}}>
-          Plan, personalize, ship
-        </h1>
-        <p className="marketer-lead">
-          {theme.tagline.trim() || 'Calendar and brand tools below run locally in the browser until API sync is connected.'}
-        </p>
-      </header>
+        <div className="app-nav-actions">
+          <button
+            className={`app-nav-toggle${sidebarOpen ? ' app-nav-toggle--active' : ''}`}
+            onClick={() => setSidebarOpen(o => !o)}
+            aria-label={sidebarOpen ? 'Close settings' : 'Open settings'}
+            title={sidebarOpen ? 'Close settings' : 'Open settings'}
+          >
+            <SettingsIcon />
+          </button>
+        </div>
+      </nav>
 
-      <MarketerCalendar />
+      <div className="app-body">
+        <main className="app-main">
+          <MarketerCalendar />
+        </main>
 
-      <div className="marketer-divider" aria-hidden />
+        <aside className={`app-sidebar${sidebarOpen ? ' app-sidebar--open' : ''}`} aria-label="Settings">
+          <div className="sidebar-inner">
+            <div className="sidebar-section">
+              <p className="sidebar-section-title">Brand Theme</p>
+              <BrandThemePanel theme={theme} onThemeChange={setTheme} apiConfig={brandingApiConfig} />
+            </div>
 
-      <CampaignSyncPanel />
+            <div className="sidebar-divider" />
 
-      <div className="marketer-divider" aria-hidden />
+            <div className="sidebar-section">
+              <p className="sidebar-section-title">Campaign Sync</p>
+              <CampaignSyncPanel />
+            </div>
 
-      <BrandThemePanel theme={theme} onThemeChange={setTheme} apiConfig={brandingApiConfig} />
+            <div className="sidebar-divider" />
 
-      <div className="marketer-divider" aria-hidden />
-
-      <BrandProfileDraftPanel />
-
-      <footer className="marketer-foot">
-        <a href="https://vite.dev/" target="_blank" rel="noreferrer">
-          Vite
-        </a>
-        <span aria-hidden> · </span>
-        <a href="https://react.dev/" target="_blank" rel="noreferrer">
-          React
-        </a>
-      </footer>
+            <div className="sidebar-section">
+              <p className="sidebar-section-title">AI Draft</p>
+              <BrandProfileDraftPanel />
+            </div>
+          </div>
+        </aside>
+      </div>
     </div>
   )
 }

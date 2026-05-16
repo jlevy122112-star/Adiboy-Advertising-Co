@@ -10,13 +10,40 @@ vi.mock("../../db/social-credentials.js", () => ({
   lookupSocialCredential: vi.fn(),
 }));
 
+vi.mock("../../db/workspace-branding.js", () => ({
+  getWorkspaceBranding: vi.fn(),
+}));
+
+vi.mock("../../storage/s3.js", () => ({
+  isS3Configured: vi.fn(),
+}));
+
+vi.mock("../video-builder.js", () => ({
+  buildSlideshowVideo: vi.fn(),
+}));
+
+vi.mock("node:fs/promises", () => ({
+  readFile: vi.fn(),
+  unlink: vi.fn(),
+}));
+
 import { lookupSocialCredential } from "../../db/social-credentials.js";
+import { getWorkspaceBranding } from "../../db/workspace-branding.js";
+import { isS3Configured } from "../../storage/s3.js";
+import { buildSlideshowVideo } from "../video-builder.js";
+import { readFile, unlink } from "node:fs/promises";
 import { instagramPublishProvider } from "./instagram.js";
 import { linkedinPublishProvider } from "./linkedin.js";
 import { metaPublishProvider } from "./meta.js";
 import { xPublishProvider } from "./x.js";
+import { youtubePublishProvider } from "./youtube.js";
 
 const mockLookup = vi.mocked(lookupSocialCredential);
+const mockGetWorkspaceBranding = vi.mocked(getWorkspaceBranding);
+const mockIsS3Configured = vi.mocked(isS3Configured);
+const mockBuildSlideshowVideo = vi.mocked(buildSlideshowVideo);
+const mockReadFile = vi.mocked(readFile);
+const mockUnlink = vi.mocked(unlink);
 
 // ---------------------------------------------------------------------------
 // Shared fixtures
@@ -566,5 +593,233 @@ describe("instagramPublishProvider", () => {
     const result = await instagramPublishProvider.publish(makeInput({ copyBody: "hi" }));
     expect(result.ok).toBe(false);
     expect(result.detail).toContain("instagram_fetch_error");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// YouTube provider
+// ---------------------------------------------------------------------------
+
+describe("youtubePublishProvider", () => {
+  let fetchSpy: ReturnType<typeof vi.fn>;
+
+  const ytCredOk = (extras: Record<string, unknown> = {}) =>
+    credOk("yt_token_abc", {
+      channelId: "UCtest123",
+      imageUrls: ["https://example.com/img1.jpg", "https://example.com/img2.jpg"],
+      secondsPerImage: 3,
+      ...extras,
+    });
+
+  const fakeBuildOk = { ok: true as const, outputPath: "/tmp/test-video.mp4" };
+  const fakeVideoBuffer = Buffer.from("fake-mp4-data");
+
+  function mockSuccessfulUpload() {
+    fetchSpy
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({}), {
+          status: 200,
+          headers: { Location: "https://upload.youtube.com/session/abc123" },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ id: "vid_xyz789" }), { status: 200 }),
+      );
+  }
+
+  beforeEach(() => {
+    fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+    vi.stubEnv("MARKETER_YOUTUBE_ACCESS_TOKEN", "");
+    vi.stubEnv("MARKETER_YOUTUBE_CHANNEL_ID", "");
+    vi.stubEnv("MARKETER_YOUTUBE_IMAGE_URLS", "");
+    mockIsS3Configured.mockReturnValue(true);
+    mockBuildSlideshowVideo.mockResolvedValue(fakeBuildOk);
+    mockReadFile.mockResolvedValue(fakeVideoBuffer as unknown as Awaited<ReturnType<typeof readFile>>);
+    mockUnlink.mockResolvedValue(undefined);
+    mockGetWorkspaceBranding.mockResolvedValue({ ok: false, code: "not_found", message: "workspace_not_found" });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+    vi.clearAllMocks();
+  });
+
+  it("returns stub when no credential and no env var", async () => {
+    mockLookup.mockResolvedValue(credNotFound);
+    const result = await youtubePublishProvider.publish(makeInput({ copyBody: "Hello YouTube" }));
+    expect(result.ok).toBe(true);
+    expect(result.detail).toContain("p4_stub_youtube");
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("falls back to env var credentials", async () => {
+    mockLookup.mockResolvedValue(credNotFound);
+    vi.stubEnv("MARKETER_YOUTUBE_ACCESS_TOKEN", "env_yt_token");
+    vi.stubEnv("MARKETER_YOUTUBE_IMAGE_URLS", JSON.stringify(["https://example.com/img.jpg"]));
+    mockSuccessfulUpload();
+
+    const result = await youtubePublishProvider.publish(makeInput({ copyBody: "Hello!" }));
+    expect(result.ok).toBe(true);
+    expect(result.externalId).toContain("vid_xyz789");
+  });
+
+  it("returns ok:false when image URLs are empty", async () => {
+    mockLookup.mockResolvedValue(credOk("yt_token", { imageUrls: [] }));
+    const result = await youtubePublishProvider.publish(makeInput({ copyBody: "hi" }));
+    expect(result.ok).toBe(false);
+    expect(result.detail).toBe("youtube_no_image_urls");
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("returns ok:false when S3 is not configured", async () => {
+    mockLookup.mockResolvedValue(ytCredOk());
+    mockIsS3Configured.mockReturnValue(false);
+    const result = await youtubePublishProvider.publish(makeInput({ copyBody: "hi" }));
+    expect(result.ok).toBe(false);
+    expect(result.detail).toBe("youtube_s3_not_configured");
+    expect(mockBuildSlideshowVideo).not.toHaveBeenCalled();
+  });
+
+  it("returns ok:false when video build fails", async () => {
+    mockLookup.mockResolvedValue(ytCredOk());
+    mockBuildSlideshowVideo.mockResolvedValue({ ok: false, error: "FFmpeg not found on PATH" });
+    const result = await youtubePublishProvider.publish(makeInput({ copyBody: "hi" }));
+    expect(result.ok).toBe(false);
+    expect(result.detail).toContain("youtube_build_error");
+    expect(result.detail).toContain("FFmpeg not found");
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("returns ok:false when resumable upload init returns non-ok status", async () => {
+    mockLookup.mockResolvedValue(ytCredOk());
+    fetchSpy.mockResolvedValueOnce(
+      new Response("Bad Request", { status: 400 }),
+    );
+    const result = await youtubePublishProvider.publish(makeInput({ copyBody: "hi" }));
+    expect(result.ok).toBe(false);
+    expect(result.detail).toContain("youtube_upload_init_error");
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns ok:false when upload init response has no Location header", async () => {
+    mockLookup.mockResolvedValue(ytCredOk());
+    fetchSpy.mockResolvedValueOnce(new Response(JSON.stringify({}), { status: 200 }));
+    const result = await youtubePublishProvider.publish(makeInput({ copyBody: "hi" }));
+    expect(result.ok).toBe(false);
+    expect(result.detail).toContain("missing_upload_uri");
+  });
+
+  it("returns ok:false when byte upload step fails", async () => {
+    mockLookup.mockResolvedValue(ytCredOk());
+    fetchSpy
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({}), {
+          status: 200,
+          headers: { Location: "https://upload.youtube.com/session/abc123" },
+        }),
+      )
+      .mockResolvedValueOnce(new Response("Server Error", { status: 500 }));
+
+    const result = await youtubePublishProvider.publish(makeInput({ copyBody: "hi" }));
+    expect(result.ok).toBe(false);
+    expect(result.detail).toContain("youtube_upload_error");
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it("publishes successfully and returns YouTube watch URL", async () => {
+    mockLookup.mockResolvedValue(ytCredOk());
+    mockSuccessfulUpload();
+
+    const result = await youtubePublishProvider.publish(makeInput({ copyBody: "My video!" }));
+    expect(result.ok).toBe(true);
+    expect(result.externalId).toBe("https://youtube.com/watch?v=vid_xyz789");
+    expect(result.detail).toBe("youtube_published");
+    expect(mockBuildSlideshowVideo).toHaveBeenCalledOnce();
+    expect(mockReadFile).toHaveBeenCalledWith("/tmp/test-video.mp4");
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it("sends correct title and description to YouTube API", async () => {
+    mockLookup.mockResolvedValue(ytCredOk());
+    mockSuccessfulUpload();
+
+    await youtubePublishProvider.publish(
+      makeInput({ copyBody: "Video body text" }),
+    );
+
+    const [url, init] = fetchSpy.mock.calls[0]!;
+    expect(String(url)).toContain("googleapis.com/upload/youtube/v3/videos");
+    const body = JSON.parse((init as RequestInit).body as string) as {
+      snippet: { title: string; description: string; categoryId: string };
+      status: { privacyStatus: string };
+    };
+    expect(body.snippet.title).toBeTruthy();
+    expect(body.snippet.categoryId).toBe("22");
+    expect(body.status.privacyStatus).toBe("public");
+  });
+
+  it("uses adaptedCopy headline as video title when available", async () => {
+    mockLookup.mockResolvedValue(ytCredOk());
+    mockSuccessfulUpload();
+
+    const input = {
+      ...makeInput({ copyBody: "body text" }),
+      adaptedCopy: {
+        network: "youtube" as const,
+        copy: { headline: "Adapted Headline Title", body: "adapted body" },
+        strategy: "truncate" as const,
+        warnings: [],
+        truncatedPaths: [],
+      },
+    };
+
+    await youtubePublishProvider.publish(input);
+
+    const [, init] = fetchSpy.mock.calls[0]!;
+    const body = JSON.parse((init as RequestInit).body as string) as {
+      snippet: { title: string };
+    };
+    expect(body.snippet.title).toBe("Adapted Headline Title");
+  });
+
+  it("returns ok:false on fetch network error", async () => {
+    mockLookup.mockResolvedValue(ytCredOk());
+    fetchSpy.mockRejectedValue(new Error("ECONNREFUSED"));
+    const result = await youtubePublishProvider.publish(makeInput({ copyBody: "hi" }));
+    expect(result.ok).toBe(false);
+    expect(result.detail).toContain("youtube_fetch_error");
+  });
+
+  it("injects brand logo as watermark sticker when workspace branding has logoUrl", async () => {
+    mockLookup.mockResolvedValue(ytCredOk());
+    mockGetWorkspaceBranding.mockResolvedValue({
+      ok: true,
+      branding: { logoUrl: "https://example.com/logo.png" },
+    });
+    mockSuccessfulUpload();
+
+    await youtubePublishProvider.publish(makeInput({ copyBody: "My video!" }));
+
+    expect(mockBuildSlideshowVideo).toHaveBeenCalledOnce();
+    const callArgs = mockBuildSlideshowVideo.mock.calls[0]![0];
+    expect(callArgs.stickers).toHaveLength(1);
+    expect(callArgs.stickers![0]!.url).toBe("https://example.com/logo.png");
+    expect(callArgs.stickers![0]!.opacity).toBe(0.75);
+  });
+
+  it("passes no stickers when workspace branding has no logoUrl", async () => {
+    mockLookup.mockResolvedValue(ytCredOk());
+    mockGetWorkspaceBranding.mockResolvedValue({
+      ok: true,
+      branding: { displayName: "Acme Co" },
+    });
+    mockSuccessfulUpload();
+
+    await youtubePublishProvider.publish(makeInput({ copyBody: "My video!" }));
+
+    const callArgs = mockBuildSlideshowVideo.mock.calls[0]![0];
+    expect(callArgs.stickers).toHaveLength(0);
   });
 });
