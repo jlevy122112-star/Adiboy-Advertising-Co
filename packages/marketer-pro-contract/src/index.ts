@@ -3,6 +3,23 @@ import { z } from "zod";
 import { SocialConnectionSchema } from "./social-connections.js";
 
 export {
+  VideoSceneSchema,
+  VideoScriptSchema,
+  VideoScriptStatusSchema,
+  VideoRenderJobStatusSchema,
+  VideoPlatformSchema,
+  VIDEO_PLATFORM_DIMENSIONS,
+  getVideoDimensions,
+  networkToVideoPlatform,
+  type VideoScene,
+  type VideoScript,
+  type VideoScriptStatus,
+  type VideoRenderJobStatus,
+  type VideoPlatform,
+  type VideoDimensions,
+} from "./video-script.js";
+
+export {
   BUSINESS_CATEGORY_CATALOG,
   categoryHeroDefaultSrc,
   categoryHeroSizes,

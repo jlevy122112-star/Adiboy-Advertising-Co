@@ -14,6 +14,7 @@
     "start:brand-memory": "node dist/brand-memory-server.js",
     "start:scheduler": "node dist/scheduler-publish-server.js",
     "start:image-gen": "node dist/image-gen-server.js",
+    "start:video-gen": "node dist/video-gen-server.js",
     "db:migrate": "node scripts/migrate.mjs"
   },
   "dependencies": {
