@@ -649,6 +649,8 @@ export {
   ScheduleEntryStatusSchema,
   TERMINAL_SCHEDULE_ENTRY_STATUSES,
   UpdateScheduleEntryBodySchema,
+  VideoOptionsSchema,
+  PostMetadataSchema,
   type AttachScheduleEntryCampaignBody,
   type CreateScheduleEntryBody,
   type DeleteScheduleEntryBody,
@@ -659,6 +661,8 @@ export {
   type ScheduleEntryStatus,
   type TerminalScheduleEntryStatus,
   type UpdateScheduleEntryBody,
+  type VideoOptions,
+  type PostMetadata,
 } from "./content-calendar.js";
 
 export {

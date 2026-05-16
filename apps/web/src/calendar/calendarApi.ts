@@ -113,6 +113,8 @@ export async function updateScheduleEntry(
   contentSummary: string,
   network: string | null,
   scheduledAt: string | null,
+  videoOptions?: Record<string, unknown> | null,
+  metadata?: Record<string, unknown> | null,
 ): Promise<boolean> {
   try {
     const u = new URL(PATH_UPDATE, `${cfg.apiOrigin}/`)
@@ -125,6 +127,8 @@ export async function updateScheduleEntry(
         contentSummary,
         network,
         scheduledAt,
+        ...(videoOptions !== undefined ? { videoOptions } : {}),
+        ...(metadata !== undefined ? { metadata } : {}),
       }),
     })
     return res.ok

@@ -30,6 +30,43 @@ function toIsoString(value: string | Date): string {
   return value instanceof Date ? value.toISOString() : String(value);
 }
 
+/** Hashtags, mentions, alt text, and platform-specific extras (migration `011`). */
+export const PostMetadataSchema = z
+  .object({
+    hashtags: z.array(z.string().max(100)).max(30).optional().default([]),
+    mentions: z.array(z.string().max(100)).max(20).optional().default([]),
+    altText: z.string().max(1000).optional().default(""),
+    /** Instagram: location tag */
+    location: z.string().max(200).optional().default(""),
+    /** LinkedIn: text to post as first comment (common hashtag strategy) */
+    firstComment: z.string().max(2200).optional().default(""),
+    /** LinkedIn: article/post title when sharing a link */
+    articleTitle: z.string().max(300).optional().default(""),
+    /** YouTube: long-form description separate from the post body */
+    youtubeDescription: z.string().max(5000).optional().default(""),
+    /** YouTube: searchable tag keywords */
+    youtubeTags: z.array(z.string().max(100)).max(500).optional().default([]),
+    /** YouTube: category name or ID (e.g. "22" = People & Blogs) */
+    youtubeCategory: z.string().max(100).optional().default(""),
+  })
+  .strict();
+
+export type PostMetadata = z.infer<typeof PostMetadataSchema>;
+
+/** Video build options stored per schedule entry (migration `009`). */
+export const VideoOptionsSchema = z
+  .object({
+    filterPreset: z.string().max(64).optional().default("none"),
+    textTitle: z.string().max(80).optional().default(""),
+    textCaption: z.string().max(200).optional().default(""),
+    textHashtags: z.string().max(120).optional().default(""),
+    textEmoji: z.string().max(8).optional().default(""),
+    effects: z.array(z.string().max(64)).max(10).optional().default([]),
+  })
+  .strict();
+
+export type VideoOptions = z.infer<typeof VideoOptionsSchema>;
+
 /** Row shape returned by `SELECT` on `schedule_entries` (snake_case). */
 export type ScheduleEntrySqlRow = {
   readonly id: string;
@@ -41,6 +78,10 @@ export type ScheduleEntrySqlRow = {
   readonly content_summary: string | null;
   /** When the post should go live; added in migration `007`. */
   readonly scheduled_at: string | Date | null;
+  /** Video build options; added in migration `009`. */
+  readonly video_options?: unknown | null;
+  /** Post metadata (hashtags, mentions, alt text, platform extras); migration `011`. */
+  readonly metadata?: unknown | null;
   readonly created_at: string | Date;
   readonly updated_at: string | Date;
 };
@@ -59,6 +100,10 @@ export const ScheduleEntryRecordSchema = z
     contentSummary: z.string().max(20_000).nullable(),
     /** ISO datetime for when the post is scheduled to go live (migration 007). */
     scheduledAt: z.string().nullable().optional(),
+    /** Video build options (migration 009). */
+    videoOptions: VideoOptionsSchema.nullable().optional(),
+    /** Post metadata: hashtags, mentions, alt text, platform extras (migration 011). */
+    metadata: PostMetadataSchema.nullable().optional(),
     createdAt: z.string(),
     updatedAt: z.string(),
   })
@@ -77,6 +122,12 @@ export function scheduleEntryRecordFromSqlRow(
     status: row.status,
     contentSummary: row.content_summary,
     scheduledAt: row.scheduled_at != null ? toIsoString(row.scheduled_at) : null,
+    videoOptions: row.video_options != null
+      ? VideoOptionsSchema.parse(row.video_options)
+      : null,
+    metadata: row.metadata != null
+      ? PostMetadataSchema.parse(row.metadata)
+      : null,
     createdAt: toIsoString(row.created_at),
     updatedAt: toIsoString(row.updated_at),
   });
@@ -183,6 +234,8 @@ export const UpdateScheduleEntryBodySchema = z
     contentSummary: z.string().max(20_000).nullable().optional(),
     network: z.string().min(1).max(64).nullable().optional(),
     scheduledAt: z.string().nullable().optional(),
+    videoOptions: VideoOptionsSchema.nullable().optional(),
+    metadata: PostMetadataSchema.nullable().optional(),
   })
   .strict();
 

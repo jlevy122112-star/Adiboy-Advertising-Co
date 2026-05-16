@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 const STORAGE_KEY = 'marketer-brand-theme'
 
@@ -62,14 +62,41 @@ export function useBrandTheme() {
   return { theme, setTheme }
 }
 
+export type BrandingApiConfig = {
+  readonly apiOrigin: string
+  readonly tenantId: string
+  readonly bearer?: string
+}
+
 type Props = {
   theme: BrandTheme
   onThemeChange: (t: BrandTheme) => void
+  apiConfig?: BrandingApiConfig | null
 }
 
-export function BrandThemePanel({ theme, onThemeChange }: Props) {
+async function persistBrandingToApi(
+  cfg: BrandingApiConfig,
+  branding: Partial<BrandTheme>,
+): Promise<void> {
+  try {
+    await fetch(`${cfg.apiOrigin}/api/marketer-pro/branding`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(cfg.bearer?.trim() ? { Authorization: `Bearer ${cfg.bearer.trim()}` } : {}),
+      },
+      body: JSON.stringify({ tenantId: cfg.tenantId, branding }),
+    })
+  } catch {
+    // fire-and-forget; local state already updated
+  }
+}
+
+export function BrandThemePanel({ theme, onThemeChange, apiConfig }: Props) {
   const [local, setLocal] = useState<BrandTheme>(theme)
   const [saved, setSaved] = useState(false)
+  const apiConfigRef = useRef(apiConfig)
+  apiConfigRef.current = apiConfig
 
   const patch = (p: Partial<BrandTheme>) => {
     setLocal((prev) => ({ ...prev, ...p }))
@@ -79,6 +106,9 @@ export function BrandThemePanel({ theme, onThemeChange }: Props) {
   const handleApply = () => {
     onThemeChange(local)
     setSaved(true)
+    if (apiConfigRef.current) {
+      void persistBrandingToApi(apiConfigRef.current, local)
+    }
   }
 
   return (

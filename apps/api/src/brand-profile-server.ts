@@ -24,6 +24,10 @@ import {
   executeListBrandProfilesRequestFromSearchParams,
   executeUpsertBrandProfileRequest,
 } from "./marketer-pro/brand-profile-route.js";
+import {
+  executeGetBrandingRequestFromSearchParams,
+  executePutBrandingRequest,
+} from "./marketer-pro/branding-route.js";
 
 const MAX_BODY_BYTES = 1024 * 1024;
 
@@ -33,7 +37,7 @@ function corsHeaders(req: IncomingMessage): Record<string, string> | undefined {
     return undefined;
   }
   const base: Record<string, string> = {
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, OPTIONS",
     "Access-Control-Allow-Headers": "Authorization, Content-Type",
     "Access-Control-Max-Age": "86400",
   };
@@ -118,8 +122,10 @@ const pathGet =
 const pathList =
   process.env.BRAND_PROFILE_HTTP_PATH_LIST ??
   "/api/marketer-pro/brand-profiles/list";
+const pathBrandingPut = "/api/marketer-pro/branding";
+const pathBrandingGet = "/api/marketer-pro/branding";
 
-const knownPaths = new Set([pathUpsert, pathGet, pathList]);
+const knownPaths = new Set([pathUpsert, pathGet, pathList, pathBrandingPut]);
 
 const server = createServer(async (req, res) => {
   let fullUrl: URL;
@@ -162,6 +168,38 @@ const server = createServer(async (req, res) => {
       fullUrl.searchParams,
     );
     json(req, res, outcome.status, outcome.body);
+    return;
+  }
+
+  if (req.method === "GET" && pathname === pathBrandingGet) {
+    const outcome = await executeGetBrandingRequestFromSearchParams(fullUrl.searchParams);
+    json(req, res, outcome.status, outcome.body);
+    return;
+  }
+
+  if (req.method === "PUT" && pathname === pathBrandingPut) {
+    try {
+      const body = await readJsonBody(req);
+      const outcome = await executePutBrandingRequest(body);
+      json(req, res, outcome.status, outcome.body);
+    } catch (err) {
+      if (err instanceof SyntaxError) {
+        json(req, res, 400, { error: "invalid_json" });
+        return;
+      }
+      if (err instanceof Error && err.message === "request_entity_too_large") {
+        json(req, res, 413, { error: "payload_too_large" });
+        return;
+      }
+      console.error(
+        JSON.stringify({
+          level: "error",
+          event: "branding_server_unhandled",
+          message: err instanceof Error ? err.message : String(err),
+        }),
+      );
+      json(req, res, 500, { error: "internal_error" });
+    }
     return;
   }
 

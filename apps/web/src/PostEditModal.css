@@ -1,0 +1,54 @@
+.post-edit-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.post-edit-panel {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  width: 100%;
+  max-width: 640px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Mobile: slide-up bottom sheet */
+@media (max-width: 640px) {
+  .post-edit-backdrop {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .post-edit-panel {
+    border-radius: 20px 20px 0 0;
+    border-bottom: none;
+    max-width: 100%;
+    max-height: 92dvh;
+    padding: 20px 16px 32px;
+    animation: slide-up 0.22s ease-out;
+  }
+}
+
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}

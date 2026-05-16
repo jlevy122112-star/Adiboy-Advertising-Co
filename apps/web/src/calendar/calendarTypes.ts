@@ -28,6 +28,8 @@ export const PlannedPostSchema = z.object({
       'generic',
     ])
     .optional(),
+  videoOptions: z.record(z.string(), z.unknown()).nullable().optional(),
+  metadata: z.record(z.string(), z.unknown()).nullable().optional(),
 })
 export type PlannedPost = z.infer<typeof PlannedPostSchema>
 

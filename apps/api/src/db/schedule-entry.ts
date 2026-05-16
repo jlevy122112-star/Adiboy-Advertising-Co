@@ -37,7 +37,7 @@ export async function resolveScheduleEntryForPublish(
   try {
     const rows = await sql<ScheduleEntryRow[]>`
       SELECT id, tenant_id, campaign_id, network, status, content_summary,
-             scheduled_at, created_at, updated_at
+             scheduled_at, video_options, metadata, created_at, updated_at
       FROM schedule_entries
       WHERE id = ${payload.scheduleEntryId}
         AND tenant_id = ${payload.tenantId}
@@ -116,7 +116,7 @@ export async function insertScheduleEntry(
          ${input.scheduledAt}::timestamptz,
          now(), now())
       RETURNING id, tenant_id, campaign_id, network, status, content_summary,
-                scheduled_at, created_at, updated_at
+                scheduled_at, video_options, metadata, created_at, updated_at
     `;
     const row = rows[0];
     if (!row) {
@@ -192,7 +192,7 @@ export async function updateScheduleEntryCampaignId(args: {
       WHERE tenant_id = ${args.tenantId}
         AND id = ${args.scheduleEntryId}
       RETURNING id, tenant_id, campaign_id, network, status, content_summary,
-                scheduled_at, created_at, updated_at
+                scheduled_at, video_options, metadata, created_at, updated_at
     `;
     const row = rows[0];
     if (!row) {
@@ -239,7 +239,7 @@ export async function listScheduleEntriesForCampaign(args: {
   try {
     const rows = await sql<ScheduleEntryRow[]>`
       SELECT id, tenant_id, campaign_id, network, status, content_summary,
-             scheduled_at, created_at, updated_at
+             scheduled_at, video_options, metadata, created_at, updated_at
       FROM schedule_entries
       WHERE tenant_id = ${args.tenantId}
         AND campaign_id = ${args.campaignId}
@@ -271,7 +271,7 @@ export async function listScheduleEntriesByTenant(args: {
   try {
     const rows = await sql<ScheduleEntryRow[]>`
       SELECT id, tenant_id, campaign_id, network, status, content_summary,
-             scheduled_at, created_at, updated_at
+             scheduled_at, video_options, metadata, created_at, updated_at
       FROM schedule_entries
       WHERE tenant_id = ${args.tenantId}
       ORDER BY COALESCE(scheduled_at, updated_at) ASC
@@ -322,6 +322,8 @@ export type UpdateScheduleEntryFieldsInput = {
   readonly contentSummary: string | null;
   readonly network: string | null;
   readonly scheduledAt: string | null;
+  readonly videoOptions: Record<string, unknown> | null;
+  readonly metadata: Record<string, unknown> | null;
 };
 
 export type UpdateScheduleEntryFieldsResult =
@@ -345,11 +347,13 @@ export async function updateScheduleEntryFields(
       SET content_summary = ${input.contentSummary},
           network         = ${input.network},
           scheduled_at    = ${input.scheduledAt}::timestamptz,
+          video_options   = ${input.videoOptions !== null ? sql.json(JSON.parse(JSON.stringify(input.videoOptions)) as Parameters<typeof sql.json>[0]) : null},
+          metadata        = ${input.metadata !== null ? sql.json(JSON.parse(JSON.stringify(input.metadata)) as Parameters<typeof sql.json>[0]) : null},
           updated_at      = now()
       WHERE tenant_id = ${input.tenantId}
         AND id = ${input.scheduleEntryId}
       RETURNING id, tenant_id, campaign_id, network, status, content_summary,
-                scheduled_at, created_at, updated_at
+                scheduled_at, video_options, metadata, created_at, updated_at
     `;
     const row = rows[0];
     if (!row) {

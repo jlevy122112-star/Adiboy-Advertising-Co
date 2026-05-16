@@ -1,8 +1,16 @@
 import { BrandProfileDraftPanel } from './BrandProfileDraftPanel'
-import { BrandThemePanel, useBrandTheme } from './BrandThemePanel'
+import { BrandThemePanel, useBrandTheme, type BrandingApiConfig } from './BrandThemePanel'
 import { CampaignSyncPanel } from './CampaignSyncPanel'
 import { MarketerCalendar } from './calendar/MarketerCalendar'
 import './App.css'
+
+const TENANT_ID = import.meta.env.VITE_TENANT_ID as string | undefined
+const BRAND_API_ORIGIN = import.meta.env.VITE_BRAND_API_ORIGIN as string | undefined
+
+const brandingApiConfig: BrandingApiConfig | null =
+  TENANT_ID && BRAND_API_ORIGIN
+    ? { tenantId: TENANT_ID, apiOrigin: BRAND_API_ORIGIN }
+    : null
 
 function App() {
   const { theme, setTheme } = useBrandTheme()
@@ -41,7 +49,7 @@ function App() {
 
       <div className="marketer-divider" aria-hidden />
 
-      <BrandThemePanel theme={theme} onThemeChange={setTheme} />
+      <BrandThemePanel theme={theme} onThemeChange={setTheme} apiConfig={brandingApiConfig} />
 
       <div className="marketer-divider" aria-hidden />
 

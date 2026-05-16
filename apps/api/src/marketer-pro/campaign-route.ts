@@ -388,7 +388,7 @@ export async function executeUpdateScheduleEntryRequest(
       body: { error: "validation_error", message: parsed.error.message },
     };
   }
-  const { tenantId, scheduleEntryId, contentSummary, network, scheduledAt } =
+  const { tenantId, scheduleEntryId, contentSummary, network, scheduledAt, videoOptions, metadata } =
     parsed.data;
   const result = await updateScheduleEntryFields({
     tenantId,
@@ -396,6 +396,8 @@ export async function executeUpdateScheduleEntryRequest(
     contentSummary: contentSummary ?? null,
     network: network ?? null,
     scheduledAt: scheduledAt ?? null,
+    videoOptions: videoOptions ?? null,
+    metadata: metadata ?? null,
   });
   if (!result.ok) {
     if (result.code === "no_database") {

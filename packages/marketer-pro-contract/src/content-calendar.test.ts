@@ -29,6 +29,8 @@ describe("content-calendar", () => {
       status: "scheduled",
       contentSummary: "Hello",
       scheduledAt: null,
+      videoOptions: null,
+      metadata: null,
       createdAt: "2026-05-01T10:00:00.000Z",
       updatedAt: "2026-05-02T11:00:00.000Z",
     });
