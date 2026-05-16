@@ -13,6 +13,9 @@ export const TaskItemSchema = z.object({
 })
 export type TaskItem = z.infer<typeof TaskItemSchema>
 
+export const POST_STATUSES = ['draft', 'scheduled', 'publishing', 'published', 'failed'] as const
+export type PostStatus = (typeof POST_STATUSES)[number]
+
 export const PlannedPostSchema = z.object({
   id: z.string(),
   title: z.string().max(500),
@@ -28,6 +31,10 @@ export const PlannedPostSchema = z.object({
       'generic',
     ])
     .optional(),
+  status: z.enum(POST_STATUSES).optional(),
+  scheduledTime: z.string().max(5).optional(), // "HH:MM"
+  campaignId: z.string().optional(),
+  campaignColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
   videoOptions: z.record(z.string(), z.unknown()).nullable().optional(),
   metadata: z.record(z.string(), z.unknown()).nullable().optional(),
 })
@@ -61,10 +68,9 @@ export const PreferencesSchema = z
     imageUrl: z.string().max(2048),
     overlayOpacity: z.number().min(0).max(0.9),
     showWeekNumbers: z.boolean(),
-    /** Optional user oversight — copy + light UI affordances only for now */
     oversightMode: z.enum(OVERSIGHT_MODES),
-    /** First day of week row height / cell padding feel */
     highlightWeekends: z.boolean(),
+    viewMode: z.enum(['month', 'week', 'day']).default('month'),
   })
   .strict()
 
@@ -91,6 +97,7 @@ export function defaultPreferences(): CalendarPreferences {
     showWeekNumbers: false,
     oversightMode: 'nudges',
     highlightWeekends: true,
+    viewMode: 'month',
   }
 }
 

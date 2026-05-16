@@ -347,8 +347,8 @@ export async function updateScheduleEntryFields(
       SET content_summary = ${input.contentSummary},
           network         = ${input.network},
           scheduled_at    = ${input.scheduledAt}::timestamptz,
-          video_options   = ${input.videoOptions !== null ? sql.json(JSON.parse(JSON.stringify(input.videoOptions)) as Parameters<typeof sql.json>[0]) : null},
-          metadata        = ${input.metadata !== null ? sql.json(JSON.parse(JSON.stringify(input.metadata)) as Parameters<typeof sql.json>[0]) : null},
+          video_options   = ${input.videoOptions !== null ? sql.json(input.videoOptions as unknown as Parameters<typeof sql.json>[0]) : null},
+          metadata        = ${input.metadata !== null ? sql.json(input.metadata as unknown as Parameters<typeof sql.json>[0]) : null},
           updated_at      = now()
       WHERE tenant_id = ${input.tenantId}
         AND id = ${input.scheduleEntryId}
