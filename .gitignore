@@ -59,3 +59,15 @@ Wholesaler-Pro-b01-bootstrap-upgrades/
 plugins/cache/
 
 # Husky is tracked; leave hooks executable via git attributes if needed
+
+# Claude Code — local memory & session files (machine-specific, never commit)
+.claude/
+
+# Database dumps — may contain real data
+sqlite_dump.sql
+
+# Cursor/agent autonomous-run artefacts (temp, root-level)
+autonomous-run-events.ts
+autonomous-run-events.test.ts
+autonomous-run-events1.test.ts
+autonomous-run-state.ts
