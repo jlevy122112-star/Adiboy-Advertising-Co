@@ -17,6 +17,7 @@ describe("content-calendar", () => {
       network: "x",
       status: "scheduled",
       content_summary: "Hello",
+      scheduled_at: null,
       created_at: "2026-05-01T10:00:00.000Z",
       updated_at: "2026-05-02T11:00:00.000Z",
     });
@@ -27,6 +28,7 @@ describe("content-calendar", () => {
       network: "x",
       status: "scheduled",
       contentSummary: "Hello",
+      scheduledAt: null,
       createdAt: "2026-05-01T10:00:00.000Z",
       updatedAt: "2026-05-02T11:00:00.000Z",
     });
@@ -42,6 +44,7 @@ describe("content-calendar", () => {
       network: null,
       status: "published",
       content_summary: null,
+      scheduled_at: null,
       created_at: d1,
       updated_at: d2,
     });
@@ -61,6 +64,7 @@ describe("content-calendar", () => {
       network: null,
       status: "legacy_custom",
       content_summary: null,
+      scheduled_at: null,
       created_at: "2026-01-01T00:00:00.000Z",
       updated_at: "2026-01-01T00:00:00.000Z",
     });

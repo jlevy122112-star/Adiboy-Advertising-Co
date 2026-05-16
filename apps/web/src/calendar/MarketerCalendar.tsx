@@ -2,6 +2,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type CSSProperties,
 } from 'react'
@@ -32,6 +33,13 @@ import {
   newId,
   saveCalendarState,
 } from './calendarStorage.js'
+import {
+  listScheduleEntriesByTenant,
+  syncPostChanges,
+  toValidNetwork,
+  updateScheduleEntry,
+  type CalendarApiConfig,
+} from './calendarApi.js'
 
 const NETWORK_OPTIONS: Array<NonNullable<PlannedPost['network']>> = [
   'instagram',
@@ -43,6 +51,17 @@ const NETWORK_OPTIONS: Array<NonNullable<PlannedPost['network']>> = [
   'email',
   'generic',
 ]
+
+const NETWORK_ABBR: Record<NonNullable<PlannedPost['network']>, string> = {
+  instagram: 'IG',
+  facebook: 'FB',
+  x: 'X',
+  linkedin: 'LI',
+  youtube: 'YT',
+  tiktok: 'TT',
+  email: '✉',
+  generic: '●',
+}
 
 function oversightCopy(mode: OversightMode): string {
   switch (mode) {
@@ -105,6 +124,59 @@ export function MarketerCalendar() {
   const [importText, setImportText] = useState('')
   const [importMsg, setImportMsg] = useState<string | null>(null)
   const [draggedPinId, setDraggedPinId] = useState<string | null>(null)
+  const [draggedPost, setDraggedPost] = useState<{
+    post: PlannedPost
+    fromDayKey: DayKey
+  } | null>(null)
+  const [dragOverDay, setDragOverDay] = useState<DayKey | null>(null)
+
+  const apiConfig = useMemo<CalendarApiConfig | null>(() => {
+    const origin = import.meta.env.VITE_CAMPAIGN_API_ORIGIN
+    const tenantId = import.meta.env.VITE_DEFAULT_TENANT_ID
+    if (!origin?.trim() || !tenantId?.trim()) return null
+    return {
+      apiOrigin: origin.trim().replace(/\/$/, ''),
+      tenantId: tenantId.trim(),
+    }
+  }, [])
+
+  // Always-current refs so stable callbacks can read the latest values without
+  // capturing stale closures.
+  const apiConfigRef = useRef<CalendarApiConfig | null>(apiConfig)
+  apiConfigRef.current = apiConfig
+  const stateRef = useRef(state)
+  stateRef.current = state
+
+  // On mount: load schedule entries from the API and merge into local state
+  // (API wins for posts it knows about; local-only pins/notes/preferences unchanged).
+  useEffect(() => {
+    if (!apiConfig) return
+    listScheduleEntriesByTenant(apiConfig).then((entries) => {
+      if (entries.length === 0) return
+      setState((s) => {
+        const days = { ...s.days }
+        for (const entry of entries) {
+          if (!entry.scheduledAt) continue
+          const dayKey = entry.scheduledAt.slice(0, 10)
+          const existing = days[dayKey] ?? defaultDayData()
+          if (existing.posts.some((p) => p.id === entry.scheduleEntryId)) continue
+          days[dayKey] = {
+            ...existing,
+            posts: [
+              ...existing.posts,
+              {
+                id: entry.scheduleEntryId,
+                title: entry.contentSummary ?? entry.scheduleEntryId,
+                network: toValidNetwork(entry.network),
+              },
+            ],
+          }
+        }
+        return { ...s, days }
+      })
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const p = state.preferences
 
@@ -157,7 +229,38 @@ export function MarketerCalendar() {
   )
 
   const patchDay = useCallback((key: DayKey, next: DayData) => {
+    const cfg = apiConfigRef.current
+    if (cfg) {
+      const prev = stateRef.current.days[key] ?? defaultDayData()
+      syncPostChanges(cfg, key, prev.posts, next.posts)
+    }
     setState((s) => ({ ...s, days: { ...s.days, [key]: next } }))
+  }, [])
+
+  const movePost = useCallback((fromKey: DayKey, toKey: DayKey, post: PlannedPost) => {
+    if (fromKey === toKey) return
+    const cfg = apiConfigRef.current
+    if (cfg) {
+      updateScheduleEntry(
+        cfg,
+        post.id,
+        post.title,
+        post.network ?? null,
+        `${toKey}T00:00:00.000Z`,
+      ).catch(() => {})
+    }
+    setState((s) => {
+      const fromDay = s.days[fromKey] ?? defaultDayData()
+      const toDay = s.days[toKey] ?? defaultDayData()
+      return {
+        ...s,
+        days: {
+          ...s.days,
+          [fromKey]: { ...fromDay, posts: fromDay.posts.filter((p) => p.id !== post.id) },
+          [toKey]: { ...toDay, posts: [...toDay.posts, post] },
+        },
+      }
+    })
   }, [])
 
   const goPrev = () =>
@@ -274,7 +377,10 @@ export function MarketerCalendar() {
           <h2 className="mc-title">Content calendar</h2>
           <p className="mc-sub">
             Local-first planner — customize look, pins, and per-day tasks and
-            campaign slots. Sync to API when you wire workspace auth.
+            campaign slots.{' '}
+            {apiConfig
+              ? `Planned posts sync to schedule API (tenant: ${apiConfig.tenantId}).`
+              : 'Set VITE_CAMPAIGN_API_ORIGIN + VITE_DEFAULT_TENANT_ID to enable post sync.'}
           </p>
           <div className="mc-nav">
             <button type="button" className="mc-btn" onClick={goPrev}>
@@ -360,6 +466,9 @@ export function MarketerCalendar() {
                   const hasNotes = dd.notes.trim().length > 0
                   const w = date.getDay()
                   const weekend = w === 0 || w === 6
+                  const chipLimit = p.density === 'compact' ? 1 : 2
+                  const isDragSource = draggedPost?.fromDayKey === key
+                  const isDragTarget = dragOverDay === key && !!draggedPost && !isDragSource
                   return (
                     <button
                       key={key}
@@ -371,17 +480,67 @@ export function MarketerCalendar() {
                         weekend && p.highlightWeekends
                           ? 'mc-day--weekend mc-day--hl-weekend'
                           : '',
+                        isDragSource ? 'mc-day--dragging' : '',
+                        isDragTarget ? 'mc-day--drag-over' : '',
                       ]
                         .filter(Boolean)
                         .join(' ')}
                       onClick={() => setSelectedDay(key)}
+                      onDragOver={(e) => {
+                        if (!draggedPost) return
+                        e.preventDefault()
+                        e.dataTransfer.dropEffect = 'move'
+                        setDragOverDay(key)
+                      }}
+                      onDragLeave={(e) => {
+                        // Only clear if leaving the button itself (not a child)
+                        if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                          setDragOverDay(null)
+                        }
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault()
+                        setDragOverDay(null)
+                        if (!draggedPost) return
+                        movePost(draggedPost.fromDayKey, key, draggedPost.post)
+                        setDraggedPost(null)
+                      }}
                     >
                       <div className="mc-day-num">{date.getDate()}</div>
+                      {posts.slice(0, chipLimit).map((post) => (
+                        <div
+                          key={post.id}
+                          className="mc-post-chip"
+                          draggable
+                          onDragStart={(e) => {
+                            e.stopPropagation()
+                            setDraggedPost({ post, fromDayKey: key })
+                            e.dataTransfer.effectAllowed = 'move'
+                          }}
+                          onDragEnd={() => {
+                            setDraggedPost(null)
+                            setDragOverDay(null)
+                          }}
+                        >
+                          {post.network ? (
+                            <span className="mc-chip-net">
+                              {NETWORK_ABBR[post.network]}
+                            </span>
+                          ) : null}
+                          <span className="mc-chip-title">
+                            {post.title.length > 13
+                              ? `${post.title.slice(0, 13)}…`
+                              : post.title}
+                          </span>
+                        </div>
+                      ))}
+                      {posts.length > chipLimit ? (
+                        <div className="mc-chip-more">
+                          +{posts.length - chipLimit}
+                        </div>
+                      ) : null}
                       <div className="mc-day-dots" aria-hidden>
                         {hasNotes ? <span className="mc-dot" /> : null}
-                        {posts.length ? (
-                          <span className="mc-dot mc-dot--post" />
-                        ) : null}
                         {openTasks.length ? (
                           <span className="mc-dot mc-dot--task" />
                         ) : null}
@@ -829,8 +988,8 @@ function DayEditor({
             color: 'var(--text, #666)',
           }}
         >
-          Lightweight placeholders for networks — wire to queue + Postgres when
-          ready.
+          Planned posts are saved locally and synced to{' '}
+          <code>schedule_entries</code> when the API is configured.
         </p>
         <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
           {data.posts.map((post) => (
@@ -911,7 +1070,7 @@ function DayEditor({
       </div>
 
       <p style={{ fontSize: '0.72rem', color: 'var(--text, #888)', margin: 0 }}>
-        Day key: {dayKey} · Stored in localStorage under marketer_pro_calendar_v1
+        Day key: {dayKey} · Saved locally; planned posts sync to schedule_entries when API is configured.
       </p>
     </div>
   )

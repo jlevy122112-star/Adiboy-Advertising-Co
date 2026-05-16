@@ -34,7 +34,7 @@ describe("adaptCopyToPlatform", () => {
   it("truncates combined primary text for X within maxPrimaryChars", () => {
     const body = "a".repeat(400);
     const source: CopyDirectives = { body };
-    const r = adaptCopyToPlatform(source, "x", {});
+    const r = adaptCopyToPlatform({ source, network: "x" });
 
     expect(r.network).toBe("x");
     expect(r.strategy).toBe("truncate");
@@ -52,17 +52,17 @@ describe("adaptCopyToPlatform", () => {
   it("puts a long single block in body on Instagram (not a 280-char headline cap)", () => {
     const text = "p".repeat(600);
     const source: CopyDirectives = { body: text };
-    const r = adaptCopyToPlatform(source, "instagram");
+    const r = adaptCopyToPlatform({ source, network: "instagram" });
 
     expect(r.copy.body?.length).toBe(600);
     expect(r.copy.headline).toBeUndefined();
   });
 
   it("keeps a short single block in headline on Instagram", () => {
-    const r = adaptCopyToPlatform(
-      { body: "Short launch line." },
-      "instagram",
-    );
+    const r = adaptCopyToPlatform({
+      source: { body: "Short launch line." },
+      network: "instagram",
+    });
     expect(r.copy.headline).toBe("Short launch line.");
     expect(r.copy.body).toBeUndefined();
   });
@@ -71,7 +71,7 @@ describe("adaptCopyToPlatform", () => {
     const para1 = "a".repeat(200);
     const para2 = "b".repeat(400);
     const source: CopyDirectives = { body: `${para1}\n\n${para2}` };
-    const r = adaptCopyToPlatform(source, "instagram");
+    const r = adaptCopyToPlatform({ source, network: "instagram" });
 
     expect(r.copy.headline).toBe(para1);
     expect(r.copy.body).toBe(para2);
@@ -82,7 +82,7 @@ describe("adaptCopyToPlatform", () => {
       body: "Launch week",
       link: "https://example.com/p",
     };
-    const r = adaptCopyToPlatform(source, "instagram");
+    const r = adaptCopyToPlatform({ source, network: "instagram" });
 
     expect(r.copy.link).toBeUndefined();
     expect(r.warnings.some((w) => w.code === "link_cleared_not_supported")).toBe(
@@ -97,7 +97,7 @@ describe("adaptCopyToPlatform", () => {
       body: "Short",
       hashtags: tags,
     };
-    const r = adaptCopyToPlatform(source, "x");
+    const r = adaptCopyToPlatform({ source, network: "x" });
 
     expect(r.copy.hashtags?.length).toBe(10);
     expect(r.warnings.some((w) => w.code === "hashtags_trimmed")).toBe(true);
@@ -108,16 +108,14 @@ describe("adaptCopyToPlatform", () => {
       body: "x",
       hashtags: ["#one", "#two"],
     };
-    const r = adaptCopyToPlatform(source, "x");
+    const r = adaptCopyToPlatform({ source, network: "x" });
 
     expect(r.copy.hashtags).toEqual(["one", "two"]);
   });
 
   it("blocks overflow when strategy is fail_on_overflow", () => {
     const source: CopyDirectives = { body: "b".repeat(300) };
-    const r = adaptCopyToPlatform(source, "x", {
-      strategy: "fail_on_overflow",
-    });
+    const r = adaptCopyToPlatform({ source, network: "x", options: { strategy: "fail_on_overflow" } });
 
     expect(r.strategy).toBe("fail_on_overflow");
     expect(r.warnings.some((w) => w.code === "overflow_blocked")).toBe(true);
@@ -131,9 +129,7 @@ describe("adaptCopyToPlatform", () => {
       body: "b".repeat(300),
       hashtags: ["a", "b"],
     };
-    const r = adaptCopyToPlatform(source, "x", {
-      strategy: "fail_on_overflow",
-    });
+    const r = adaptCopyToPlatform({ source, network: "x", options: { strategy: "fail_on_overflow" } });
     expect(r.warnings.some((w) => w.code === "overflow_blocked")).toBe(true);
     expect(r.copy.hashtags).toEqual(["a", "b"]);
   });
@@ -145,26 +141,26 @@ describe("adaptationWarningsNeedReview", () => {
       body: "ok",
       hashtags: Array.from({ length: 12 }, (_, i) => `t${i}`),
     };
-    const r = adaptCopyToPlatform(source, "x");
+    const r = adaptCopyToPlatform({ source, network: "x" });
     expect(r.warnings.some((w) => w.code === "hashtags_trimmed")).toBe(true);
     expect(adaptationWarningsNeedReview(r.warnings)).toBe(false);
   });
 
   it("is true for truncation, cleared link, or overflow", () => {
-    const t = adaptCopyToPlatform({ body: "z".repeat(500) }, "x");
+    const t = adaptCopyToPlatform({ source: { body: "z".repeat(500) }, network: "x" });
     expect(adaptationWarningsNeedReview(t.warnings)).toBe(true);
 
-    const l = adaptCopyToPlatform(
-      { body: "x", link: "https://example.com/a" },
-      "instagram",
-    );
+    const l = adaptCopyToPlatform({
+      source: { body: "x", link: "https://example.com/a" },
+      network: "instagram",
+    });
     expect(adaptationWarningsNeedReview(l.warnings)).toBe(true);
 
-    const o = adaptCopyToPlatform(
-      { body: "y".repeat(300) },
-      "x",
-      { strategy: "fail_on_overflow" },
-    );
+    const o = adaptCopyToPlatform({
+      source: { body: "y".repeat(300) },
+      network: "x",
+      options: { strategy: "fail_on_overflow" },
+    });
     expect(adaptationWarningsNeedReview(o.warnings)).toBe(true);
   });
 });

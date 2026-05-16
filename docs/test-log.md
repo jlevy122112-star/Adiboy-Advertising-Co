@@ -72,3 +72,25 @@ Maintain one entry per verification run that accompanies meaningful code changes
 
 - Worker CLI: `npm run queue:worker` (builds then runs `dist/worker-cli.js`). Processor is still a **stub** until wired to `apps/api` publish runner.
 - Ops reference: [`engineering/redis-bullmq.md`](engineering/redis-bullmq.md).
+
+---
+
+## 2026-05-12 — brand memory HTTP slice (contract + API)
+
+| Field | Value |
+|--------|--------|
+| **When** | 2026-05-12 (local) |
+| **Git SHA** | _fill at commit_ |
+| **Environment** | Windows; Node from PATH; Marketer Pro monorepo |
+
+### Commands & results
+
+| Command | Result |
+|---------|--------|
+| `npm run build -w @home-link/marketer-api --prefix .` | PASS (tsc contract + api) |
+| `npx vitest run packages/marketer-pro-contract/src/brand-memory-http.test.ts apps/api/src/marketer-pro/chunk-text.test.ts apps/api/src/marketer-pro/brand-memory-route.test.ts` | PASS — 14 tests |
+
+### Notes
+
+- New server: `npm run start:brand-memory -w @home-link/marketer-api` (default port **8795**). Requires `DATABASE_URL` + migration `006_brand_memory_pgvector.sql`.
+- Daily log: [`engineering/daily/2026-05-12.md`](engineering/daily/2026-05-12.md).

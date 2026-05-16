@@ -18,12 +18,12 @@ in the repo derives from it.
 > **Every feature in the app, from start to finish, presents the user with
 > exactly one of these four control modes. The user always has a say.**
 
-| # | Mode                          | Meaning                                                                |
-|---|-------------------------------|------------------------------------------------------------------------|
-| 1 | **`user_only`**               | User must pick. The AI is **not** involved in this decision.           |
-| 2 | **`ai_with_optional_override`** | AI auto-applies a value; the user can edit it at any time.            |
-| 3 | **`user_with_ai_assist`**     | User picks; user can ask the AI for suggestions on demand.            |
-| 4 | **`ai_suggest_user_confirm`** | AI proposes options; the user confirms, edits, or replaces each one.  |
+| # |||
+|---|----------------------------------|------------------------------------------------------------------------|
+| 1 |||
+| 2 |||
+| 3 |||
+| 4 |||
 
 These modes are **canonical**. They are encoded as a Zod enum in
 [`packages/marketer-pro-contract/src/decision-point.ts`](packages/marketer-pro-contract/src/decision-point.ts)
@@ -387,7 +387,7 @@ When a run terminates in `failed`, `failureKind` is required and is one of:
 - `timeout` — a state exceeded `stateTimeoutMs` before progressing.
 - `internal_error` — bug in the runner; the operator-facing error of last resort.
 
-### Read helpers
+### Autonomous run read helpers
 
 - `requiresUserInterrupt(run)` — true while the run sits in any blocking state.
 - `runProgress(run)` — `{ stage, percentComplete, blockedOn }` summary for UI.
@@ -498,7 +498,7 @@ Same inputs always produce the same id, so re-enqueueing the same
 `(run, schedule entry, format)` tuple in the autonomous orchestrator is
 a safe no-op.
 
-### Read helpers
+### Generation brief read helpers
 
 - `isReadyForGenerator(brief)` — exactly `validated`.
 - `isPendingGenerator(brief)` — `validated` or `generating`.
@@ -704,7 +704,9 @@ current?" and "what happened?" with the same contracts everywhere.
   (130+ formats), the decision-point primitive, and the customer-journey
   definitions. **The product principle above lives here.**
 - `packages/marketer-pro-queue/` — BullMQ-based publish queue + workers.
-- `apps/api/` — REST API plus small HTTP servers: scheduler enqueue, internal publish execution, generation drafts (Phase 2), and campaigns (Phase 4); see `docs/engineering/redis-bullmq.md`.
+- `apps/api/` — REST API plus small HTTP servers: scheduler enqueue, internal publish execution, generation drafts (Phase 2), campaigns (Phase 4), brand profiles and **brand memory** (Phase 1); see `docs/engineering/redis-bullmq.md` and `docs/engineering/brand-memory-ingest-handler.md`.
+
+**Path conventions:** use repo-relative paths in docs, commits, and reviews (as in this list), not machine-specific absolutes. See [`AGENTS.md`](AGENTS.md) and `.cursor/rules/repo-relative-paths.mdc`.
 
 See `docs/engineering/redis-bullmq.md` for the queue architecture and
 `packages/marketer-pro-contract/src/decision-point.ts` for the

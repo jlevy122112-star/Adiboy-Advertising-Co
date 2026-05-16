@@ -1,11 +1,16 @@
 /**
- * Deterministic draft text from a {@link GenerationBrief} — Phase 2 stub
- * implementation. Replace this module’s core function with a model-backed
- * generator when wiring the real stack; {@link executeCreateGenerationDraft}
- * should keep calling {@link generateDraftBodyFromBrief}.
+ * Draft body from a {@link GenerationBrief}: OpenAI when configured, else
+ * deterministic stub. {@link executeCreateGenerationDraft} awaits
+ * {@link generateDraftBodyFromBrief}.
  */
 
-import type { GenerationBrief } from "@home-link/marketer-pro-contract";
+import {
+  labelContentGoal,
+  stubContentGoalGuidance,
+  type GenerationBrief,
+} from "@home-link/marketer-pro-contract";
+
+import { completeOpenAiDraftChat } from "./openai-draft-chat.js";
 
 function linesForOptionalCopy(brief: GenerationBrief): string[] {
   const { copy } = brief;
@@ -17,7 +22,7 @@ function linesForOptionalCopy(brief: GenerationBrief): string[] {
   const body = copy.body?.trim();
   if (body) {
     const preview =
-      body.length > 400 ? `${body.slice(0, 400)}…` : body;
+      body.length > 400 ? `${body.slice(0, 400)}.` : body;
     out.push("", "Body (preview):", preview);
   }
   const cta = copy.cta?.trim();
@@ -45,7 +50,7 @@ function linesForVoice(brief: GenerationBrief): string[] {
     out.push(`Voice tone shift: ${v.toneShift}`);
   }
   if (v.formalityOverride != null) {
-    out.push(`Formality (1–5): ${v.formalityOverride}`);
+    out.push(`Formality (1-5): ${v.formalityOverride}`);
   }
   const note = v.note?.trim();
   if (note) {
@@ -58,10 +63,12 @@ function linesForVoice(brief: GenerationBrief): string[] {
 }
 
 /**
- * Produces placeholder copy for human review until a model provider is wired.
- * Uses only fields already on the brief (no network I/O).
+ * Deterministic copy for human review when no model key is set or the model fails.
  */
-export function generateDraftBodyFromBrief(brief: GenerationBrief): string {
+export function buildStubDraftBodyFromBrief(
+  brief: GenerationBrief,
+  opts?: { brandContext?: string },
+): string {
   const headline = brief.copy.headline?.trim() ?? "";
   const parts: string[] = [
     `Network: ${brief.network}`,
@@ -72,10 +79,100 @@ export function generateDraftBodyFromBrief(brief: GenerationBrief): string {
   ];
   parts.push(...linesForOptionalCopy(brief));
   parts.push(...linesForVoice(brief));
+  if (brief.contentGoal) {
+    parts.push(
+      "",
+      `Content goal: ${labelContentGoal(brief.contentGoal)}`,
+      ...stubContentGoalGuidance(brief.contentGoal).map((line) => `  - ${line}`),
+    );
+  }
+  if (opts?.brandContext) {
+    parts.push("", "-", "[Brand context would be injected into the model prompt.]");
+  }
   parts.push(
     "",
-    "—",
-    "Stub draft (replace with model output when wiring the real generator).",
+    "-",
+    "Stub draft (no OpenAI key configured, or model output was empty).",
   );
   return parts.join("\n");
+}
+
+function readOpenAiApiKey(): string | undefined {
+  const a = process.env.MARKETER_OPENAI_API_KEY?.trim();
+  if (a) {
+    return a;
+  }
+  return process.env.OPENAI_API_KEY?.trim() || undefined;
+}
+
+function briefJsonForPrompt(brief: GenerationBrief): string {
+  return JSON.stringify(brief, null, 2);
+}
+
+const SYSTEM_PROMPT = `You are a senior marketing copywriter for multi-network social and paid campaigns.
+You receive a Marketer Pro "generation brief" as JSON: network, formatId, copy directives, optional voice/SEO/design hints, and optional contentGoal (Meta outcome style).
+Write paste-ready primary copy the marketer can drop into the asset body (plain text). Respect the headline and any provided subhead/body/CTA/hashtags as anchors unless they clearly conflict with brand safety.
+Do not wrap the answer in markdown code fences. No preamble—output only the copy.`;
+
+/**
+ * Model-backed body when `MARKETER_OPENAI_API_KEY` or `OPENAI_API_KEY` is set;
+ * otherwise the deterministic stub from {@link buildStubDraftBodyFromBrief}.
+ *
+ * When `opts.brandContext` is provided (formatted by
+ * `formatBrandGenerationContextForPrompt`), it is appended to the system
+ * prompt so the model writes in the brand's voice.
+ */
+export async function generateDraftBodyFromBrief(
+  brief: GenerationBrief,
+  opts?: { brandContext?: string },
+): Promise<string> {
+  const apiKey = readOpenAiApiKey();
+  if (!apiKey) {
+    console.warn(
+      JSON.stringify({
+        level: "warn",
+        event: "generation_draft_no_api_key",
+        message:
+          "MARKETER_OPENAI_API_KEY / OPENAI_API_KEY not set — returning stub draft. Set the key to enable AI generation.",
+        briefId: brief.briefId,
+      }),
+    );
+    return buildStubDraftBodyFromBrief(brief, opts);
+  }
+  const baseUrl =
+    process.env.MARKETER_OPENAI_BASE_URL?.trim() || "https://api.openai.com/v1";
+  const model =
+    process.env.MARKETER_GENERATION_MODEL?.trim() || "gpt-4o-mini";
+
+  const systemPrompt = opts?.brandContext
+    ? `${SYSTEM_PROMPT}\n\n---\n${opts.brandContext}`
+    : SYSTEM_PROMPT;
+
+  const user = `Write marketing copy for this generation brief (JSON). Align tone with network=${brief.network} and formatId=${brief.formatId}.
+
+${briefJsonForPrompt(brief)}`;
+  try {
+    const text = await completeOpenAiDraftChat({
+      apiKey,
+      baseUrl,
+      model,
+      system: systemPrompt,
+      user,
+    });
+    const trimmed = text.trim();
+    if (trimmed.length === 0) {
+      return buildStubDraftBodyFromBrief(brief, opts);
+    }
+    return trimmed;
+  } catch (err) {
+    console.error(
+      JSON.stringify({
+        level: "error",
+        event: "generation_draft_openai_fallback",
+        briefId: brief.briefId,
+        message: err instanceof Error ? err.message : String(err),
+      }),
+    );
+    return buildStubDraftBodyFromBrief(brief, opts);
+  }
 }

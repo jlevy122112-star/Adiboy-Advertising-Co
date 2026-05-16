@@ -45,5 +45,5 @@ export function computeAdaptedPublishCopy(
   if (payload.copy === undefined) return undefined;
   const network = publishRouteToPublishableNetwork(route);
   if (network === null) return undefined;
-  return adaptCopyToPlatform(payload.copy, network);
+  return adaptCopyToPlatform({ source: payload.copy, network });
 }

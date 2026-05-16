@@ -1,17 +1,23 @@
 /**
  * Real-Redis roundtrip: enqueue → worker processes → result returned.
  *
- * Skips automatically when Redis is unreachable so the unit suite stays green
- * on dev machines without a local broker. CI and any developer with
- * `redis://127.0.0.1:6379` (or a custom `REDIS_URL`) will exercise the path.
+ * After a successful PING, assigns `process.env.REDIS_URL` to that broker so
+ * callers using the default `createRedisConnection()` URL see the same verified
+ * endpoint. Restores the prior env when the suite finishes if it was changed.
+ *
+ * Uses `REDIS_URL` (or the package default) when that broker responds to PING.
+ * If not (no local Redis), starts an embedded server via `redis-memory-server`
+ * so CI and laptops without
+ * Docker still exercise BullMQ. Opt out of the fallback with
+ * `MARKETER_SKIP_EMBEDDED_REDIS=1` to keep the old skip-only behaviour.
  *
  * Run alone:
- *   REDIS_URL=redis://127.0.0.1:6379 npx vitest run \
- *     packages/marketer-pro-queue/src/publish-roundtrip.test.ts
+ *   npx vitest run packages/marketer-pro-queue/src/publish-roundtrip.test.ts
  */
 
 import { Queue, type Job } from "bullmq";
 import { Redis } from "ioredis";
+import RedisMemoryServer from "redis-memory-server";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   type PublishJobPayload,
@@ -21,7 +27,6 @@ import { createPublishQueue, enqueuePublishJob } from "./publish-queue.js";
 import { createPublishWorker } from "./publish-worker.js";
 import { createRedisConnection, DEFAULT_REDIS_URL } from "./redis.js";
 
-const REDIS_URL = process.env.REDIS_URL ?? DEFAULT_REDIS_URL;
 const PING_TIMEOUT_MS = 750;
 /** Unique queue name per run keeps parallel CI shards from colliding. */
 const TEST_QUEUE_PREFIX = `test-marketer-publish-${process.pid}-${Date.now()}`;
@@ -51,7 +56,46 @@ async function pingRedis(url: string): Promise<boolean> {
   }
 }
 
-const redisAvailable = await pingRedis(REDIS_URL);
+const preferredUrl =
+  process.env.REDIS_URL?.trim() || DEFAULT_REDIS_URL;
+
+/** Snapshot before any test-time mutation of `REDIS_URL`. */
+const priorRedisEnv = process.env.REDIS_URL;
+
+let resolvedRedisUrl = preferredUrl;
+let embeddedServer: RedisMemoryServer | null = null;
+
+const redisAvailable = await (async (): Promise<boolean> => {
+  if (await pingRedis(preferredUrl)) {
+    resolvedRedisUrl = preferredUrl;
+    return true;
+  }
+  if (process.env.MARKETER_SKIP_EMBEDDED_REDIS === "1") {
+    return false;
+  }
+  try {
+    const server = await RedisMemoryServer.create();
+    const host = await server.getHost();
+    const port = await server.getPort();
+    const url = `redis://${host}:${port}`;
+    if (!(await pingRedis(url))) {
+      await server.stop();
+      return false;
+    }
+    embeddedServer = server;
+    resolvedRedisUrl = url;
+    return true;
+  } catch {
+    return false;
+  }
+})();
+
+/** True when we pointed `process.env.REDIS_URL` at the PING-verified broker. */
+let redisEnvMutatedForSuite = false;
+if (redisAvailable && process.env.REDIS_URL !== resolvedRedisUrl) {
+  process.env.REDIS_URL = resolvedRedisUrl;
+  redisEnvMutatedForSuite = true;
+}
 
 describe.skipIf(!redisAvailable)("publish queue roundtrip (real Redis)", () => {
   /**
@@ -75,12 +119,28 @@ describe.skipIf(!redisAvailable)("publish queue roundtrip (real Redis)", () => {
         }
       }
     }
+    if (embeddedServer) {
+      try {
+        await embeddedServer.stop();
+      } catch {
+        /* ignore */
+      }
+      embeddedServer = null;
+    }
+    if (redisEnvMutatedForSuite) {
+      if (priorRedisEnv === undefined) {
+        delete process.env.REDIS_URL;
+      } else {
+        process.env.REDIS_URL = priorRedisEnv;
+      }
+      redisEnvMutatedForSuite = false;
+    }
   });
 
   beforeAll(() => {
     if (!redisAvailable) {
       console.warn(
-        `[publish-roundtrip] Skipping: Redis not reachable at ${REDIS_URL}`,
+        `[publish-roundtrip] Skipping: Redis not reachable at ${preferredUrl} and embedded Redis failed`,
       );
     }
   });
@@ -88,8 +148,8 @@ describe.skipIf(!redisAvailable)("publish queue roundtrip (real Redis)", () => {
   it("enqueues a job and the worker resolves it with the processor result", async () => {
     const queueName = makeQueueName("happy-path");
 
-    const producerConn = createRedisConnection(REDIS_URL);
-    const workerConn = createRedisConnection(REDIS_URL);
+    const producerConn = createRedisConnection(resolvedRedisUrl);
+    const workerConn = createRedisConnection(resolvedRedisUrl);
     const queue = new Queue<PublishJobPayload>(queueName, {
       connection: producerConn,
     });
@@ -160,7 +220,7 @@ describe.skipIf(!redisAvailable)("publish queue roundtrip (real Redis)", () => {
   it("dedupes by idempotencyKey when the second enqueue uses the same key", async () => {
     const queueName = makeQueueName("dedupe");
 
-    const conn = createRedisConnection(REDIS_URL);
+    const conn = createRedisConnection(resolvedRedisUrl);
     const queue = createPublishQueue(conn);
     /** Override the production-shaped queue with a per-test queue name. */
     await queue.close();

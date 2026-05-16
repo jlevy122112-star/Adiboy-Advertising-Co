@@ -1,5 +1,5 @@
 /**
- * Phase 2 — brief → stub text draft, Postgres row, and append-only audit trail
+ * Phase 2 — brief to model-or-stub draft, Postgres row, and append-only audit trail
  * using `@home-link/marketer-pro-contract` helpers.
  */
 
@@ -7,15 +7,27 @@ import { randomUUID } from "node:crypto";
 
 import {
   appendAuditEntry,
+  BrandRetrievalSnippetSchema,
+  buildBrandGenerationContext,
   commitDecision,
   createAuditEntry,
+  formatBrandGenerationContextForPrompt,
   GenerationBriefSchema,
+  labelContentGoal,
   validateAuditEntryAgainstPoint,
   validateBriefForGeneration,
+  type BrandRetrievalSnippet,
   type DecisionAuditLog,
   type GenerationBrief,
 } from "@home-link/marketer-pro-contract";
 
+import {
+  queryBrandMemoryLexicalRecent,
+  queryBrandMemoryVector,
+} from "../db/brand-memory.js";
+import { getBrandProfile } from "../db/brand-profile.js";
+import { getOpenAiEmbedding } from "./openai-embeddings.js";
+import { scoreDraft, type DraftQualityScore } from "./draft-quality-score.js";
 import {
   insertGenerationDraft,
   resolveGenerationDraft,
@@ -25,7 +37,7 @@ import {
 import { COPY_BODY_APPROVAL_POINT } from "./copy-draft-decision-point.js";
 import { generateDraftBodyFromBrief } from "./generate-draft-body.js";
 
-export { generateDraftBodyFromBrief as buildStubDraftBody } from "./generate-draft-body.js";
+export { buildStubDraftBodyFromBrief as buildStubDraftBody } from "./generate-draft-body.js";
 
 /** Exposed for unit tests — production path uses {@link executeCreateGenerationDraft}. */
 export function buildInitialOfferAuditLog(
@@ -44,13 +56,120 @@ export function buildInitialOfferAuditLog(
     ],
     briefId: brief.briefId,
     createdAt,
-    rationale: "Deterministic stub generator proposed copy.body.",
+    rationale: "Generator proposed copy.body.",
   });
   const appended = appendAuditEntry([], entry);
   if (!appended.ok) {
     throw new Error(`appendAuditEntry failed: ${appended.reason}`);
   }
   return appended.log;
+}
+
+const BRAND_MEMORY_SNIPPET_LIMIT = 8;
+const EMBEDDING_MODEL = "text-embedding-ada-002";
+
+function readOpenAiApiKey(): string | undefined {
+  return (
+    process.env.MARKETER_OPENAI_API_KEY?.trim() ||
+    process.env.OPENAI_API_KEY?.trim() ||
+    undefined
+  );
+}
+
+function hitsToSnippets(
+  hits: { chunkId: string; sourceId: string; text: string; similarity: number }[],
+  mode: "vector" | "lexical",
+): BrandRetrievalSnippet[] {
+  const snippets: BrandRetrievalSnippet[] = [];
+  for (let i = 0; i < hits.length; i++) {
+    const hit = hits[i]!;
+    const parsed = BrandRetrievalSnippetSchema.safeParse({
+      snippetId: `chunk:${hit.chunkId}`.slice(0, 120),
+      sourceId: hit.sourceId.slice(0, 120),
+      citationLabel: `mem:${i}:${hit.sourceId}`.slice(0, 160),
+      textExcerpt: hit.text.slice(0, 4_000),
+      score: mode === "vector" ? Math.max(0, Math.min(1, hit.similarity)) : 0.5,
+    });
+    if (parsed.success) snippets.push(parsed.data);
+  }
+  return snippets;
+}
+
+/**
+ * Fetch brand memory snippets for a generation context.
+ * Uses KNN vector search when an OpenAI key is present and a query text is
+ * provided; falls back to recency-ordered lexical retrieval otherwise.
+ */
+async function fetchBrandMemorySnippets(
+  workspaceId: string,
+  brandId: string,
+  queryText: string,
+): Promise<BrandRetrievalSnippet[]> {
+  const apiKey = readOpenAiApiKey();
+  if (apiKey && queryText.trim().length > 0) {
+    try {
+      const baseUrl =
+        process.env.MARKETER_OPENAI_BASE_URL?.trim() || "https://api.openai.com/v1";
+      const model =
+        process.env.MARKETER_EMBEDDING_MODEL?.trim() || EMBEDDING_MODEL;
+      const embedding = await getOpenAiEmbedding({
+        apiKey,
+        baseUrl,
+        model,
+        input: queryText.trim().slice(0, 8_000),
+      });
+      const result = await queryBrandMemoryVector(
+        workspaceId,
+        brandId,
+        embedding,
+        BRAND_MEMORY_SNIPPET_LIMIT,
+      );
+      if (result.ok) {
+        return hitsToSnippets(result.hits, "vector");
+      }
+      console.warn(
+        JSON.stringify({
+          level: "warn",
+          event: "generation_draft_brand_memory_vector_failed",
+          workspaceId,
+          brandId,
+          code: result.code,
+          message: result.message,
+        }),
+      );
+    } catch (err) {
+      console.warn(
+        JSON.stringify({
+          level: "warn",
+          event: "generation_draft_brand_memory_embedding_failed",
+          workspaceId,
+          brandId,
+          message: err instanceof Error ? err.message : String(err),
+        }),
+      );
+    }
+  }
+
+  // Lexical fallback: recency-ordered chunks (no embedding required).
+  const result = await queryBrandMemoryLexicalRecent(
+    workspaceId,
+    brandId,
+    BRAND_MEMORY_SNIPPET_LIMIT,
+  );
+  if (!result.ok) {
+    console.warn(
+      JSON.stringify({
+        level: "warn",
+        event: "generation_draft_brand_memory_query_failed",
+        workspaceId,
+        brandId,
+        code: result.code,
+        message: result.message,
+      }),
+    );
+    return [];
+  }
+  return hitsToSnippets(result.hits, "lexical");
 }
 
 export type CreateDraftFailure =
@@ -68,6 +187,7 @@ export type CreateDraftSuccess = {
   readonly draftId: string;
   readonly draftBody: string;
   readonly briefId: string;
+  readonly qualityScore: DraftQualityScore | null;
 };
 
 export type CreateDraftOutcome = CreateDraftSuccess | { ok: false } & CreateDraftFailure;
@@ -75,6 +195,7 @@ export type CreateDraftOutcome = CreateDraftSuccess | { ok: false } & CreateDraf
 export async function executeCreateGenerationDraft(
   tenantId: string,
   body: unknown,
+  opts?: { brandProfileId?: string },
 ): Promise<CreateDraftOutcome> {
   const parsed = GenerationBriefSchema.safeParse(body);
   if (!parsed.success) {
@@ -101,7 +222,50 @@ export async function executeCreateGenerationDraft(
       issues: ready.issues,
     };
   }
-  const draftBody = generateDraftBodyFromBrief(brief);
+
+  const briefQueryText = [
+    brief.copy.headline ?? "",
+    brief.network,
+    brief.formatId,
+    brief.contentGoal ? labelContentGoal(brief.contentGoal) : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  let brandContext: string | undefined;
+  let loadedProfile: import("@home-link/marketer-pro-contract").BrandIntelligenceProfile | null = null;
+  if (opts?.brandProfileId) {
+    const profileResult = await getBrandProfile(tenantId, opts.brandProfileId);
+    if (profileResult.mode === "ok") {
+      loadedProfile = profileResult.profile;
+      const retrievalSnippets = await fetchBrandMemorySnippets(
+        tenantId,
+        opts.brandProfileId,
+        briefQueryText,
+      );
+      const ctx = buildBrandGenerationContext({
+        profile: profileResult.profile,
+        retrievalSnippets,
+      });
+      brandContext = formatBrandGenerationContextForPrompt(ctx);
+    } else {
+      console.warn(
+        JSON.stringify({
+          level: "warn",
+          event: "generation_draft_brand_profile_not_found",
+          tenantId,
+          brandProfileId: opts.brandProfileId,
+          mode: profileResult.mode,
+        }),
+      );
+    }
+  }
+
+  const draftBody = await generateDraftBodyFromBrief(brief, { brandContext });
+  const qualityScore = loadedProfile
+    ? scoreDraft(draftBody, loadedProfile.voice, loadedProfile.compliance ?? null)
+    : null;
+
   const createdAt = new Date().toISOString();
   const auditLog = buildInitialOfferAuditLog(brief, createdAt);
   const draftId = `draft_${randomUUID()}`;
@@ -132,6 +296,7 @@ export async function executeCreateGenerationDraft(
     draftId,
     draftBody,
     briefId: brief.briefId,
+    qualityScore,
   };
 }
 

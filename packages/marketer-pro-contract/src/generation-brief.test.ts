@@ -9,6 +9,8 @@ import {
   BriefSourceSchema,
   BriefStatusSchema,
   briefIdFor,
+  CONTENT_GOALS,
+  ContentGoalSchema,
   CopyDirectivesSchema,
   createBrief,
   DesignDirectivesSchema,
@@ -31,6 +33,7 @@ import {
   VOICE_TONE_SHIFTS,
   VoiceDirectivesSchema,
   VoiceToneShiftSchema,
+  stubContentGoalGuidance,
   type BriefStatus,
   type CopyDirectives,
   type DesignDirectives,
@@ -391,6 +394,16 @@ describe("GenerationBriefSchema (refinements)", () => {
     expect(() => GenerationBriefSchema.parse(nonTerminalWithFinal)).toThrow();
   });
 
+  test("accepts optional contentGoal", () => {
+    const brief = buildValidBrief({ contentGoal: "engagement" });
+    expect(GenerationBriefSchema.parse(brief)).toEqual(brief);
+  });
+
+  test("rejects invalid contentGoal", () => {
+    const brief = { ...buildValidBrief(), contentGoal: "hype" };
+    expect(() => GenerationBriefSchema.parse(brief)).toThrow();
+  });
+
   test("requires runId when source is 'autonomous_run'", () => {
     const bad = buildValidBrief({
       source: "autonomous_run",
@@ -523,6 +536,30 @@ describe("createBrief", () => {
       fieldSources: { "copy.headline": "user" },
     });
     expect(b.fieldSources).toEqual({ "copy.headline": "user" });
+  });
+
+  test("preserves caller-provided contentGoal", () => {
+    const b = createBrief({
+      briefId: "brief_x",
+      workspaceId: "ws_001",
+      formatId: "ig-feed-square",
+      network: "instagram",
+      source: "manual_user",
+      copy: minimalCopy,
+      contentGoal: "awareness",
+    });
+    expect(b.contentGoal).toBe("awareness");
+  });
+});
+
+describe("stubContentGoalGuidance", () => {
+  test("returns two lines per canonical goal", () => {
+    for (const goal of CONTENT_GOALS) {
+      ContentGoalSchema.parse(goal);
+      const lines = stubContentGoalGuidance(goal);
+      expect(lines).toHaveLength(2);
+      expect(lines.every((l) => l.length > 10)).toBe(true);
+    }
   });
 });
 

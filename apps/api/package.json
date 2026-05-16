@@ -11,6 +11,7 @@
     "start:generation-draft": "node dist/generation-draft-server.js",
     "start:campaign": "node dist/campaign-server.js",
     "start:brand-profile": "node dist/brand-profile-server.js",
+    "start:brand-memory": "node dist/brand-memory-server.js",
     "start:scheduler": "node dist/scheduler-publish-server.js",
     "db:migrate": "node scripts/migrate.mjs"
   },

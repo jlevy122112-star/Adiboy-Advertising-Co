@@ -7,11 +7,33 @@
 	"settings": {
 		"files.exclude": {
 			"": true
-		}
+		},
+		"diffEditor.renderSideBySide": true,
+		"sqltools.connections": [
+			{
+				"pgOptions": {
+					"query_timeout": 0,
+					"connectionTimeoutMillis": 0,
+					"idleTimeoutMillis": 0
+				},
+				"ssh": "Disabled",
+				"previewLimit": 50,
+				"server": "localhost",
+				"port": 5432,
+				"askForPassword": true,
+				"driver": "PostgreSQL",
+				"name": "SQLite",
+				"database": "Postgres",
+				"username": "jlevy122112@gmail.com"
+			}
+		]
 	},
 	"extensions": {
 		"recommendations": [
-			"redis.redis-for-vscode"
+			"redis.redis-for-vscode",
+			"git-ai.git-ai-vscode",
+			"github.vscode-github-actions",
+			"liuyuanfan.git-list"
 		]
 	}
 }

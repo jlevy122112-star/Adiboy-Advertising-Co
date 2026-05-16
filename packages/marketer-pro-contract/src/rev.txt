@@ -1,0 +1,636 @@
+npx vitest run/**
+ * Unit tests for `provider-capability.ts`. Exercises:
+ *   - catalog completeness + schema acceptance/rejection
+ *   - the `network` refinement on `ProviderCapabilityRecordSchema`
+ *   - lookup helpers (`getProviderCapabilities`, `listCapabilitiesOf`,
+ *     `findCapableProviders`, `providerSupports`)
+ *   - deterministic selection (`compareCapabilityRecords`,
+ *     `rankCapableProviders`, `selectFirstCapableProvider`)
+ *   - read helpers (`listAllProviders`, `listAllCapabilities`,
+ *     `listProvidersInRegistry`)
+ *
+ * No I/O. All tests run against the in-memory catalog or small handcrafted
+ * registries.
+ */
+
+import { describe, expect, test } from "vitest";
+
+import {
+  capabilityRequiresNetwork,
+  compareCapabilityRecords,
+  findCapableProviders,
+  getProviderCapabilities,
+  listAllCapabilities,
+  listAllProviders,
+  listCapabilitiesOf,
+  listProvidersInRegistry,
+  PROVIDER_AUTH_METHODS,
+  PROVIDER_CAPABILITIES,
+  PROVIDER_CAPABILITY_CATALOG,
+  PROVIDER_COST_TIERS,
+  PROVIDER_IDS,
+  PROVIDER_QUALITY_TIERS,
+  ProviderAuthMethodSchema,
+  ProviderCapabilityRecordSchema,
+  ProviderCapabilitySchema,
+  ProviderCostTierSchema,
+  ProviderIdSchema,
+  ProviderQualityTierSchema,
+  providerSupports,
+  rankCapableProviders,
+  selectFirstCapableProvider,
+  type ProviderCapability,
+  type ProviderCapabilityRecord,
+  type ProviderId,
+} from "./provider-capability.js";
+
+/* -------------------------------------------------------------------------- */
+/*                              Test fixtures                                 */
+/* -------------------------------------------------------------------------- */
+
+/** Builds a valid record with sane defaults. Tests override fields as needed. */
+function buildRow(
+  overrides: Partial<ProviderCapabilityRecord> = {},
+): ProviderCapabilityRecord {
+  return {
+    providerId: "openai",
+    capability: "text_generation",
+    network: null,
+    qualityTier: "standard",
+    costTier: "mid",
+    enabled: true,
+    authMethod: "api_key",
+    rateLimitPerMinute: 100,
+    rateLimitPerDay: 10_000,
+    supportsBatch: false,
+    notes: "",
+    ...overrides,
+  };
+}
+
+/* -------------------------------------------------------------------------- */
+/*                                  Catalogs                                  */
+/* -------------------------------------------------------------------------- */
+
+describe("PROVIDER_IDS + PROVIDER_CAPABILITIES + tier vocabularies", () => {
+  test("PROVIDER_IDS includes the canonical 10 ids", () => {
+    expect(PROVIDER_IDS).toEqual([
+      "openai",
+      "anthropic",
+      "stability_ai",
+      "meta_graph",
+      "x_api",
+      "linkedin_api",
+      "youtube_api",
+      "tiktok_api",
+      "pinterest_api",
+      "mock",
+    ]);
+  });
+
+  test("PROVIDER_CAPABILITIES is the canonical 5-capability list", () => {
+    expect(PROVIDER_CAPABILITIES).toEqual([
+      "text_generation",
+      "image_generation",
+      "image_editing",
+      "social_publish",
+      "social_schedule_native",
+    ]);
+  });
+
+  test("PROVIDER_COST_TIERS is ordered cheap→expensive", () => {
+    expect(PROVIDER_COST_TIERS).toEqual([
+      "free",
+      "low",
+      "mid",
+      "high",
+      "premium",
+    ]);
+  });
+
+  test("PROVIDER_QUALITY_TIERS is ordered worst→best", () => {
+    expect(PROVIDER_QUALITY_TIERS).toEqual([
+      "experimental",
+      "standard",
+      "premium",
+    ]);
+  });
+
+  test("PROVIDER_AUTH_METHODS covers the five canonical methods", () => {
+    expect(PROVIDER_AUTH_METHODS).toEqual([
+      "api_key",
+      "oauth2",
+      "service_account",
+      "platform_token",
+      "none",
+    ]);
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/*                              Schema acceptance                             */
+/* -------------------------------------------------------------------------- */
+
+describe("schemas accept their canonical values and reject foreign ones", () => {
+  test("ProviderIdSchema parses every canonical id", () => {
+    for (const id of PROVIDER_IDS) {
+      expect(ProviderIdSchema.parse(id)).toBe(id);
+    }
+  });
+
+  test("ProviderCapabilitySchema parses every canonical capability", () => {
+    for (const c of PROVIDER_CAPABILITIES) {
+      expect(ProviderCapabilitySchema.parse(c)).toBe(c);
+    }
+  });
+
+  test("ProviderCostTierSchema parses every canonical cost tier", () => {
+    for (const t of PROVIDER_COST_TIERS) {
+      expect(ProviderCostTierSchema.parse(t)).toBe(t);
+    }
+  });
+
+  test("ProviderQualityTierSchema parses every canonical quality tier", () => {
+    for (const t of PROVIDER_QUALITY_TIERS) {
+      expect(ProviderQualityTierSchema.parse(t)).toBe(t);
+    }
+  });
+
+  test("ProviderAuthMethodSchema parses every canonical auth method", () => {
+    for (const m of PROVIDER_AUTH_METHODS) {
+      expect(ProviderAuthMethodSchema.parse(m)).toBe(m);
+    }
+  });
+
+  test("ProviderIdSchema rejects foreign ids", () => {
+    expect(() => ProviderIdSchema.parse("supabase")).toThrow();
+    expect(() => ProviderIdSchema.parse("")).toThrow();
+  });
+
+  test("ProviderCapabilitySchema rejects foreign capabilities", () => {
+    expect(() => ProviderCapabilitySchema.parse("video_generation")).toThrow();
+    expect(() => ProviderCapabilitySchema.parse("sms_send")).toThrow();
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/*                        capabilityRequiresNetwork                           */
+/* -------------------------------------------------------------------------- */
+
+describe("capabilityRequiresNetwork", () => {
+  test("returns true for publish-side capabilities", () => {
+    expect(capabilityRequiresNetwork("social_publish")).toBe(true);
+    expect(capabilityRequiresNetwork("social_schedule_native")).toBe(true);
+  });
+
+  test("returns false for generator capabilities", () => {
+    expect(capabilityRequiresNetwork("text_generation")).toBe(false);
+    expect(capabilityRequiresNetwork("image_generation")).toBe(false);
+    expect(capabilityRequiresNetwork("image_editing")).toBe(false);
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/*                  ProviderCapabilityRecordSchema refinement                 */
+/* -------------------------------------------------------------------------- */
+
+describe("ProviderCapabilityRecordSchema", () => {
+  test("accepts a complete generator row (network null)", () => {
+    const row = buildRow({
+      providerId: "openai",
+      capability: "text_generation",
+      network: null,
+    });
+    expect(ProviderCapabilityRecordSchema.parse(row)).toEqual(row);
+  });
+
+  test("accepts a complete publish row (network set)", () => {
+    const row = buildRow({
+      providerId: "meta_graph",
+      capability: "social_publish",
+      network: "facebook",
+      authMethod: "oauth2",
+      costTier: "free",
+    });
+    expect(ProviderCapabilityRecordSchema.parse(row)).toEqual(row);
+  });
+
+  test("rejects publish row when network is null", () => {
+    const row = buildRow({
+      capability: "social_publish",
+      network: null,
+    });
+    expect(() => ProviderCapabilityRecordSchema.parse(row)).toThrow(
+      /network is required/,
+    );
+  });
+
+  test("rejects generator row when network is set", () => {
+    const row = buildRow({
+      capability: "text_generation",
+      network: "facebook",
+    });
+    expect(() => ProviderCapabilityRecordSchema.parse(row)).toThrow(
+      /forbidden otherwise/,
+    );
+  });
+
+  test("rejects rateLimitPerMinute out of range", () => {
+    expect(() =>
+      ProviderCapabilityRecordSchema.parse(
+        buildRow({ rateLimitPerMinute: -1 }),
+      ),
+    ).toThrow();
+    expect(() =>
+      ProviderCapabilityRecordSchema.parse(
+        buildRow({ rateLimitPerMinute: 2_000_000 }),
+      ),
+    ).toThrow();
+  });
+
+  test("allows null rateLimitPerDay (unbounded daily cap)", () => {
+    const row = buildRow({ rateLimitPerDay: null });
+    expect(ProviderCapabilityRecordSchema.parse(row)).toEqual(row);
+  });
+
+  test("rejects unknown extra keys (strict)", () => {
+    expect(() =>
+      ProviderCapabilityRecordSchema.parse({
+        ...buildRow(),
+        unexpectedKey: "boom",
+      }),
+    ).toThrow();
+  });
+
+  test("rejects notes longer than 280 chars", () => {
+    const row = buildRow({ notes: "x".repeat(281) });
+    expect(() => ProviderCapabilityRecordSchema.parse(row)).toThrow();
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/*                       Default catalog invariants                           */
+/* -------------------------------------------------------------------------- */
+
+describe("PROVIDER_CAPABILITY_CATALOG (default seed)", () => {
+  test("every row passes the schema refinement", () => {
+    for (const row of PROVIDER_CAPABILITY_CATALOG) {
+      expect(() => ProviderCapabilityRecordSchema.parse(row)).not.toThrow();
+    }
+  });
+
+  test("every publish row has a non-null network", () => {
+    for (const row of PROVIDER_CAPABILITY_CATALOG) {
+      if (
+        row.capability === "social_publish" ||
+        row.capability === "social_schedule_native"
+      ) {
+        expect(row.network).not.toBeNull();
+      }
+    }
+  });
+
+  test("every non-publish row has a null network", () => {
+    for (const row of PROVIDER_CAPABILITY_CATALOG) {
+      if (
+        row.capability !== "social_publish" &&
+        row.capability !== "social_schedule_native"
+      ) {
+        expect(row.network).toBeNull();
+      }
+    }
+  });
+
+  test("`mock` rows are disabled by default", () => {
+    for (const row of PROVIDER_CAPABILITY_CATALOG) {
+      if (row.providerId === "mock") {
+        expect(row.enabled).toBe(false);
+      }
+    }
+  });
+
+  test("catalog is frozen at the array level", () => {
+    expect(Object.isFrozen(PROVIDER_CAPABILITY_CATALOG)).toBe(true);
+  });
+
+  test("every shipped non-mock provider appears in the catalog", () => {
+    const seen = new Set(PROVIDER_CAPABILITY_CATALOG.map((r) => r.providerId));
+    for (const id of PROVIDER_IDS) {
+      expect(seen.has(id)).toBe(true);
+    }
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/*                            getProviderCapabilities                         */
+/* -------------------------------------------------------------------------- */
+
+describe("getProviderCapabilities", () => {
+  test("returns every row for openai (text + image gen + edit)", () => {
+    const rows = getProviderCapabilities("openai");
+    const caps = rows.map((r) => r.capability).sort();
+    expect(caps).toEqual(["image_editing", "image_generation", "text_generation"]);
+  });
+
+  test("returns three rows for meta_graph (fb publish, fb schedule, ig publish)", () => {
+    const rows = getProviderCapabilities("meta_graph");
+    expect(rows).toHaveLength(3);
+    const set = new Set(rows.map((r) => `${r.capability}:${r.network}`));
+    expect(set).toEqual(
+      new Set([
+        "social_publish:facebook",
+        "social_schedule_native:facebook",
+        "social_publish:instagram",
+      ]),
+    );
+  });
+
+  test("works with a custom registry", () => {
+    const custom: ReadonlyArray<ProviderCapabilityRecord> = [
+      buildRow({ providerId: "openai", capability: "text_generation" }),
+      buildRow({ providerId: "anthropic", capability: "text_generation" }),
+    ];
+    const rows = getProviderCapabilities("openai", custom);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.providerId).toBe("openai");
+  });
+
+  test("returns empty for a provider absent from the registry", () => {
+    const custom: ReadonlyArray<ProviderCapabilityRecord> = [
+      buildRow({ providerId: "openai" }),
+    ];
+    expect(getProviderCapabilities("anthropic", custom)).toEqual([]);
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/*                            listCapabilitiesOf                              */
+/* -------------------------------------------------------------------------- */
+
+describe("listCapabilitiesOf", () => {
+  test("deduplicates capabilities for providers with multi-network rows", () => {
+    const caps = listCapabilitiesOf("meta_graph");
+    expect(new Set(caps)).toEqual(
+      new Set(["social_publish", "social_schedule_native"]),
+    );
+    /** social_publish appears for facebook AND instagram — must dedupe to 1. */
+    expect(caps.filter((c) => c === "social_publish")).toHaveLength(1);
+  });
+
+  test("returns empty array for unknown provider in custom registry", () => {
+    expect(listCapabilitiesOf("anthropic", [])).toEqual([]);
+  });
+
+  test("returns the union of capabilities for openai", () => {
+    const caps = listCapabilitiesOf("openai");
+    expect(new Set(caps)).toEqual(
+      new Set(["text_generation", "image_generation", "image_editing"]),
+    );
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/*                            findCapableProviders                            */
+/* -------------------------------------------------------------------------- */
+
+describe("findCapableProviders", () => {
+  test("returns rows for a network-agnostic capability", () => {
+    const rows = findCapableProviders({ capability: "text_generation" });
+    const ids = rows.map((r) => r.providerId).sort();
+    /** mock is disabled by default → excluded. */
+    expect(ids).toEqual(["anthropic", "openai"]);
+  });
+
+  test("returns rows for a network-scoped capability", () => {
+    const rows = findCapableProviders({
+      capability: "social_publish",
+      network: "facebook",
+    });
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.providerId).toBe("meta_graph");
+  });
+
+  test("throws when publish-side capability is queried without a network", () => {
+    expect(() =>
+      findCapableProviders({ capability: "social_publish" }),
+    ).toThrow(/requires a network/);
+  });
+
+  test("throws when network-agnostic capability is queried with a network", () => {
+    expect(() =>
+      findCapableProviders({
+        capability: "text_generation",
+        network: "facebook",
+      }),
+    ).toThrow(/network-agnostic/);
+  });
+
+  test("filters out disabled rows by default", () => {
+    const custom: ReadonlyArray<ProviderCapabilityRecord> = [
+      buildRow({ providerId: "openai", enabled: false }),
+      buildRow({ providerId: "anthropic", enabled: true }),
+    ];
+    const rows = findCapableProviders(
+      { capability: "text_generation" },
+      custom,
+    );
+    expect(rows.map((r) => r.providerId)).toEqual(["anthropic"]);
+  });
+
+  test("includeDisabled:true brings back disabled rows", () => {
+    const custom: ReadonlyArray<ProviderCapabilityRecord> = [
+      buildRow({ providerId: "openai", enabled: false }),
+      buildRow({ providerId: "anthropic", enabled: true }),
+    ];
+    const rows = findCapableProviders(
+      { capability: "text_generation", includeDisabled: true },
+      custom,
+    );
+    expect(new Set(rows.map((r) => r.providerId))).toEqual(
+      new Set(["openai", "anthropic"]),
+    );
+  });
+
+  test("returns empty when no row matches the network", () => {
+    expect(
+      findCapableProviders({
+        capability: "social_publish",
+        network: "snapchat",
+      }),
+    ).toEqual([]);
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/*                              providerSupports                              */
+/* -------------------------------------------------------------------------- */
+
+describe("providerSupports", () => {
+  test("true for a provider with the capability enabled", () => {
+    expect(
+      providerSupports("openai", { capability: "image_generation" }),
+    ).toBe(true);
+  });
+
+  test("false for a provider that does not implement the capability", () => {
+    expect(
+      providerSupports("linkedin_api", { capability: "image_generation" }),
+    ).toBe(false);
+  });
+
+  test("false for disabled rows by default", () => {
+    expect(providerSupports("mock", { capability: "text_generation" })).toBe(
+      false,
+    );
+  });
+
+  test("true for disabled rows when includeDisabled is set", () => {
+    expect(
+      providerSupports("mock", {
+        capability: "text_generation",
+        includeDisabled: true,
+      }),
+    ).toBe(true);
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/*                         Deterministic selection                            */
+/* -------------------------------------------------------------------------- */
+
+describe("compareCapabilityRecords (deterministic sort)", () => {
+  test("higher quality sorts first", () => {
+    const premium = buildRow({ qualityTier: "premium", costTier: "mid" });
+    const standard = buildRow({ qualityTier: "standard", costTier: "free" });
+    expect(compareCapabilityRecords(premium, standard)).toBeLessThan(0);
+    expect(compareCapabilityRecords(standard, premium)).toBeGreaterThan(0);
+  });
+
+  test("cheaper cost breaks ties when quality matches", () => {
+    const cheap = buildRow({
+      qualityTier: "standard",
+      costTier: "free",
+      providerId: "openai",
+    });
+    const pricey = buildRow({
+      qualityTier: "standard",
+      costTier: "high",
+      providerId: "anthropic",
+    });
+    expect(compareCapabilityRecords(cheap, pricey)).toBeLessThan(0);
+  });
+
+  test("providerId alphabetical asc breaks all other ties (deterministic)", () => {
+    const a = buildRow({
+      providerId: "anthropic",
+      qualityTier: "premium",
+      costTier: "mid",
+    });
+    const b = buildRow({
+      providerId: "openai",
+      qualityTier: "premium",
+      costTier: "mid",
+    });
+    expect(compareCapabilityRecords(a, b)).toBeLessThan(0);
+  });
+});
+
+describe("rankCapableProviders", () => {
+  test("orders text_generation by (quality desc, cost asc, providerId asc)", () => {
+    const ranked = rankCapableProviders({ capability: "text_generation" });
+    /** openai & anthropic are both premium quality, mid cost — alphabetical wins. */
+    expect(ranked.map((r) => r.providerId)).toEqual(["anthropic", "openai"]);
+  });
+
+  test("orders image_generation putting premium-quality first", () => {
+    const ranked = rankCapableProviders({ capability: "image_generation" });
+    /** openai is premium quality, stability_ai is standard. openai first. */
+    expect(ranked[0]?.providerId).toBe("openai");
+    expect(ranked[1]?.providerId).toBe("stability_ai");
+  });
+
+  test("is deterministic across calls (no randomness)", () => {
+    const a = rankCapableProviders({ capability: "text_generation" }).map(
+      (r) => r.providerId,
+    );
+    const b = rankCapableProviders({ capability: "text_generation" }).map(
+      (r) => r.providerId,
+    );
+    expect(a).toEqual(b);
+  });
+
+  test("returns an empty array when no rows match", () => {
+    expect(
+      rankCapableProviders({
+        capability: "social_publish",
+        network: "snapchat",
+      }),
+    ).toEqual([]);
+  });
+});
+
+describe("selectFirstCapableProvider", () => {
+  test("returns the top-ranked record", () => {
+    const pick = selectFirstCapableProvider({ capability: "image_generation" });
+    expect(pick?.providerId).toBe("openai");
+    expect(pick?.qualityTier).toBe("premium");
+  });
+
+  test("returns null when no provider can serve the query", () => {
+    expect(
+      selectFirstCapableProvider({
+        capability: "social_publish",
+        network: "snapchat",
+      }),
+    ).toBeNull();
+  });
+
+  test("respects custom registry overrides", () => {
+    const custom: ReadonlyArray<ProviderCapabilityRecord> = [
+      buildRow({ providerId: "anthropic", qualityTier: "premium" }),
+      buildRow({ providerId: "openai", qualityTier: "standard" }),
+    ];
+    const pick = selectFirstCapableProvider(
+      { capability: "text_generation" },
+      custom,
+    );
+    /** anthropic is premium here, so it wins (the default catalog has both as premium → alpha order). */
+    expect(pick?.providerId).toBe("anthropic");
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/*                             Read helpers                                   */
+/* -------------------------------------------------------------------------- */
+
+describe("read helpers", () => {
+  test("listAllProviders returns the canonical PROVIDER_IDS list", () => {
+    expect(listAllProviders()).toEqual(PROVIDER_IDS);
+  });
+
+  test("listAllCapabilities returns the canonical PROVIDER_CAPABILITIES list", () => {
+    expect(listAllCapabilities()).toEqual(PROVIDER_CAPABILITIES);
+  });
+
+  test("listProvidersInRegistry deduplicates providers from a registry", () => {
+    const custom: ReadonlyArray<ProviderCapabilityRecord> = [
+      buildRow({
+        providerId: "openai",
+        capability: "text_generation" satisfies ProviderCapability,
+      }),
+      buildRow({
+        providerId: "openai",
+        capability: "image_generation" satisfies ProviderCapability,
+      }),
+      buildRow({ providerId: "anthropic" }),
+    ];
+    const ids = listProvidersInRegistry(custom);
+    expect(new Set(ids)).toEqual(new Set(["openai", "anthropic"] as ProviderId[]));
+    expect(ids.length).toBe(2);
+  });
+
+  test("listProvidersInRegistry against the default catalog returns all 9 non-mock-only providers", () => {
+    const ids = listProvidersInRegistry();
+    expect(new Set(ids)).toEqual(new Set(PROVIDER_IDS));
+  });
+});

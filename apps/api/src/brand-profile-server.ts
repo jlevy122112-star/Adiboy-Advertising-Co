@@ -95,7 +95,7 @@ function checkBearer(req: IncomingMessage, res: ServerResponse): boolean {
     return true;
   }
   const auth = req.headers.authorization?.trim();
-  if (!auth?.toLowerCase().startsWith("bearer ")) {
+  if (!auth || !auth.toLowerCase().startsWith("bearer ")) {
     unauthorized(req, res);
     return false;
   }
@@ -129,7 +129,7 @@ const server = createServer(async (req, res) => {
     json(req, res, 400, { error: "bad_request" });
     return;
   }
-  const pathname = fullUrl.pathname;
+  const {pathname} = fullUrl;
 
   if (!knownPaths.has(pathname)) {
     json(req, res, 404, { error: "not_found" });

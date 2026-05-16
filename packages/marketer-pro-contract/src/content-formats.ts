@@ -18,6 +18,7 @@ export type ContentFormat = {
 };
 
 const OBJECTIVES = [
+  // Meta Ads Manager Outcome objectives (same roster as `CONTENT_GOALS` in generation-brief).
   "awareness",
   "traffic",
   "engagement",

@@ -351,6 +351,28 @@ export {
 } from "./brand-profile-http.js";
 
 export {
+  BRAND_MEMORY_EMBEDDING_DIMENSION,
+  BrandMemoryEmbedding1536Schema,
+  parseBrandMemoryEmbedding1536,
+  parseOptionalBrandMemoryEmbedding1536,
+  type BrandMemoryEmbedding1536,
+  type BrandMemoryEmbedding1536Parse,
+} from "./brand-memory-embedding.js";
+
+export {
+  DEFAULT_BRAND_MEMORY_HTTP_PATH_QUERY,
+  DEFAULT_BRAND_MEMORY_HTTP_PATH_UPSERT,
+  BrandMemoryChunkingConfigSchema,
+  BrandMemoryEmbeddingBlockSchema,
+  BrandMemoryQueryBodySchema,
+  UpsertBrandMemorySourceBodySchema,
+  type BrandMemoryChunkingConfig,
+  type BrandMemoryEmbeddingBlock,
+  type BrandMemoryQueryBody,
+  type UpsertBrandMemorySourceBody,
+} from "./brand-memory-http.js";
+
+export {
   cosineSimilarityEmbedding,
   lexicalRetrievalSnippetsFromProfile,
   rankBrandSnippetsByEmbedding,
@@ -358,6 +380,7 @@ export {
   type EmbeddingRetrievalCandidate,
   type LexicalRetrievalFromProfileOptions,
   type RankBrandSnippetsByEmbeddingArgs,
+  type RankBrandSnippetsByEmbeddingResult,
 } from "./brand-retrieval.js";
 
 export {
@@ -534,6 +557,9 @@ export {
   BriefSourceSchema,
   BriefStatusSchema,
   briefIdFor,
+  CONTENT_GOALS,
+  ContentGoalSchema,
+  CONTENT_GOAL_LABELS,
   COPY_DIRECTIVES_HEADLINE_SUBHEAD_MAX_CHARS,
   CopyDirectivesSchema,
   createBrief,
@@ -547,10 +573,12 @@ export {
   isTerminalBriefStatus,
   LAYOUT_INTENTS,
   LayoutIntentSchema,
+  labelContentGoal,
   listAllBriefStatuses,
   PALETTE_MODES,
   PaletteModeSchema,
   recordFieldSource,
+  stubContentGoalGuidance,
   transitionBriefStatus,
   validateBriefForGeneration,
   validateBriefTransition,
@@ -566,6 +594,7 @@ export {
   type BriefTransitionRejectionReason,
   type BriefTransitionResult,
   type BriefValidationResult,
+  type ContentGoal,
   type CopyDirectives,
   type CreateBriefArgs,
   type DesignDirectives,
@@ -608,20 +637,28 @@ export {
 
 export {
   AttachScheduleEntryCampaignBodySchema,
+  CreateScheduleEntryBodySchema,
+  DeleteScheduleEntryBodySchema,
   isKnownScheduleEntryStatus,
   isTerminalScheduleEntryStatus,
+  ListScheduleEntriesByTenantQuerySchema,
   ListScheduleEntriesForCampaignQuerySchema,
   SCHEDULE_ENTRY_STATUS_VALUES,
   scheduleEntryRecordFromSqlRow,
   ScheduleEntryRecordSchema,
   ScheduleEntryStatusSchema,
   TERMINAL_SCHEDULE_ENTRY_STATUSES,
+  UpdateScheduleEntryBodySchema,
   type AttachScheduleEntryCampaignBody,
+  type CreateScheduleEntryBody,
+  type DeleteScheduleEntryBody,
+  type ListScheduleEntriesByTenantQuery,
   type ListScheduleEntriesForCampaignQuery,
   type ScheduleEntryRecord,
   type ScheduleEntrySqlRow,
   type ScheduleEntryStatus,
   type TerminalScheduleEntryStatus,
+  type UpdateScheduleEntryBody,
 } from "./content-calendar.js";
 
 export {

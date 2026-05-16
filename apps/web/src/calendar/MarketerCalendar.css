@@ -391,6 +391,63 @@
   font-size: 1.05rem;
 }
 
+/* ---------- drag-drop post rescheduling ---------- */
+
+.mc-day--drag-over {
+  border-color: var(--mc-accent) !important;
+  box-shadow: 0 0 0 2px var(--mc-accent-soft) !important;
+  background: color-mix(in srgb, var(--mc-accent) 10%, var(--bg, #fff)) !important;
+}
+
+.mc-day--dragging {
+  opacity: 0.5;
+}
+
+.mc-post-chip {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.62rem;
+  line-height: 1.3;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: color-mix(in srgb, #0ea5e9 18%, transparent);
+  border: 1px solid color-mix(in srgb, #0ea5e9 35%, transparent);
+  color: var(--text-h, #111);
+  cursor: grab;
+  margin-top: 2px;
+  max-width: 100%;
+  overflow: hidden;
+  user-select: none;
+}
+
+.mc-post-chip:active {
+  cursor: grabbing;
+}
+
+.mc-chip-net {
+  font-weight: 700;
+  color: #0ea5e9;
+  flex-shrink: 0;
+  font-size: 0.58rem;
+}
+
+.mc-chip-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.mc-chip-more {
+  font-size: 0.58rem;
+  color: var(--text, #888);
+  margin-top: 1px;
+  padding: 0 2px;
+}
+
+/* ---------- oversight card ---------- */
+
 .mc-oversight {
   font-size: 0.78rem;
   line-height: 1.45;

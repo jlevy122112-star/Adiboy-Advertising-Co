@@ -14,6 +14,7 @@ import {
   resolveScheduleEntryForPublish,
 } from "../db/schedule-entry.js";
 import { computeAdaptedPublishCopy } from "./publish-copy-adaptation.js";
+import { linkedinPublishProvider } from "./providers/linkedin.js";
 import { metaPublishProvider } from "./providers/meta.js";
 import { stubProviderResult } from "./providers/stub.js";
 import { tiktokPublishProvider } from "./providers/tiktok.js";
@@ -58,9 +59,7 @@ const handlers: Record<PublishNetworkSlug | "generic", PublishHandler> = {
   ),
   x: buildHandler("x", (input) => xPublishProvider.publish(input)),
   tiktok: buildHandler("tiktok", (input) => tiktokPublishProvider.publish(input)),
-  linkedin: buildHandler("linkedin", async (input) =>
-    stubProviderResult("linkedin", input),
-  ),
+  linkedin: buildHandler("linkedin", (input) => linkedinPublishProvider.publish(input)),
   youtube: buildHandler("youtube", async (input) =>
     stubProviderResult("youtube", input),
   ),

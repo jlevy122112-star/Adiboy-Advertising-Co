@@ -1,7 +1,8 @@
 # Marketer Pro — full build plan (phases 1–14)
 
-**Author:** Jacob N. Levy  
-**Captured:** 2026-05-11  
+## Author: Jacob N. Levy  
+
+## Captured: 2026-05-11  
 
 This document is the **repo-wide phased roadmap** for the product. It complements the north-star architecture in [`marketer-pro-target-architecture.md`](./marketer-pro-target-architecture.md) and the contract-first details in the root [`README.md`](../README.md).
 
@@ -11,9 +12,9 @@ This document is the **repo-wide phased roadmap** for the product. It complement
 
 ## Phase 1: Brand intelligence core
 
-**Goal:** Make the app understand a brand before generating anything.
+## Goal: Make the app understand a brand before generating anything
 
-**Build**
+## Build ##
 
 - Brand voice profile  
 - Audience / persona profile  
@@ -22,7 +23,7 @@ This document is the **repo-wide phased roadmap** for the product. It complement
 - Tone, style, vocabulary, visual identity  
 - Brand memory backed by vector retrieval  
 
-**Output**
+## Output ##
 
 - `BrandProfile` — same as `BrandIntelligenceProfile` in `@home-link/marketer-pro-contract` (`brand-intelligence.ts` / `BrandProfileSchema`).
 - `AudienceProfile`
@@ -31,57 +32,60 @@ This document is the **repo-wide phased roadmap** for the product. It complement
 - `BrandComplianceRules` + `BrandProductFact` — forbidden claims / disclaimers / regulated tags and structured product facts (same module).
 - Vector-backed retrieval for generation context
 
-**Repo checkpoint (Phase 1 — keep current)**
+## Repo checkpoint (Phase 1 — keep current)**
 
 - Contract: [`packages/marketer-pro-contract/src/brand-intelligence.ts`](../packages/marketer-pro-contract/src/brand-intelligence.ts) (`BrandProfile` / `BrandIntelligenceProfile`, audiences, knowledge sources, compliance, product facts, generation context + prompt formatting); [`brand-retrieval.ts`](../packages/marketer-pro-contract/src/brand-retrieval.ts) — lexical snippets from trusted sources + embedding cosine ranking for caller-supplied vectors; [`brand-profile-draft.ts`](../packages/marketer-pro-contract/src/brand-profile-draft.ts) — browser draft key helpers; [`brand-profile-http.ts`](../packages/marketer-pro-contract/src/brand-profile-http.ts) — upsert/list/get query + body schemas.
 - Web: [`apps/web/src/BrandProfileDraftPanel.tsx`](../apps/web/src/BrandProfileDraftPanel.tsx) — JSON draft, localStorage, lexical retrieval preview, optional API sync when `VITE_BRAND_PROFILE_API_ORIGIN` is set.
 - Postgres: [`apps/api/db/migrations/005_brand_profiles.sql`](../apps/api/db/migrations/005_brand_profiles.sql) — `brand_profiles` (tenant + profile id, JSON body); persistence [`apps/api/src/db/brand-profile.ts`](../apps/api/src/db/brand-profile.ts); HTTP [`apps/api/src/brand-profile-server.ts`](../apps/api/src/brand-profile-server.ts) (`npm run start:brand-profile -w @home-link/marketer-api`) and routes in [`apps/api/src/marketer-pro/brand-profile-route.ts`](../apps/api/src/marketer-pro/brand-profile-route.ts). Optional **`MARKETER_BRAND_PROFILE_HTTP_CORS`** for browser `fetch` (same pattern as campaign server).
+- Brand memory (pgvector + ingest + query): migration [`apps/api/db/migrations/006_brand_memory_pgvector.sql`](../apps/api/db/migrations/006_brand_memory_pgvector.sql); SQL [`apps/api/db/queries/brand_memory_knn.sql`](../apps/api/db/queries/brand_memory_knn.sql); persistence [`apps/api/src/db/brand-memory.ts`](../apps/api/src/db/brand-memory.ts); chunking [`apps/api/src/marketer-pro/chunk-text.ts`](../apps/api/src/marketer-pro/chunk-text.ts); HTTP [`apps/api/src/brand-memory-server.ts`](../apps/api/src/brand-memory-server.ts) (`npm run start:brand-memory -w @home-link/marketer-api`) and routes in [`apps/api/src/marketer-pro/brand-memory-route.ts`](../apps/api/src/marketer-pro/brand-memory-route.ts). Contract: [`packages/marketer-pro-contract/src/brand-memory-http.ts`](../packages/marketer-pro-contract/src/brand-memory-http.ts). Ingest pseudocode: [`docs/engineering/brand-memory-ingest-handler.md`](./engineering/brand-memory-ingest-handler.md). Optional **`MARKETER_BRAND_MEMORY_HTTP_CORS`** / **`MARKETER_BRAND_MEMORY_HTTP_TOKEN`** (Bearer) same pattern as brand profile server.
 
 ---
 
 ## Phase 2: Brand-aware text generation
 
-**Goal:** Generate high-quality written content from brief inputs.
+## Goal:** Generate high-quality written content from brief inputs
 
-**Build**
+## Build**
 
 - Campaign brief input  
 - AI content brief generation  
 - Draft generation  
-- Variants by goal: awareness, conversion, education, launch, nurture  
+- Variants by goal: Awareness, Traffic, Engagement, Leads, App promotion, Sales — same six Outcome objectives as Meta Ads Manager (stored as snake_case on `GenerationBrief.contentGoal`; see contract).  
 - Decision records for generated choices  
 - Human approval / override flow  
 
-**Features covered**
+# Features covered**
 
 - Contextual asset creation (text portion)  
 - Personalization engine foundation  
 - Workflow agents foundation  
 
-**Output**
+# Output**
 
 - Blog / social / email / ad copy drafts  
 - Brand-voice scoring  
 - Search-intent scoring  
 - Audit trail of AI choices  
 
-**Repo checkpoint (keep current)**
+## Repo checkpoint (keep current)**
 
 - Generation brief and copy directive schemas live in [`packages/marketer-pro-contract/src/generation-brief.ts`](../packages/marketer-pro-contract/src/generation-brief.ts) (shared with publish `copy` on jobs).
-- **Brief → stub draft + human approval or reject (Postgres + audit):** migration [`apps/api/db/migrations/004_generation_drafts.sql`](../apps/api/db/migrations/004_generation_drafts.sql); service [`apps/api/src/marketer-pro/draft-from-brief.ts`](../apps/api/src/marketer-pro/draft-from-brief.ts); draft text seam [`apps/api/src/marketer-pro/generate-draft-body.ts`](../apps/api/src/marketer-pro/generate-draft-body.ts) (`generateDraftBodyFromBrief`, stub today); HTTP entry [`apps/api/src/generation-draft-server.ts`](../apps/api/src/generation-draft-server.ts) (`npm run start:generation-draft -w @home-link/marketer-api`) — create / approve / **reject** POST paths; **GET** one draft and **GET** list-by-brief (summaries) via `GENERATION_DRAFT_PATH_GET` and `GENERATION_DRAFT_PATH_LIST_BY_BRIEF`. Approve/reject use conditional `UPDATE` on `pending_approval` plus `brief.workspaceId === tenantId` alignment with create.
+- **Brief → draft + human approval or reject (Postgres + audit):** migration [`apps/api/db/migrations/004_generation_drafts.sql`](../apps/api/db/migrations/004_generation_drafts.sql); service [`apps/api/src/marketer-pro/draft-from-brief.ts`](../apps/api/src/marketer-pro/draft-from-brief.ts); draft text seam [`apps/api/src/marketer-pro/generate-draft-body.ts`](../apps/api/src/marketer-pro/generate-draft-body.ts) (`generateDraftBodyFromBrief` — OpenAI Chat Completions when `MARKETER_OPENAI_API_KEY` or `OPENAI_API_KEY` is set, else deterministic stub; HTTP in [`openai-draft-chat.ts`](../apps/api/src/marketer-pro/openai-draft-chat.ts)); HTTP entry [`apps/api/src/generation-draft-server.ts`](../apps/api/src/generation-draft-server.ts) (`npm run start:generation-draft -w @home-link/marketer-api`) — create / approve / **reject** POST paths; **GET** one draft and **GET** list-by-brief (summaries) via `GENERATION_DRAFT_PATH_GET` and `GENERATION_DRAFT_PATH_LIST_BY_BRIEF`. Approve/reject use conditional `UPDATE` on `pending_approval` plus `brief.workspaceId === tenantId` alignment with create.
 
-**Next slices (Phase 2)**
+- **Optional `contentGoal` on briefs** — codes `awareness` | `traffic` | `engagement` | `leads` | `app_promotion` | `sales` (Meta Outcome-aligned); display names in `CONTENT_GOAL_LABELS` / `labelContentGoal`, plus `stubContentGoalGuidance` in the contract. When the OpenAI path is off, [`generate-draft-body.ts`](../apps/api/src/marketer-pro/generate-draft-body.ts) still emits those goal-specific angle bullets in the stub.
 
-- Replace stub draft text with the real generator; multi-field draft transactions if the product needs them.
-- Variants by goal, brand-voice scoring, and search-intent scoring on top of the approval seam above.
+## Next slices (Phase 2)**
+
+- Multi-field draft transactions if the product needs them; richer generator inputs (brand profile + memory retrieval wired into the prompt).
+- Brand-voice scoring and search-intent scoring on top of the approval seam above (`contentGoal` + stub angles are in place; numeric scoring still to ship).
 
 ---
 
 ## Phase 3: Platform-specific adaptation
 
-**Goal:** Turn one content idea into network-ready variants.
+# Goal:** Turn one content idea into network-ready variants
 
-**Build adapters for**
+# Build adapters for**
 
 - LinkedIn  
 - Instagram  
@@ -90,7 +94,7 @@ This document is the **repo-wide phased roadmap** for the product. It complement
 - Facebook / Meta  
 - YouTube Shorts (later)  
 
-**Each adapter should handle**
+# Each adapter should handle**
 
 - Character limits  
 - Hashtag strategy  
@@ -107,7 +111,7 @@ This document is the **repo-wide phased roadmap** for the product. It complement
 - Provider stubs  
 - Publish job payloads  
 
-**Output**
+## Output**
 
 - One campaign becomes platform-specific publish assets  
 
@@ -115,9 +119,9 @@ This document is the **repo-wide phased roadmap** for the product. It complement
 
 ## Phase 4: Unified content calendar
 
-**Goal:** Manage campaigns and scheduled posts across networks.
+# Goal:** Manage campaigns and scheduled posts across networks
 
-**Build**
+# Build**
 
 - Calendar data model  
 - Campaign model  
@@ -126,11 +130,11 @@ This document is the **repo-wide phased roadmap** for the product. It complement
 - Status lifecycle: draft → pending review → approved → scheduled → publishing → published → failed → cancelled  
 - Team review state  
 
-**Output**
+# Output**
 
 - Unified content calendar across all platforms  
 
-**Repo checkpoint (Phase 4 slice)**
+# Repo checkpoint (Phase 4 slice)**
 
 - Postgres: `apps/api/db/migrations/003_campaigns_and_schedule_campaign_id.sql` (`campaigns` + optional `schedule_entries.campaign_id` FK).  
 - Contract: `packages/marketer-pro-contract/src/campaign.ts` (`CampaignRecord`, `CreateCampaignBodySchema`, `campaignRecordFromSqlRow`).  
@@ -141,9 +145,9 @@ This document is the **repo-wide phased roadmap** for the product. It complement
 
 ## Phase 5: Real publisher integrations
 
-**Goal:** Replace stubs with real network publishing.
+# Goal:** Replace stubs with real network publishing
 
-**Networks**
+## Networks**
 
 - Meta / Instagram  
 - LinkedIn  
@@ -151,7 +155,7 @@ This document is the **repo-wide phased roadmap** for the product. It complement
 - TikTok  
 - YouTube Shorts  
 
-**Build**
+# Build**
 
 - OAuth connection storage  
 - Token refresh  
@@ -161,7 +165,7 @@ This document is the **repo-wide phased roadmap** for the product. It complement
 - Rate-limit handling  
 - External post ID capture  
 
-**Existing foundation**
+# Existing foundation**
 
 - Provider adapter skeletons  
 - `externalId`  
@@ -169,7 +173,7 @@ This document is the **repo-wide phased roadmap** for the product. It complement
 - HTTP publish runner  
 - Postgres schedule lookup  
 
-**Output**
+## Output**
 
 - Real cross-platform publishing  
 
@@ -177,9 +181,9 @@ This document is the **repo-wide phased roadmap** for the product. It complement
 
 ## Phase 6: Image and meme generation
 
-**Goal:** Produce visual assets that match brand identity.
+# Goal:** Produce visual assets that match brand identity
 
-**Build**
+# Build**
 
 - Image prompt generation from content brief  
 - Brand visual style injection  
@@ -196,7 +200,7 @@ This document is the **repo-wide phased roadmap** for the product. It complement
 - Content calendar  
 - Review workflow  
 
-**Output**
+## Output**
 
 - Branded image assets attached to scheduled posts  
 
@@ -204,9 +208,9 @@ This document is the **repo-wide phased roadmap** for the product. It complement
 
 ## Phase 7: Short-form video pipeline
 
-**Goal:** Generate and manage short-form video. (Harder — after images.)
+## Goal:** Generate and manage short-form video. (Harder — after images.)
 
-**Build**
+## Build**
 
 - Script generation  
 - Scene outline  
@@ -217,14 +221,14 @@ This document is the **repo-wide phased roadmap** for the product. It complement
 - Preview generation  
 - Platform-specific exports  
 
-**Needs**
+## Needs**
 
 - Durable job queue  
 - Asset storage  
 - Moderation checks  
 - Cost controls  
 
-**Output**
+## Output**
 
 - TikTok / Reels / Shorts-ready video packages  
 
@@ -232,9 +236,9 @@ This document is the **repo-wide phased roadmap** for the product. It complement
 
 ## Phase 8: SERP-based AI content briefs
 
-**Goal:** Generate content briefs from live search results.
+# Goal:** Generate content briefs from live search results
 
-**Build**
+# Build**
 
 - SERP provider integration  
 - Top-result extraction  
@@ -244,7 +248,7 @@ This document is the **repo-wide phased roadmap** for the product. It complement
 - Suggested angle / headline / outline  
 - SEO scoring  
 
-**Features covered**
+# Features covered**
 
 - AI content briefs  
 - Search intent alignment  
@@ -258,9 +262,9 @@ This document is the **repo-wide phased roadmap** for the product. It complement
 
 ## Phase 9: Analytics ingestion
 
-**Goal:** Learn from published content.
+# Goal:** Learn from published content
 
-**Build:** normalized analytics ingestion per platform for:
+## Build:** normalized analytics ingestion per platform for
 
 - Impressions  
 - Reach  
@@ -277,9 +281,9 @@ This document is the **repo-wide phased roadmap** for the product. It complement
 
 ## Phase 10: Sentiment and social listening
 
-**Goal:** Understand audience reaction and adapt strategy.
+# Goal:** Understand audience reaction and adapt strategy
 
-**Build**
+## Build**
 
 - Comment / reply ingestion  
 - Sentiment scoring  
@@ -289,43 +293,43 @@ This document is the **repo-wide phased roadmap** for the product. It complement
 - Suggested response strategy  
 - Feed learnings back into brand memory  
 
-**Features covered**
+## #Features covered**
 
 - Sentiment analysis  
 - Future strategy adjustment  
 - Security / compliance anomaly detection foundation  
 
-**Output**
+# Output**
 
-- Sentiment-aware campaign feedback loop  
+- ## Sentiment-aware campaign feedback loop  
 
 ---
 
 ## Phase 11: Predictive scheduling
 
-**Goal:** Recommend or automatically choose best posting windows.
+## Goal:** Recommend or automatically choose best posting windows
 
-**Start simple**
+## Start simple**
 
 - Historical engagement windows  
 - Platform-specific best-time rules  
 - Audience timezone weighting  
 - Content-type weighting  
 
-**Then advanced**
+# Then advanced**
 
 - Per-workspace predictive model  
 - Trend-aware scheduling  
 - Real-time adjustment  
 - Autonomous rescheduling with audit log  
 
-**Features covered**
+## Features covered**
 
 - Predictive scheduling  
 - Predictive insights  
 - Automated optimization  
 
-**Output**
+## Output**
 
 - “Recommended publish time” first  
 - “Auto-schedule campaign” later  
@@ -334,9 +338,9 @@ This document is the **repo-wide phased roadmap** for the product. It complement
 
 ## Phase 12: Autonomous workflow agents
 
-**Goal:** Agents manage the full lifecycle with guardrails.
+# Goal: Agents manage the full lifecycle with guardrails
 
-**Agent responsibilities**
+## Agent responsibilities ##
 
 - Campaign planner  
 - Brief generator  
@@ -348,15 +352,15 @@ This document is the **repo-wide phased roadmap** for the product. It complement
 - Analytics reviewer  
 - Optimization recommender  
 
-**Existing foundation**
+## Existing foundation**
 
 - Autonomous run events  
 - Decision audit log  
 - Decision aggregator  
 
-**Critical rule**
+## Critical rule**
 
-Agents must **not** silently mutate important campaign state. Every meaningful decision should create an **audit event** and support **human override**.
+Agents must **not** silently mutate important campaign state. Every meaningful decision should create an #[#5](https://github.com/jlevy122112-star/Marketer-Pro/issues/5) audit event**and support ## human override**.
 
 **Output**
 

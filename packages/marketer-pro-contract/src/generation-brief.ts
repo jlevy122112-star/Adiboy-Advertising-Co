@@ -117,6 +117,75 @@ export const VOICE_TONE_SHIFTS = [
 export type VoiceToneShift = (typeof VOICE_TONE_SHIFTS)[number];
 export const VoiceToneShiftSchema = z.enum(VOICE_TONE_SHIFTS);
 
+/**
+ * Phase 2 — campaign / asset objective codes (persisted on briefs).
+ * Matches Meta (Facebook / Instagram) Ads Manager **Outcome** objectives (six goals);
+ * snake_case codes are our stable JSON/API surface (`app_promotion` ↔ Meta “App promotion”).
+ */
+export const CONTENT_GOALS = [
+  "awareness",
+  "traffic",
+  "engagement",
+  "leads",
+  "app_promotion",
+  "sales",
+] as const;
+export type ContentGoal = (typeof CONTENT_GOALS)[number];
+export const ContentGoalSchema = z.enum(CONTENT_GOALS);
+
+/** Human-readable names for settings UI — mirror Meta Ads Manager English labels (codes stay stable). */
+export const CONTENT_GOAL_LABELS: Record<ContentGoal, string> = {
+  awareness: "Awareness",
+  traffic: "Traffic",
+  engagement: "Engagement",
+  leads: "Leads",
+  app_promotion: "App promotion",
+  sales: "Sales",
+};
+
+export function labelContentGoal(goal: ContentGoal): string {
+  return CONTENT_GOAL_LABELS[goal];
+}
+
+/**
+ * Deterministic angle bullets for the stub draft body until the real generator
+ * reads goals from workspace strategy. Keeps copy suggestions stable in tests.
+ */
+export function stubContentGoalGuidance(goal: ContentGoal): readonly string[] {
+  switch (goal) {
+    case "awareness":
+      return [
+        "Optimize for recall and brand story; curiosity beats hard promotion in the hook.",
+        "Keep the CTA soft (learn more / follow) unless the brief already specifies otherwise.",
+      ];
+    case "traffic":
+      return [
+        "Lead with a clear reason to click through; promise matches the landing experience.",
+        "Use specificity (who / what / when) over vague hype to earn the visit.",
+      ];
+    case "engagement":
+      return [
+        "Invite interaction: question, poll, save-worthy tip, or strong POV — avoid passive filler.",
+        "Front-load the emotional or informational payoff so the first line earns the stop scroll.",
+      ];
+    case "leads":
+      return [
+        "State the value exchange for contact info early; one primary conversion action.",
+        "Build trust fast: proof point, qualifier, or risk reversal aligned to the offer.",
+      ];
+    case "app_promotion":
+      return [
+        "Optimize for the promoted destination Meta can attribute (app install, catalog, or shop) — align the CTA with what the brief actually offers.",
+        "Avoid inventing store ratings, prices, or permissions; stick to claims the brief already supports.",
+      ];
+    case "sales":
+      return [
+        "Lead with offer clarity (what, for whom, by when); one decisive purchase CTA.",
+        "Reduce friction: price clarity, guarantee, or urgency only when the brief supplies facts.",
+      ];
+  }
+}
+
 /* -------------------------------------------------------------------------- */
 /*                              Sub-schemas                                   */
 /* -------------------------------------------------------------------------- */
@@ -274,6 +343,7 @@ export const GenerationBriefSchema = z
     parentBriefId: z.string().min(1).max(120).nullable(),
     formatId: z.string().min(1).max(120),
     network: PublishableNetworkSchema,
+    contentGoal: ContentGoalSchema.optional(),
     copy: CopyDirectivesSchema,
     design: DesignDirectivesSchema.optional(),
     voice: VoiceDirectivesSchema.optional(),
@@ -374,6 +444,7 @@ export interface CreateBriefArgs {
   readonly workspaceId: string;
   readonly formatId: string;
   readonly network: z.infer<typeof PublishableNetworkSchema>;
+  readonly contentGoal?: ContentGoal;
   readonly source: BriefSource;
   readonly copy: CopyDirectives;
   readonly design?: DesignDirectives;
@@ -399,6 +470,7 @@ export function createBrief(args: CreateBriefArgs): GenerationBrief {
     parentBriefId: args.parentBriefId ?? null,
     formatId: args.formatId,
     network: args.network,
+    contentGoal: args.contentGoal,
     copy: args.copy,
     design: args.design,
     voice: args.voice,
@@ -521,9 +593,7 @@ export function validateBriefForGeneration(
     }
   }
 
-  // Format catalog + network match. Only flag a mismatch when the format
-  // is actually publishable; non-publishable formats (e.g. 'web') don't
-  // constrain the brief's social network.
+  // Format catalog + network: only publishable formats constrain brief.network.
   const format = findAssetFormatById(brief.formatId);
   if (!format) {
     issues.push({

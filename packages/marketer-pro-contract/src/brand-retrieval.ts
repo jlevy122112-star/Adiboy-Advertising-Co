@@ -10,6 +10,11 @@ import type { BrandIntelligenceProfile } from "./brand-intelligence.js";
 import type { BrandKnowledgeSource } from "./brand-intelligence.js";
 import type { BrandRetrievalSnippet } from "./brand-intelligence.js";
 import { BrandRetrievalSnippetSchema } from "./brand-intelligence.js";
+import {
+  BRAND_MEMORY_EMBEDDING_DIMENSION,
+  parseBrandMemoryEmbedding1536,
+  type BrandMemoryEmbedding1536,
+} from "./brand-memory-embedding.js";
 
 /** Lowercase tokens for simple overlap scoring (ASCII-ish words + digits). */
 export function tokenizeRetrievalText(text: string): string[] {
@@ -116,7 +121,8 @@ export interface EmbeddingRetrievalCandidate {
   readonly sourceId: string;
   readonly citationLabel: string;
   readonly textExcerpt: string;
-  readonly embedding: readonly number[];
+  /** Must be exactly {@link BRAND_MEMORY_EMBEDDING_DIMENSION} when present for ranking. */
+  readonly embedding: BrandMemoryEmbedding1536;
 }
 
 /** Cosine similarity in [-1, 1]; returns 0 when undefined or length mismatch. */
@@ -147,20 +153,45 @@ export interface RankBrandSnippetsByEmbeddingArgs {
   readonly limit?: number;
 }
 
+export type RankBrandSnippetsByEmbeddingResult =
+  | { readonly ok: true; readonly snippets: BrandRetrievalSnippet[] }
+  | {
+      readonly ok: false;
+      readonly code: "query_embedding_dim";
+      readonly message: string;
+    };
+
 /**
  * Rank pre-embedded text chunks by cosine similarity to `queryEmbedding`.
+ * **Query embedding must be exactly 1536 dimensions** — otherwise returns
+ * `{ ok: false, code: 'query_embedding_dim' }` (map to HTTP 400 in API).
+ * Candidates must already satisfy {@link BrandMemoryEmbedding1536}; invalid rows
+ * are skipped (ingest should have rejected them).
+ *
  * Maps cosine from [-1,1] to snippet score [0,1] via `(cos + 1) / 2`.
  */
 export function rankBrandSnippetsByEmbedding(
   args: RankBrandSnippetsByEmbeddingArgs,
-): BrandRetrievalSnippet[] {
+): RankBrandSnippetsByEmbeddingResult {
+  const qParsed = parseBrandMemoryEmbedding1536(args.queryEmbedding);
+  if (!qParsed.ok) {
+    return {
+      ok: false,
+      code: "query_embedding_dim",
+      message: qParsed.message,
+    };
+  }
+  const q = qParsed.embedding;
+
   const limit = Math.min(20, Math.max(1, args.limit ?? 8));
-  const q = args.queryEmbedding;
-  if (q.length === 0) return [];
 
   const scored: { c: EmbeddingRetrievalCandidate; cos: number }[] = [];
   for (const c of args.candidates) {
-    const cos = cosineSimilarityEmbedding(q, c.embedding);
+    const cParsed = parseBrandMemoryEmbedding1536(c.embedding);
+    if (!cParsed.ok) {
+      continue;
+    }
+    const cos = cosineSimilarityEmbedding(q, cParsed.embedding);
     scored.push({ c, cos });
   }
   scored.sort(
@@ -185,5 +216,5 @@ export function rankBrandSnippetsByEmbedding(
       snippets.push(parsed.data);
     }
   }
-  return snippets;
+  return { ok: true, snippets };
 }

@@ -25,9 +25,13 @@ import { closePostgres } from "./db/postgres.js";
 import {
   executeAttachScheduleEntryCampaignRequest,
   executeCreateCampaignRequest,
+  executeCreateScheduleEntryRequest,
+  executeDeleteScheduleEntryRequest,
   executeGetCampaignRequestFromSearchParams,
   executeListCampaignsRequestFromSearchParams,
+  executeListScheduleEntriesByTenantRequestFromSearchParams,
   executeListScheduleEntriesForCampaignRequestFromSearchParams,
+  executeUpdateScheduleEntryRequest,
 } from "./marketer-pro/campaign-route.js";
 
 const MAX_BODY_BYTES = 256 * 1024;
@@ -100,7 +104,7 @@ function checkBearer(req: IncomingMessage, res: ServerResponse): boolean {
     return true;
   }
   const auth = req.headers.authorization?.trim();
-  if (!auth?.toLowerCase().startsWith("bearer ")) {
+  if (!auth?.toLowerCase()?.startsWith("bearer ")) {
     unauthorized(req, res);
     return false;
   }
@@ -127,6 +131,18 @@ const pathScheduleAttach =
 const pathScheduleList =
   process.env.CAMPAIGN_HTTP_PATH_SCHEDULE_LIST ??
   "/api/marketer-pro/campaigns/schedule-entries";
+const pathScheduleCreate =
+  process.env.CAMPAIGN_HTTP_PATH_SCHEDULE_CREATE ??
+  "/api/marketer-pro/campaigns/schedule-entries/create";
+const pathScheduleListByTenant =
+  process.env.CAMPAIGN_HTTP_PATH_SCHEDULE_LIST_TENANT ??
+  "/api/marketer-pro/schedule-entries";
+const pathScheduleDelete =
+  process.env.CAMPAIGN_HTTP_PATH_SCHEDULE_DELETE ??
+  "/api/marketer-pro/schedule-entries/delete";
+const pathScheduleUpdate =
+  process.env.CAMPAIGN_HTTP_PATH_SCHEDULE_UPDATE ??
+  "/api/marketer-pro/schedule-entries/update";
 
 const knownPaths = new Set([
   pathCreate,
@@ -134,6 +150,10 @@ const knownPaths = new Set([
   pathList,
   pathScheduleAttach,
   pathScheduleList,
+  pathScheduleCreate,
+  pathScheduleListByTenant,
+  pathScheduleDelete,
+  pathScheduleUpdate,
 ]);
 
 const server = createServer(async (req, res) => {
@@ -213,10 +233,97 @@ const server = createServer(async (req, res) => {
     return;
   }
 
+  if (req.method === "POST" && pathname === pathScheduleCreate) {
+    try {
+      const body = await readJsonBody(req);
+      const outcome = await executeCreateScheduleEntryRequest(body);
+      json(req, res, outcome.status, outcome.body);
+    } catch (err) {
+      if (err instanceof SyntaxError) {
+        json(req, res, 400, { error: "invalid_json" });
+        return;
+      }
+      if (err instanceof Error && err.message === "request_entity_too_large") {
+        json(req, res, 413, { error: "payload_too_large" });
+        return;
+      }
+      console.error(
+        JSON.stringify({
+          level: "error",
+          event: "campaign_server_unhandled",
+          message: err instanceof Error ? err.message : String(err),
+        }),
+      );
+      json(req, res, 500, { error: "internal_error" });
+    }
+    return;
+  }
+
   if (req.method === "POST" && pathname === pathScheduleAttach) {
     try {
       const body = await readJsonBody(req);
       const outcome = await executeAttachScheduleEntryCampaignRequest(body);
+      json(req, res, outcome.status, outcome.body);
+    } catch (err) {
+      if (err instanceof SyntaxError) {
+        json(req, res, 400, { error: "invalid_json" });
+        return;
+      }
+      if (err instanceof Error && err.message === "request_entity_too_large") {
+        json(req, res, 413, { error: "payload_too_large" });
+        return;
+      }
+      console.error(
+        JSON.stringify({
+          level: "error",
+          event: "campaign_server_unhandled",
+          message: err instanceof Error ? err.message : String(err),
+        }),
+      );
+      json(req, res, 500, { error: "internal_error" });
+    }
+    return;
+  }
+
+  if (req.method === "GET" && pathname === pathScheduleListByTenant) {
+    const outcome =
+      await executeListScheduleEntriesByTenantRequestFromSearchParams(
+        fullUrl.searchParams,
+      );
+    json(req, res, outcome.status, outcome.body);
+    return;
+  }
+
+  if (req.method === "POST" && pathname === pathScheduleDelete) {
+    try {
+      const body = await readJsonBody(req);
+      const outcome = await executeDeleteScheduleEntryRequest(body);
+      json(req, res, outcome.status, outcome.body);
+    } catch (err) {
+      if (err instanceof SyntaxError) {
+        json(req, res, 400, { error: "invalid_json" });
+        return;
+      }
+      if (err instanceof Error && err.message === "request_entity_too_large") {
+        json(req, res, 413, { error: "payload_too_large" });
+        return;
+      }
+      console.error(
+        JSON.stringify({
+          level: "error",
+          event: "campaign_server_unhandled",
+          message: err instanceof Error ? err.message : String(err),
+        }),
+      );
+      json(req, res, 500, { error: "internal_error" });
+    }
+    return;
+  }
+
+  if (req.method === "POST" && pathname === pathScheduleUpdate) {
+    try {
+      const body = await readJsonBody(req);
+      const outcome = await executeUpdateScheduleEntryRequest(body);
       json(req, res, outcome.status, outcome.body);
     } catch (err) {
       if (err instanceof SyntaxError) {
@@ -252,6 +359,7 @@ server.listen(port, host, () => {
       pathCreate,
       pathGet,
       pathList,
+      pathScheduleCreate,
       pathScheduleAttach,
       pathScheduleList,
       auth: process.env.MARKETER_CAMPAIGN_HTTP_TOKEN ? "bearer" : "none",

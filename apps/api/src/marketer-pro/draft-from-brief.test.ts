@@ -62,6 +62,16 @@ describe("draft-from-brief (Phase 2 stub path)", () => {
     expect(body).toContain("CTA:");
   });
 
+  it("buildStubDraftBody includes content goal label and stub angle bullets", () => {
+    const brief = GenerationBriefSchema.parse({
+      ...minimalBrief(),
+      contentGoal: "sales",
+    });
+    const body = buildStubDraftBody(brief);
+    expect(body).toContain("Content goal: Sales");
+    expect(body).toContain("Lead with offer clarity");
+  });
+
   it("buildInitialOfferAuditLog yields one ai_suggestion_offered entry", () => {
     const brief = minimalBrief();
     const log = buildInitialOfferAuditLog(brief, T0);

@@ -57,7 +57,7 @@ function checkBearer(req: IncomingMessage, res: ServerResponse): boolean {
     return true;
   }
   const auth = req.headers.authorization?.trim();
-  if (!auth?.toLowerCase().startsWith("bearer ")) {
+  if (!auth?.toLowerCase()?.startsWith("bearer ")) {
     unauthorized(res);
     return false;
   }

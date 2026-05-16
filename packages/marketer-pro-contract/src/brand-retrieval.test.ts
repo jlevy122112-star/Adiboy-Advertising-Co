@@ -5,12 +5,23 @@ import {
   buildBrandGenerationContext,
   DEFAULT_HUMAN_OVERSIGHT_POLICY,
 } from "./brand-intelligence.js";
+import { BRAND_MEMORY_EMBEDDING_DIMENSION } from "./brand-memory-embedding.js";
 import {
   cosineSimilarityEmbedding,
   lexicalRetrievalSnippetsFromProfile,
   rankBrandSnippetsByEmbedding,
   tokenizeRetrievalText,
 } from "./brand-retrieval.js";
+
+function zeros1536(): number[] {
+  return new Array(BRAND_MEMORY_EMBEDDING_DIMENSION).fill(0);
+}
+
+function unit1536(axis: number): number[] {
+  const v = zeros1536();
+  v[axis % BRAND_MEMORY_EMBEDDING_DIMENSION] = 1;
+  return v;
+}
 
 const profileJson = {
   profileId: "brand_profile_1",
@@ -106,8 +117,8 @@ describe("cosineSimilarityEmbedding + rankBrandSnippetsByEmbedding", () => {
     expect(cosineSimilarityEmbedding([1, 0], [1, 0, 0])).toBe(0);
   });
 
-  it("orders candidates by similarity to query vector", () => {
-    const q = [1, 0, 0] as const;
+  it("orders candidates by similarity to query vector (1536-dim)", () => {
+    const q = unit1536(0);
     const ranked = rankBrandSnippetsByEmbedding({
       queryEmbedding: q,
       candidates: [
@@ -115,18 +126,38 @@ describe("cosineSimilarityEmbedding + rankBrandSnippetsByEmbedding", () => {
           sourceId: "a",
           citationLabel: "A",
           textExcerpt: "x",
-          embedding: [0, 1, 0],
+          embedding: unit1536(1),
         },
         {
           sourceId: "b",
           citationLabel: "B",
           textExcerpt: "y",
-          embedding: [1, 0, 0],
+          embedding: unit1536(0),
         },
       ],
       limit: 2,
     });
-    expect(ranked[0]!.sourceId).toBe("b");
-    expect(ranked[0]!.score).toBeGreaterThan(ranked[1]!.score);
+    expect(ranked.ok).toBe(true);
+    if (!ranked.ok) return;
+    expect(ranked.snippets[0]!.sourceId).toBe("b");
+    expect(ranked.snippets[0]!.score).toBeGreaterThan(ranked.snippets[1]!.score);
+  });
+
+  it("rejects query embedding when length is not 1536", () => {
+    const ranked = rankBrandSnippetsByEmbedding({
+      queryEmbedding: [0, 1, 2],
+      candidates: [
+        {
+          sourceId: "b",
+          citationLabel: "B",
+          textExcerpt: "y",
+          embedding: unit1536(0),
+        },
+      ],
+      limit: 2,
+    });
+    expect(ranked.ok).toBe(false);
+    if (ranked.ok) return;
+    expect(ranked.code).toBe("query_embedding_dim");
   });
 });

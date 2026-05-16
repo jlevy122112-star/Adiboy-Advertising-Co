@@ -39,6 +39,8 @@ export type ScheduleEntrySqlRow = {
   readonly network: string | null;
   readonly status: string;
   readonly content_summary: string | null;
+  /** When the post should go live; added in migration `007`. */
+  readonly scheduled_at: string | Date | null;
   readonly created_at: string | Date;
   readonly updated_at: string | Date;
 };
@@ -55,8 +57,10 @@ export const ScheduleEntryRecordSchema = z
     network: z.string().min(1).nullable(),
     status: z.string().min(1).max(64),
     contentSummary: z.string().max(20_000).nullable(),
-    createdAt: z.string().datetime(),
-    updatedAt: z.string().datetime(),
+    /** ISO datetime for when the post is scheduled to go live (migration 007). */
+    scheduledAt: z.string().nullable().optional(),
+    createdAt: z.string(),
+    updatedAt: z.string(),
   })
   .strict();
 
@@ -72,10 +76,28 @@ export function scheduleEntryRecordFromSqlRow(
     network: row.network,
     status: row.status,
     contentSummary: row.content_summary,
+    scheduledAt: row.scheduled_at != null ? toIsoString(row.scheduled_at) : null,
     createdAt: toIsoString(row.created_at),
     updatedAt: toIsoString(row.updated_at),
   });
 }
+
+/** POST body: create a new `schedule_entries` row. */
+export const CreateScheduleEntryBodySchema = z
+  .object({
+    tenantId: z.string().min(1).max(120),
+    /** Caller-supplied UUID (idempotent upsert). */
+    scheduleEntryId: z.string().min(1).max(120),
+    campaignId: z.union([z.string().min(1).max(120), z.null()]).optional().default(null),
+    network: z.string().min(1).max(64).nullable().optional().default(null),
+    status: ScheduleEntryStatusSchema.optional().default("draft"),
+    contentSummary: z.string().max(20_000).nullable().optional().default(null),
+    /** ISO datetime when this post should go live. */
+    scheduledAt: z.string().nullable().optional().default(null),
+  })
+  .strict();
+
+export type CreateScheduleEntryBody = z.infer<typeof CreateScheduleEntryBodySchema>;
 
 /** True when `status` is one of the known enum values (strict checks / UI badges). */
 export function isKnownScheduleEntryStatus(
@@ -127,4 +149,43 @@ export const ListScheduleEntriesForCampaignQuerySchema = z
 
 export type ListScheduleEntriesForCampaignQuery = z.infer<
   typeof ListScheduleEntriesForCampaignQuerySchema
+>;
+
+/** GET query: list all `schedule_entries` for a tenant (calendar view — no campaign filter). */
+export const ListScheduleEntriesByTenantQuerySchema = z
+  .object({
+    tenantId: z.string().min(1).max(120),
+    limit: z.coerce.number().int().min(1).max(500).optional().default(200),
+  })
+  .strict();
+
+export type ListScheduleEntriesByTenantQuery = z.infer<
+  typeof ListScheduleEntriesByTenantQuerySchema
+>;
+
+/** POST body: delete a single `schedule_entries` row. */
+export const DeleteScheduleEntryBodySchema = z
+  .object({
+    tenantId: z.string().min(1).max(120),
+    scheduleEntryId: z.string().min(1).max(120),
+  })
+  .strict();
+
+export type DeleteScheduleEntryBody = z.infer<
+  typeof DeleteScheduleEntryBodySchema
+>;
+
+/** POST body: update mutable fields on a `schedule_entries` row (calendar sync). */
+export const UpdateScheduleEntryBodySchema = z
+  .object({
+    tenantId: z.string().min(1).max(120),
+    scheduleEntryId: z.string().min(1).max(120),
+    contentSummary: z.string().max(20_000).nullable().optional(),
+    network: z.string().min(1).max(64).nullable().optional(),
+    scheduledAt: z.string().nullable().optional(),
+  })
+  .strict();
+
+export type UpdateScheduleEntryBody = z.infer<
+  typeof UpdateScheduleEntryBodySchema
 >;

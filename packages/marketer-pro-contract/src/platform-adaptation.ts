@@ -286,9 +286,7 @@ function truncateUtf16(str: string, maxLen: number): string {
  * even before hashtags.
  */
 export function adaptCopyToPlatform(
-  source: CopyDirectives,
-  network: PublishableNetwork,
-  options: AdaptCopyToPlatformOptions = {},
+  { source, network, options = {} }: { source: CopyDirectives; network: PublishableNetwork; options?: AdaptCopyToPlatformOptions },
 ): PlatformAdaptationResult {
   const limits = platformCopyLimits(network);
   const strategy = options.strategy ?? "truncate";

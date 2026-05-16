@@ -19,6 +19,8 @@ export const CreateGenerationDraftBodySchema = z
   .object({
     tenantId: z.string().min(1).max(120),
     brief: z.unknown(),
+    /** Optional brand profile to inject brand voice + rules into the generation prompt. */
+    brandProfileId: z.string().min(1).max(120).optional(),
   })
   .strict();
 
@@ -85,6 +87,7 @@ export async function executeCreateGenerationDraftRequest(
   const outcome = await executeCreateGenerationDraft(
     parsed.data.tenantId,
     parsed.data.brief,
+    { brandProfileId: parsed.data.brandProfileId },
   );
   if (!outcome.ok) {
     if (outcome.code === "brief_parse") {
@@ -128,6 +131,7 @@ export async function executeCreateGenerationDraftRequest(
       draftId: outcome.draftId,
       draftBody: outcome.draftBody,
       briefId: outcome.briefId,
+      qualityScore: outcome.qualityScore,
     },
   };
 }

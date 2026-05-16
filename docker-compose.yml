@@ -1,6 +1,7 @@
 services:
   postgres:
-    image: postgres:16-alpine
+    # pgvector extension (see apps/api/db/migrations/006_brand_memory_pgvector.sql)
+    image: pgvector/pgvector:pg16
     container_name: marketer-pro-pg
     environment:
       POSTGRES_USER: postgres
@@ -14,6 +15,17 @@ services:
       test: ["CMD-SHELL", "pg_isready -U postgres -d marketer"]
       interval: 3s
       timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: marketer-pro-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
       retries: 10
 
 volumes:
