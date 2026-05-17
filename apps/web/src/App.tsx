@@ -6,6 +6,8 @@ import { VideoGenPanel } from './VideoGenPanel'
 import { SocialConnectionsPanel } from './SocialConnectionsPanel'
 import { MarketerCalendar } from './calendar/MarketerCalendar'
 import { AuthGuard } from './auth/AuthGuard'
+import { ViralDashboard } from './viral/ViralDashboard'
+import { BrandingSignatureToggle } from './viral/BrandingSignatureToggle'
 import './App.css'
 
 const TENANT_ID = import.meta.env.VITE_TENANT_ID as string | undefined
@@ -96,6 +98,20 @@ function AppShell() {
             <div className="sidebar-section">
               <p className="sidebar-section-title">Social Connections</p>
               <SocialConnectionsPanel />
+            </div>
+
+            <div className="sidebar-divider" />
+
+            <div className="sidebar-section">
+              <p className="sidebar-section-title">Viral Growth</p>
+              <ViralDashboard />
+            </div>
+
+            <div className="sidebar-divider" />
+
+            <div className="sidebar-section">
+              <p className="sidebar-section-title">Branding Signature</p>
+              {TENANT_ID && <BrandingSignatureToggle tenantId={TENANT_ID} />}
             </div>
           </div>
         </aside>

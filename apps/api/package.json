@@ -18,6 +18,8 @@
     "start:video-worker": "node dist/video-worker-cli.js",
     "start:auth": "node dist/auth-server.js",
     "start:social-oauth": "node dist/social-oauth-server.js",
+    "start:viral": "node dist/viral-loop-server.js",
+    "start:viral-worker": "node dist/viral-report-worker.js",
     "db:migrate": "node scripts/migrate.mjs"
   },
   "dependencies": {
