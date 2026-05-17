@@ -68,6 +68,9 @@ export function TeamPanel({ tenantId, userId }: { tenantId: string; userId?: str
   const [commentEntityId, setCommentEntityId] = useState('')
   const [sendingComment, setSendingComment] = useState(false)
 
+  const [historyEntityType, setHistoryEntityType] = useState('schedule_entry')
+  const [historyEntityId, setHistoryEntityId] = useState('')
+
   const headers = { 'Content-Type': 'application/json', 'X-Tenant-Id': tenantId }
 
   const load = useCallback(async (t: Tab) => {
@@ -415,10 +418,32 @@ export function TeamPanel({ tenantId, userId }: { tenantId: string; userId?: str
 
       {/* ── History ── */}
       {!loading && tab === 'history' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
           <div className="tm-section-title">Change History</div>
+          <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
+            <select
+              value={historyEntityType}
+              onChange={e => setHistoryEntityType(e.target.value)}
+              style={{ fontSize: '0.65rem', border: '1px solid var(--border)', borderRadius: '5px', background: 'none', color: 'var(--text)', padding: '0.2rem 0.4rem' }}
+            >
+              <option value="schedule_entry">Post</option>
+              <option value="campaign">Campaign</option>
+              <option value="brief">Brief</option>
+              <option value="run">Run</option>
+            </select>
+            <input
+              type="text" placeholder="Entity ID…"
+              value={historyEntityId} onChange={e => setHistoryEntityId(e.target.value)}
+              style={{ flex: 1, fontSize: '0.65rem', border: '1px solid var(--border)', borderRadius: '5px', background: 'none', color: 'var(--text)', padding: '0.2rem 0.4rem' }}
+            />
+            <button className="tm-reload-btn" onClick={async () => {
+              if (!historyEntityId) return
+              const r = await fetch(`${API_ORIGIN}/history?entityType=${historyEntityType}&entityId=${historyEntityId}`, { headers })
+              if (r.ok) setHistory((await r.json() as { history: HistoryEntry[] }).history ?? [])
+            }}>Load</button>
+          </div>
           {history.length === 0
-            ? <div className="tm-empty"><div className="tm-empty-icon">📋</div><div className="tm-empty-text">No history loaded. Use the API with entityType + entityId to load.</div></div>
+            ? <div className="tm-empty"><div className="tm-empty-icon">📋</div><div className="tm-empty-text">Enter an entity ID above to load history.</div></div>
             : (
               <div className="tm-history">
                 {history.map(e => (
