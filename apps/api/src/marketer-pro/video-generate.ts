@@ -19,6 +19,8 @@ import type { Queue } from "bullmq";
 import type { VideoRenderJobPayload } from "@home-link/marketer-pro-queue";
 import { enqueueVideoRenderJob } from "@home-link/marketer-pro-queue";
 import { generateVideoScript } from "./openai-video-script.js";
+import { buildBrandContext } from "./brand-context-builder.js";
+import { getLatestBrandProfile } from "../db/brand-profile.js";
 import { generateImageWithDalle } from "./openai-image-gen.js";
 import { generateVoiceover } from "./openai-tts.js";
 import { moderateText } from "./openai-moderation.js";
@@ -42,6 +44,10 @@ export type VideoStartInput = {
   voiceover?: boolean;
   scheduleEntryId?: string | null;
   queue: Queue<VideoRenderJobPayload>;
+  /** Optional user-supplied tagline to weave into the script. */
+  customTagline?: string;
+  /** Optional user-supplied CTA override. */
+  customCta?: string;
 };
 
 export type VideoStartResult =
@@ -93,12 +99,17 @@ export async function startVideoGeneration(input: VideoStartInput): Promise<Vide
 
   const brandingResult = await getWorkspaceBranding(input.tenantId);
   const branding = brandingResult.ok ? brandingResult.branding : undefined;
+  const profileResult = await getLatestBrandProfile(input.tenantId);
+  const profile = profileResult.ok ? profileResult.profile : undefined;
+  const brand = branding ? buildBrandContext(branding, profile) : undefined;
 
   const scriptGenResult = await generateVideoScript({
     apiKey,
     brief: input.brief,
     platform,
-    brandName: branding?.displayName ?? undefined,
+    brand,
+    customTagline: input.customTagline,
+    customCta: input.customCta,
   });
 
   if (!scriptGenResult.ok) return { ok: false, error: scriptGenResult.error };

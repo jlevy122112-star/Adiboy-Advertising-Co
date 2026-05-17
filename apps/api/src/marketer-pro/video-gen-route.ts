@@ -55,6 +55,8 @@ const GenerateBodySchema = z.object({
   network: z.string().optional(),
   voiceover: z.boolean().optional(),
   scheduleEntryId: z.string().optional(),
+  customTagline: z.string().max(280).optional(),
+  customCta: z.string().max(140).optional(),
 });
 
 export function makeVideoGenHandler(queue: Queue<VideoRenderJobPayload>) {
@@ -92,6 +94,8 @@ export function makeVideoGenHandler(queue: Queue<VideoRenderJobPayload>) {
         network: parsed.data.network,
         voiceover: parsed.data.voiceover,
         scheduleEntryId: parsed.data.scheduleEntryId,
+        customTagline: parsed.data.customTagline,
+        customCta: parsed.data.customCta,
         queue,
       });
       // 202 Accepted — job is queued, client should poll GET /job/:id

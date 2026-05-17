@@ -54,6 +54,9 @@ export function VideoGenPanel() {
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
   const [voiceover, setVoiceover] = useState(false)
+  const [showAdOptions, setShowAdOptions] = useState(false)
+  const [customTagline, setCustomTagline] = useState('')
+  const [customCta, setCustomCta] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [scriptId, setScriptId] = useState<string | null>(null)
@@ -94,7 +97,13 @@ export function VideoGenPanel() {
       const res = await fetch(`${apiOrigin}/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Tenant-Id': tenantId },
-        body: JSON.stringify({ brief: makeBrief(title, body), network: platform, voiceover }),
+        body: JSON.stringify({
+        brief: makeBrief(title, body),
+        network: platform,
+        voiceover,
+        customTagline: customTagline.trim() || undefined,
+        customCta: customCta.trim() || undefined,
+      }),
       })
       const data = await res.json() as { ok: boolean; scriptId?: string; jobId?: string; error?: string }
 
@@ -112,7 +121,7 @@ export function VideoGenPanel() {
       setError(err instanceof Error ? err.message : 'Network error')
       setLoading(false)
     }
-  }, [apiOrigin, tenantId, platform, title, body, voiceover, pollJob, stopPolling])
+  }, [apiOrigin, tenantId, platform, title, body, voiceover, customTagline, customCta, pollJob, stopPolling])
 
   return (
     <div className="vgp-root">
@@ -162,6 +171,44 @@ export function VideoGenPanel() {
         />
         Include AI voiceover (TTS)
       </label>
+
+      <button
+        className="vgp-checkbox-label"
+        type="button"
+        style={{ all: 'unset', cursor: 'pointer', fontSize: '0.75rem', color: 'var(--brand-primary, #7c3aed)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+        onClick={() => setShowAdOptions((v) => !v)}
+      >
+        {showAdOptions ? '▲' : '▼'} Ad copy options (tagline, CTA)
+      </button>
+
+      {showAdOptions && (
+        <>
+          <div className="vgp-field">
+            <label className="vgp-label" htmlFor="vgp-tagline">Custom tagline for this ad <span style={{ opacity: 0.5, fontWeight: 400 }}>(overrides brand default)</span></label>
+            <input
+              id="vgp-tagline"
+              className="vgp-input"
+              type="text"
+              value={customTagline}
+              onChange={(e) => setCustomTagline(e.target.value)}
+              placeholder="e.g. Limited time — act now."
+              maxLength={280}
+            />
+          </div>
+          <div className="vgp-field">
+            <label className="vgp-label" htmlFor="vgp-cta">Call to action <span style={{ opacity: 0.5, fontWeight: 400 }}>(optional)</span></label>
+            <input
+              id="vgp-cta"
+              className="vgp-input"
+              type="text"
+              value={customCta}
+              onChange={(e) => setCustomCta(e.target.value)}
+              placeholder="e.g. Shop now, Book a demo, Learn more"
+              maxLength={140}
+            />
+          </div>
+        </>
+      )}
 
       <button
         className="vgp-generate-btn"

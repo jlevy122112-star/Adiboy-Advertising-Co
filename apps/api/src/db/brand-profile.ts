@@ -101,6 +101,32 @@ export async function getBrandProfile(
   }
 }
 
+/** Gets the most-recently-updated brand profile for a tenant (no profileId required). */
+export type GetLatestBrandProfileResolve =
+  | { readonly ok: true; readonly profile: BrandIntelligenceProfile }
+  | { readonly ok: false };
+
+export async function getLatestBrandProfile(
+  tenantId: string,
+): Promise<GetLatestBrandProfileResolve> {
+  const sql = getPostgresClient();
+  if (!sql) return { ok: false };
+  try {
+    const rows = await sql<{ body: unknown }[]>`
+      SELECT body FROM brand_profiles
+      WHERE tenant_id = ${tenantId}
+      ORDER BY updated_at DESC
+      LIMIT 1
+    `;
+    const raw = rows[0]?.body;
+    if (raw == null) return { ok: false };
+    const profile = BrandIntelligenceProfileSchema.parse(raw);
+    return { ok: true, profile };
+  } catch {
+    return { ok: false };
+  }
+}
+
 export type ListBrandProfilesResolve =
   | { readonly mode: "ok"; readonly profiles: BrandIntelligenceProfile[] }
   | { readonly mode: "no_database"; readonly message?: string }

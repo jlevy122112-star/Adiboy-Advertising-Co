@@ -745,6 +745,14 @@ export const WorkspaceBrandingSchema = z
         { message: "accentHex must be #RRGGBB or empty" },
       ),
     businessCategoryId: z.string().max(64).optional(),
+    /** Plain-language industry/vertical, e.g. "fitness apparel", "B2B SaaS", "local restaurant". */
+    industryVertical: z.string().max(160).optional(),
+    /** Brand slogans or taglines — all are injected into generation prompts. */
+    slogans: z.array(z.string().min(1).max(280)).max(10).optional(),
+    /** Brand themes / values keywords, e.g. ["innovation","trust","sustainability"]. */
+    themes: z.array(z.string().min(1).max(80)).max(20).optional(),
+    /** Website URL — used for brand context and SEO. */
+    websiteUrl: z.string().max(2048).optional(),
   })
   .strict();
 

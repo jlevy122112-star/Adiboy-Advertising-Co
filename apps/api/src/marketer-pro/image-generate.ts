@@ -19,10 +19,12 @@ import { randomUUID } from "node:crypto";
 import type { GenerationBrief } from "@home-link/marketer-pro-contract";
 import { getDimensions } from "./image-dimensions.js";
 import { buildImagePrompt } from "./image-prompt-builder.js";
+import { buildBrandContext } from "./brand-context-builder.js";
 import { generateImageWithDalle } from "./openai-image-gen.js";
 import { moderateText } from "./openai-moderation.js";
 import { uploadBufferToS3, isS3Configured } from "../storage/s3.js";
 import { getWorkspaceBranding } from "../db/workspace-branding.js";
+import { getLatestBrandProfile } from "../db/brand-profile.js";
 import {
   insertGeneratedAsset,
   updateGeneratedAsset,
@@ -35,6 +37,7 @@ export type ImageGenerateInput = {
   network?: string | null;
   scheduleEntryId?: string | null;
   quality?: "standard" | "hd";
+  customInstruction?: string;
 };
 
 export type ImageGenerateResult =
@@ -62,15 +65,18 @@ export async function generateImage(
 
   const dimensions = getDimensions(input.network);
 
-  // Brand context for prompt
+  // Build full brand context from branding + brand intelligence profile
   const brandingResult = await getWorkspaceBranding(input.tenantId);
   const branding = brandingResult.ok ? brandingResult.branding : undefined;
+  const profileResult = await getLatestBrandProfile(input.tenantId);
+  const profile = profileResult.ok ? profileResult.profile : undefined;
+  const brand = branding ? buildBrandContext(branding, profile) : undefined;
 
   const prompt = buildImagePrompt({
     brief: input.brief,
     dimensions,
-    brandName: branding?.displayName ?? undefined,
-    brandPrimaryColor: branding?.primaryHex ?? undefined,
+    brand,
+    customInstruction: input.customInstruction,
   });
 
   const assetId = randomUUID();

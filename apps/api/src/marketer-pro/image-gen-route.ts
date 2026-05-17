@@ -56,6 +56,7 @@ const GenerateBodySchema = z.object({
   network: z.string().optional(),
   scheduleEntryId: z.string().optional(),
   quality: z.enum(["standard", "hd"]).optional(),
+  customInstruction: z.string().max(500).optional(),
 });
 
 export async function handleImageGenRequest(
@@ -93,6 +94,7 @@ export async function handleImageGenRequest(
       network: parsed.data.network,
       scheduleEntryId: parsed.data.scheduleEntryId,
       quality: parsed.data.quality,
+      customInstruction: parsed.data.customInstruction,
     });
     json(res, result.ok ? 200 : 422, result);
     return;

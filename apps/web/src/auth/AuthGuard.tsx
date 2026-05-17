@@ -2,12 +2,18 @@ import { useState, type ReactNode } from 'react'
 import { useAuth } from './useAuth'
 import { LoginPage } from './LoginPage'
 import { SignupPage } from './SignupPage'
+import { OnboardingWizard, ONBOARDING_DONE_KEY } from '../onboarding/OnboardingWizard'
+
+const TENANT_ID = import.meta.env.VITE_TENANT_ID as string | undefined
 
 type Props = { children: ReactNode }
 
 export function AuthGuard({ children }: Props) {
   const { state, logout } = useAuth()
   const [view, setView] = useState<'login' | 'signup'>('login')
+  const [onboardingDone, setOnboardingDone] = useState(
+    () => !!localStorage.getItem(ONBOARDING_DONE_KEY)
+  )
 
   if (state.status === 'loading') {
     return (
@@ -20,6 +26,15 @@ export function AuthGuard({ children }: Props) {
   if (state.status === 'unauthenticated') {
     if (view === 'signup') return <SignupPage onSwitchToLogin={() => setView('login')} />
     return <LoginPage onSwitchToSignup={() => setView('signup')} />
+  }
+
+  if (!onboardingDone) {
+    return (
+      <OnboardingWizard
+        tenantId={TENANT_ID ?? state.user.tenantId ?? 'demo'}
+        onComplete={() => setOnboardingDone(true)}
+      />
+    )
   }
 
   return (
