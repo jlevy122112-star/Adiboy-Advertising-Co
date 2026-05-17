@@ -63,6 +63,9 @@ plugins/cache/
 # Claude Code — local memory & session files (machine-specific, never commit)
 .claude/
 
+# Claude Code backup directories (created by commit hooks, never commit)
+.create-claude-backup-*/
+
 # Database dumps — may contain real data
 sqlite_dump.sql
 

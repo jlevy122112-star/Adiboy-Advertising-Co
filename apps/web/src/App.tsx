@@ -14,6 +14,7 @@ import { SentimentPanel } from './sentiment/SentimentPanel'
 import { PredictiveSchedulePanel } from './predictive/PredictiveSchedulePanel'
 import { AutonomousAgentPanel } from './autonomous/AutonomousAgentPanel'
 import { TeamPanel } from './team/TeamPanel'
+import { SafetyDashboard } from './safety/SafetyDashboard'
 import './App.css'
 
 const TENANT_ID = import.meta.env.VITE_TENANT_ID as string | undefined
@@ -160,6 +161,13 @@ function AppShell() {
             <div className="sidebar-section">
               <p className="sidebar-section-title">Team</p>
               {TENANT_ID && <TeamPanel tenantId={TENANT_ID} />}
+            </div>
+
+            <div className="sidebar-divider" />
+
+            <div className="sidebar-section">
+              <p className="sidebar-section-title">Safety &amp; Compliance</p>
+              <SafetyDashboard />
             </div>
           </div>
         </aside>

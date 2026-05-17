@@ -817,6 +817,35 @@ export {
   type CreateCampaignBody,
 } from "./campaign.js";
 
+export {
+  CONTENT_SCAN_TYPES,
+  ContentScanTypeSchema,
+  SCAN_SEVERITIES,
+  ScanSeveritySchema,
+  maxSeverity,
+  severityPasses,
+  ScanFindingSchema,
+  ContentScanResultSchema,
+  ScanRequestSchema,
+  ANOMALY_TYPES,
+  AnomalyTypeSchema,
+  AnomalyEventSchema,
+  DELETION_STATUSES,
+  DeletionStatusSchema,
+  AccountDeletionRequestSchema,
+  RequestDeletionBodySchema,
+  type ContentScanType,
+  type ScanSeverity,
+  type ScanFinding,
+  type ContentScanResult,
+  type ScanRequest,
+  type AnomalyType,
+  type AnomalyEvent,
+  type DeletionStatus,
+  type AccountDeletionRequest,
+  type RequestDeletionBody,
+} from "./content-safety.js";
+
 /** Workspace-scoped white-label fields (stored per tenant on `workspaces.branding_json`). */
 export const WorkspaceBrandingSchema = z
   .object({
