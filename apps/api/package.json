@@ -22,6 +22,7 @@
     "start:viral-worker": "node dist/viral-report-worker.js",
     "start:serp-brief": "node dist/serp-brief-server.js",
     "start:analytics": "node dist/analytics-server.js",
+    "start:sentiment": "node dist/sentiment-server.js",
     "db:migrate": "node scripts/migrate.mjs"
   },
   "dependencies": {

@@ -59,6 +59,5 @@ export async function fetchSerpResults(keyword: string): Promise<SerpFetchResult
   if (process.env.SERPAPI_KEY?.trim()) {
     return fetchViaSerpApi(keyword);
   }
-  // Dev stub — no API key needed
   return { ok: true, results: stubResults(keyword) };
 }

@@ -14,6 +14,19 @@ export {
 } from "./analytics.js";
 
 export {
+  SentimentScoreSchema,
+  BrandSafetyFlagSchema,
+  SocialCommentSchema,
+  SentimentSummarySchema,
+  SentimentAnalysisSchema,
+  type SentimentScore,
+  type BrandSafetyFlag,
+  type SocialComment,
+  type SentimentSummary,
+  type SentimentAnalysis,
+} from "./sentiment.js";
+
+export {
   SerpResultSchema,
   SerpBriefSchema,
   SerpBriefStatusSchema,

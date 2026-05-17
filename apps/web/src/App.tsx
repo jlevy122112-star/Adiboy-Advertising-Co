@@ -10,6 +10,7 @@ import { ViralDashboard } from './viral/ViralDashboard'
 import { BrandingSignatureToggle } from './viral/BrandingSignatureToggle'
 import { SerpBriefPanel } from './serp/SerpBriefPanel'
 import AnalyticsDashboard from './analytics/AnalyticsDashboard'
+import { SentimentPanel } from './sentiment/SentimentPanel'
 import './App.css'
 
 const TENANT_ID = import.meta.env.VITE_TENANT_ID as string | undefined
@@ -128,6 +129,13 @@ function AppShell() {
             <div className="sidebar-section">
               <p className="sidebar-section-title">Analytics</p>
               {TENANT_ID && <AnalyticsDashboard tenantId={TENANT_ID} />}
+            </div>
+
+            <div className="sidebar-divider" />
+
+            <div className="sidebar-section">
+              <p className="sidebar-section-title">Sentiment &amp; Listening</p>
+              {TENANT_ID && <SentimentPanel tenantId={TENANT_ID} />}
             </div>
           </div>
         </aside>
