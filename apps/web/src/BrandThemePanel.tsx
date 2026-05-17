@@ -57,7 +57,7 @@ export function useBrandTheme() {
 
   useEffect(() => {
     applyBrandTheme(theme)
-  }, []) // eslint-disable-line
+  }, [applyBrandTheme])
 
   return { theme, setTheme }
 }

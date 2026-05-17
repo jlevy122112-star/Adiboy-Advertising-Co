@@ -11,7 +11,7 @@ import type { BrandKnowledgeSource } from "./brand-intelligence.js";
 import type { BrandRetrievalSnippet } from "./brand-intelligence.js";
 import { BrandRetrievalSnippetSchema } from "./brand-intelligence.js";
 import {
-  BRAND_MEMORY_EMBEDDING_DIMENSION,
+  BRAND_MEMORY_EMBEDDING_DIMENSION as _BRAND_MEMORY_EMBEDDING_DIMENSION,
   parseBrandMemoryEmbedding1536,
   type BrandMemoryEmbedding1536,
 } from "./brand-memory-embedding.js";
