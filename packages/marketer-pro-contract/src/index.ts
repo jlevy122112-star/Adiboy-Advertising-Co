@@ -14,6 +14,18 @@ export {
 } from "./analytics.js";
 
 export {
+  BestTimeSlotSchema,
+  ScheduleRecommendationSchema,
+  PredictRequestSchema,
+  ConfidenceLevelSchema,
+  DAY_LABELS,
+  type BestTimeSlot,
+  type ScheduleRecommendation,
+  type PredictRequest,
+  type ConfidenceLevel,
+} from "./predictive-schedule.js";
+
+export {
   SentimentScoreSchema,
   BrandSafetyFlagSchema,
   SocialCommentSchema,
