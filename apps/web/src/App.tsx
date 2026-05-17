@@ -12,6 +12,7 @@ import { SerpBriefPanel } from './serp/SerpBriefPanel'
 import AnalyticsDashboard from './analytics/AnalyticsDashboard'
 import { SentimentPanel } from './sentiment/SentimentPanel'
 import { PredictiveSchedulePanel } from './predictive/PredictiveSchedulePanel'
+import { AutonomousAgentPanel } from './autonomous/AutonomousAgentPanel'
 import './App.css'
 
 const TENANT_ID = import.meta.env.VITE_TENANT_ID as string | undefined
@@ -144,6 +145,13 @@ function AppShell() {
             <div className="sidebar-section">
               <p className="sidebar-section-title">Predictive Scheduling</p>
               {TENANT_ID && <PredictiveSchedulePanel tenantId={TENANT_ID} />}
+            </div>
+
+            <div className="sidebar-divider" />
+
+            <div className="sidebar-section">
+              <p className="sidebar-section-title">Autonomous Agent</p>
+              {TENANT_ID && <AutonomousAgentPanel tenantId={TENANT_ID} />}
             </div>
           </div>
         </aside>

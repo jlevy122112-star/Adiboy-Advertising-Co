@@ -1,0 +1,111 @@
+/* ─── Autonomous Agent Dashboard ─────────────────────── */
+.au-root { display: flex; flex-direction: column; gap: 1.1rem; padding-bottom: 2rem; }
+
+.au-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; }
+.au-title { font-size: 1rem; font-weight: 700; color: var(--text-h); margin: 0; display: flex; align-items: center; gap: 0.4rem; }
+
+/* Launch form */
+.au-form { border: 1px solid var(--border); border-radius: 10px; padding: 0.75rem; display: flex; flex-direction: column; gap: 0.6rem; }
+.au-form-title { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text); opacity: 0.4; font-weight: 700; }
+
+.au-network-grid { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.au-network-btn {
+  font-size: 0.63rem; font-weight: 600; padding: 0.2rem 0.5rem;
+  border-radius: 20px; border: 1px solid var(--border);
+  background: none; color: var(--text); cursor: pointer; transition: all 0.12s;
+}
+.au-network-btn--active { background: rgba(124,58,237,0.1); border-color: var(--brand-primary,#7c3aed); color: var(--brand-primary,#7c3aed); }
+
+.au-scope-row { display: flex; gap: 0.4rem; }
+.au-scope-btn {
+  flex: 1; font-size: 0.63rem; font-weight: 600; padding: 0.28rem 0;
+  border-radius: 7px; border: 1px solid var(--border);
+  background: none; color: var(--text); cursor: pointer; transition: all 0.12s;
+}
+.au-scope-btn--active { background: rgba(124,58,237,0.1); border-color: var(--brand-primary,#7c3aed); color: var(--brand-primary,#7c3aed); }
+
+.au-launch-btn {
+  font-size: 0.72rem; font-weight: 800; padding: 0.45rem 1rem;
+  border-radius: 8px; border: none;
+  background: linear-gradient(135deg, var(--brand-primary,#7c3aed), #a78bfa);
+  color: #fff; cursor: pointer; transition: opacity 0.12s; letter-spacing: 0.01em;
+}
+.au-launch-btn:hover:not(:disabled) { opacity: 0.88; }
+.au-launch-btn:disabled { opacity: 0.45; cursor: default; }
+
+/* Run cards */
+.au-run-list { display: flex; flex-direction: column; gap: 0.5rem; }
+
+.au-run {
+  border: 1px solid var(--border); border-radius: 10px;
+  padding: 0.65rem 0.75rem; display: flex; flex-direction: column; gap: 0.4rem;
+  cursor: pointer; transition: border-color 0.12s, box-shadow 0.12s;
+}
+.au-run:hover { border-color: rgba(124,58,237,0.3); box-shadow: 0 2px 10px rgba(124,58,237,0.07); }
+.au-run--active { border-color: rgba(124,58,237,0.4); background: rgba(124,58,237,0.02); }
+
+.au-run-header { display: flex; align-items: center; gap: 0.4rem; }
+.au-run-id { font-size: 0.62rem; font-family: monospace; color: var(--text); opacity: 0.4; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.au-run-meta { font-size: 0.6rem; color: var(--text); opacity: 0.4; white-space: nowrap; }
+
+/* State badge */
+.au-state {
+  font-size: 0.58rem; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 0.05em; padding: 0.1rem 0.38rem; border-radius: 20px; flex-shrink: 0;
+}
+.au-state--requested, .au-state--validating, .au-state--planning,
+.au-state--generating, .au-state--scheduling, .au-state--ready_to_publish,
+.au-state--publishing { background: rgba(124,58,237,0.12); color: var(--brand-primary,#7c3aed); }
+.au-state--completed  { background: rgba(16,185,129,0.12); color: #059669; }
+.au-state--failed     { background: rgba(239,68,68,0.12);  color: #dc2626; }
+.au-state--cancelled  { background: rgba(0,0,0,0.07);      color: var(--text); }
+.au-state--awaiting_user, .au-state--paused { background: rgba(245,158,11,0.12); color: #d97706; }
+
+/* Progress bar */
+.au-progress-bar { height: 3px; border-radius: 2px; background: var(--border); overflow: hidden; }
+.au-progress-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg,var(--brand-primary,#7c3aed),#a78bfa); transition: width 0.5s ease; }
+
+.au-run-networks { display: flex; gap: 0.25rem; flex-wrap: wrap; }
+.au-net-tag { font-size: 0.55rem; font-weight: 700; padding: 0.06rem 0.28rem; border-radius: 20px; background: rgba(99,102,241,0.08); color: var(--brand-primary,#7c3aed); text-transform: uppercase; }
+
+/* Run detail */
+.au-detail { border: 1px solid rgba(124,58,237,0.25); border-radius: 10px; padding: 0.75rem; display: flex; flex-direction: column; gap: 0.6rem; background: rgba(124,58,237,0.02); }
+.au-detail-title { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text); opacity: 0.4; font-weight: 700; }
+
+.au-actions { display: flex; gap: 0.35rem; flex-wrap: wrap; }
+.au-action-btn {
+  font-size: 0.62rem; font-weight: 600; padding: 0.2rem 0.5rem;
+  border-radius: 6px; border: 1px solid var(--border);
+  background: none; color: var(--text); cursor: pointer; transition: all 0.12s;
+}
+.au-action-btn:hover { border-color: var(--text-h); color: var(--text-h); }
+.au-action-btn--danger { border-color: rgba(239,68,68,0.3); color: #dc2626; }
+.au-action-btn--danger:hover { background: rgba(239,68,68,0.08); }
+
+/* Scheduled posts */
+.au-posts { display: flex; flex-direction: column; gap: 0.3rem; }
+.au-post {
+  border: 1px solid var(--border); border-radius: 7px;
+  padding: 0.4rem 0.55rem; display: flex; align-items: center; gap: 0.4rem;
+}
+.au-post-net { font-size: 0.58rem; font-weight: 800; text-transform: uppercase; padding: 0.06rem 0.28rem; border-radius: 20px; background: rgba(16,185,129,0.1); color: #059669; flex-shrink: 0; }
+.au-post-headline { font-size: 0.68rem; font-weight: 600; color: var(--text-h); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.au-post-time { font-size: 0.6rem; color: var(--text); opacity: 0.4; flex-shrink: 0; }
+.au-post-score { font-size: 0.6rem; color: var(--brand-primary,#7c3aed); font-weight: 700; flex-shrink: 0; }
+
+/* Log */
+.au-log { display: flex; flex-direction: column; gap: 0.15rem; max-height: 180px; overflow-y: auto; }
+.au-log-entry { font-size: 0.6rem; display: flex; align-items: flex-start; gap: 0.4rem; }
+.au-log-time { color: var(--text); opacity: 0.35; white-space: nowrap; flex-shrink: 0; font-family: monospace; }
+.au-log-event { font-weight: 600; color: var(--text-h); flex-shrink: 0; }
+.au-log-detail { color: var(--text); opacity: 0.55; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Empty */
+.au-empty { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 2rem 1rem; text-align: center; }
+.au-empty-icon { font-size: 1.8rem; opacity: 0.2; }
+.au-empty-text { font-size: 0.72rem; color: var(--text); opacity: 0.42; max-width: 22ch; line-height: 1.5; }
+
+.au-section-title { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text); opacity: 0.4; font-weight: 700; }
+.au-divider { height: 1px; background: var(--border); opacity: 0.5; }
+.au-reload-btn { font-size: 0.63rem; font-weight: 600; padding: 0.22rem 0.55rem; border-radius: 7px; border: 1px solid rgba(124,58,237,0.3); background: rgba(124,58,237,0.06); color: var(--brand-primary,#7c3aed); cursor: pointer; }
+.au-reload-btn:hover { background: rgba(124,58,237,0.13); }
