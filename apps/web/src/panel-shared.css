@@ -1,4 +1,4 @@
-/* ── Shared panel primitives (brand-profile, campaign-sync) ──────────── */
+/* ── Shared panel primitives — premium system ─────────────────────────── */
 
 .panel-root {
   display: flex;
@@ -7,157 +7,217 @@
 }
 
 .panel-title {
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   font-weight: 700;
+  letter-spacing: -0.015em;
   color: var(--text-h);
   margin: 0;
 }
 
 .panel-desc {
-  font-size: 0.75rem;
-  color: var(--text);
-  opacity: 0.75;
+  font-size: 0.78125rem;
+  color: var(--text-muted);
   margin: 0;
-  line-height: 1.5;
+  line-height: 1.55;
 }
+
+/* ── Grid ─────────────────────────────────────────────────────────────── */
 
 .panel-grid-2 {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 0.625rem;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.5rem;
 }
+
+/* ── Field ────────────────────────────────────────────────────────────── */
 
 .panel-field {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.3125rem;
 }
 
 .panel-field-label {
-  font-size: 0.72rem;
+  font-size: 0.71875rem;
   font-weight: 600;
   color: var(--text-h);
+  letter-spacing: -0.005em;
 }
+
+/* ── Inputs ───────────────────────────────────────────────────────────── */
 
 .panel-input,
 .panel-select {
-  padding: 0.45rem 0.5rem;
-  border-radius: 6px;
+  padding: 0.5rem 0.625rem;
+  border-radius: var(--radius-md);
   border: 1px solid var(--border);
-  background: var(--bg);
+  background: var(--surface-raised);
   color: var(--text-h);
-  font-size: 0.78rem;
+  font-family: var(--sans);
+  font-size: 0.8125rem;
   width: 100%;
   box-sizing: border-box;
   min-height: 38px;
   outline: none;
-  transition: border-color 0.15s;
+  transition: border-color var(--duration-base), box-shadow var(--duration-base);
+  -webkit-appearance: none;
 }
+
+.panel-input::placeholder,
+.panel-select::placeholder { color: var(--text-placeholder); }
+
+.panel-input:hover,
+.panel-select:hover { border-color: color-mix(in srgb, var(--border) 50%, var(--accent)); }
 
 .panel-input:focus,
 .panel-select:focus {
-  border-color: var(--brand-primary, #7c3aed);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-bg);
 }
 
 .panel-input--mono {
   font-family: var(--mono);
-  font-size: 0.72rem;
+  font-size: 0.75rem;
 }
 
+/* ── Textarea ─────────────────────────────────────────────────────────── */
+
 .panel-textarea {
-  padding: 0.45rem 0.5rem;
-  border-radius: 6px;
+  padding: 0.5rem 0.625rem;
+  border-radius: var(--radius-md);
   border: 1px solid var(--border);
-  background: var(--bg);
+  background: var(--surface-raised);
   color: var(--text-h);
-  font-size: 0.72rem;
   font-family: var(--mono);
+  font-size: 0.75rem;
   width: 100%;
   box-sizing: border-box;
   resize: vertical;
   outline: none;
-  transition: border-color 0.15s;
+  transition: border-color var(--duration-base), box-shadow var(--duration-base);
+  min-height: 72px;
+  line-height: 1.55;
 }
 
+.panel-textarea:hover { border-color: color-mix(in srgb, var(--border) 50%, var(--accent)); }
 .panel-textarea:focus {
-  border-color: var(--brand-primary, #7c3aed);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-bg);
 }
+
+/* ── Buttons ──────────────────────────────────────────────────────────── */
 
 .panel-btn-row {
   display: flex;
-  gap: 0.4rem;
+  gap: 0.375rem;
   flex-wrap: wrap;
 }
 
 .panel-btn {
-  padding: 0.4rem 0.75rem;
-  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  padding: 0.4375rem 0.875rem;
+  border-radius: var(--radius-md);
   border: 1px solid var(--border);
-  background: var(--bg);
+  background: var(--surface-raised);
   color: var(--text-h);
-  font-size: 0.75rem;
+  font-family: var(--sans);
+  font-size: 0.8125rem;
   font-weight: 600;
+  letter-spacing: -0.01em;
   cursor: pointer;
   min-height: 36px;
-  transition: border-color 0.15s, background 0.15s;
   white-space: nowrap;
+  transition: background var(--duration-base), border-color var(--duration-base),
+              color var(--duration-base), box-shadow var(--duration-base),
+              transform var(--duration-fast);
+  user-select: none;
 }
 
 .panel-btn:hover {
-  border-color: var(--brand-primary, #7c3aed);
-  color: var(--brand-primary, #7c3aed);
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-bg);
 }
 
+.panel-btn:active { transform: scale(0.97); }
+.panel-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+/* Primary */
 .panel-btn--primary {
-  background: var(--brand-primary, #7c3aed);
-  border-color: var(--brand-primary, #7c3aed);
+  background: var(--accent);
+  border-color: var(--accent);
   color: #fff;
+  box-shadow: 0 1px 3px rgba(124, 58, 237, 0.3), 0 0 0 0 rgba(124, 58, 237, 0.4);
 }
 
 .panel-btn--primary:hover {
-  opacity: 0.85;
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
   color: #fff;
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.35);
 }
 
+/* Danger */
 .panel-btn--danger {
-  border-color: #ef4444;
-  color: #ef4444;
+  border-color: var(--border);
+  color: var(--danger);
+  background: transparent;
 }
 
 .panel-btn--danger:hover {
-  background: #ef444420;
-  border-color: #ef4444;
-  color: #ef4444;
+  background: var(--danger-bg);
+  border-color: var(--danger);
+  color: var(--danger);
 }
+
+/* Ghost */
+.panel-btn--ghost {
+  border-color: transparent;
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.panel-btn--ghost:hover {
+  background: var(--bg-muted);
+  color: var(--text-h);
+  border-color: transparent;
+}
+
+/* ── Status ───────────────────────────────────────────────────────────── */
 
 .panel-status {
-  font-size: 0.75rem;
-  color: var(--text);
+  font-size: 0.78125rem;
+  color: var(--text-muted);
   margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
 }
 
-.panel-status--error {
-  color: #ef4444;
-}
+.panel-status--error { color: var(--danger); }
+.panel-status--ok { color: var(--success); }
+.panel-status--warn { color: var(--warning); }
 
-.panel-status--ok {
-  color: #22c55e;
-}
+/* ── Section title ────────────────────────────────────────────────────── */
 
 .panel-section-title {
-  font-size: 0.72rem;
+  font-size: 0.6875rem;
   font-weight: 700;
-  color: var(--text-h);
+  color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  opacity: 0.65;
+  letter-spacing: 0.07em;
   margin: 0;
 }
 
 .panel-divider {
   height: 1px;
-  background: var(--border);
+  background: var(--border-subtle);
 }
+
+/* ── List ─────────────────────────────────────────────────────────────── */
 
 .panel-list {
   list-style: none;
@@ -169,27 +229,36 @@
 }
 
 .panel-list-item {
-  font-size: 0.75rem;
+  font-size: 0.78125rem;
   color: var(--text-h);
-  padding: 0.375rem 0.5rem;
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  padding: 0.4375rem 0.625rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
   display: flex;
   align-items: center;
   gap: 0.375rem;
   flex-wrap: wrap;
+  transition: border-color var(--duration-base), background var(--duration-base);
+}
+
+.panel-list-item:hover {
+  border-color: var(--border);
+  background: var(--bg-muted);
 }
 
 .panel-list-item code {
-  font-size: 0.65rem;
+  font-size: 0.6875rem;
   background: var(--code-bg);
-  padding: 1px 4px;
-  border-radius: 3px;
+  padding: 1px 5px;
+  border-radius: var(--radius-xs);
 }
+
+/* ── Inline input row ─────────────────────────────────────────────────── */
 
 .panel-inline-input-row {
   display: flex;
-  gap: 0.4rem;
+  gap: 0.375rem;
   align-items: stretch;
 }
 
@@ -198,21 +267,108 @@
   min-width: 0;
 }
 
+/* ── Pre ──────────────────────────────────────────────────────────────── */
+
 .panel-pre {
   white-space: pre-wrap;
   background: var(--code-bg);
   padding: 0.75rem;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   font-family: var(--mono);
-  font-size: 0.7rem;
-  line-height: 1.5;
+  font-size: 0.71875rem;
+  line-height: 1.6;
   overflow-x: auto;
   margin: 0;
   color: var(--text-h);
+  border: 1px solid var(--border-subtle);
+}
+
+/* ── Card primitive ───────────────────────────────────────────────────── */
+
+.panel-card {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 0.875rem;
+  box-shadow: var(--shadow-xs);
+  transition: box-shadow var(--duration-base), border-color var(--duration-base);
+}
+
+.panel-card:hover {
+  box-shadow: var(--shadow-sm);
+  border-color: color-mix(in srgb, var(--border) 60%, var(--accent));
+}
+
+/* ── Badge ────────────────────────────────────────────────────────────── */
+
+.panel-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius-full);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  gap: 0.25rem;
+}
+
+.panel-badge--accent { background: var(--accent-bg); color: var(--accent); }
+.panel-badge--success { background: var(--success-bg); color: var(--success); }
+.panel-badge--warning { background: var(--warning-bg); color: var(--warning); }
+.panel-badge--danger { background: var(--danger-bg); color: var(--danger); }
+.panel-badge--muted { background: var(--bg-muted); color: var(--text-muted); }
+
+/* ── Spinner ──────────────────────────────────────────────────────────── */
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.panel-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+/* ── Empty state ──────────────────────────────────────────────────────── */
+
+.panel-empty {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+}
+
+.panel-empty-icon {
+  font-size: 1.75rem;
+  margin-bottom: 0.5rem;
+  opacity: 0.4;
+}
+
+/* ── Checkbox / Toggle ────────────────────────────────────────────────── */
+
+.panel-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  user-select: none;
+  font-size: 0.8125rem;
+  color: var(--text-h);
+}
+
+.panel-checkbox input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  border-radius: var(--radius-xs);
+  accent-color: var(--accent);
+  cursor: pointer;
+  flex-shrink: 0;
 }
 
 @media (max-width: 480px) {
-  .panel-grid-2 {
-    grid-template-columns: 1fr;
-  }
+  .panel-grid-2 { grid-template-columns: 1fr; }
 }
