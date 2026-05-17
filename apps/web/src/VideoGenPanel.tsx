@@ -48,7 +48,6 @@ export function VideoGenPanel() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [scriptId, setScriptId] = useState<string | null>(null)
-  const [jobId, setJobId] = useState<string | null>(null)
   const [job, setJob] = useState<RenderJob | null>(null)
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -80,7 +79,6 @@ export function VideoGenPanel() {
     setLoading(true)
     setJob(null)
     setScriptId(null)
-    setJobId(null)
     stopPolling()
 
     try {
@@ -102,7 +100,6 @@ export function VideoGenPanel() {
       }
 
       setScriptId(data.scriptId ?? null)
-      setJobId(data.jobId)
       setJob({ id: data.jobId, status: 'queued', url: null, thumbnail_url: null, duration_s: null, error: null })
       setLoading(false)
       pollJob(data.jobId)
