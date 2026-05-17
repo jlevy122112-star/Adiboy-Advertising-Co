@@ -24,6 +24,8 @@
     "start:analytics": "node dist/analytics-server.js",
     "start:sentiment": "node dist/sentiment-server.js",
     "start:predictive": "node dist/predictive-schedule-server.js",
+    "start:autonomous": "node dist/autonomous-agent-server.js",
+    "start:team": "node dist/team-server.js",
     "db:migrate": "node scripts/migrate.mjs"
   },
   "dependencies": {
