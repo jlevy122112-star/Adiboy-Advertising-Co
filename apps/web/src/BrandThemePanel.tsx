@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import './brand-theme-panel.css'
 
 const STORAGE_KEY = 'marketer-brand-theme'
 
@@ -54,7 +55,6 @@ export function useBrandTheme() {
     setThemeState(t)
   }, [])
 
-  // Apply on mount
   useEffect(() => {
     applyBrandTheme(theme)
   }, []) // eslint-disable-line
@@ -88,7 +88,7 @@ async function persistBrandingToApi(
       body: JSON.stringify({ tenantId: cfg.tenantId, branding }),
     })
   } catch {
-    // fire-and-forget; local state already updated
+    // fire-and-forget
   }
 }
 
@@ -112,179 +112,109 @@ export function BrandThemePanel({ theme, onThemeChange, apiConfig }: Props) {
   }
 
   return (
-    <section style={{
-      marginTop: '2rem',
-      padding: '1.5rem',
-      border: '1px solid var(--border)',
-      borderRadius: 12,
-      maxWidth: 720,
-    }}>
-      <h2 style={{ margin: '0 0 4px', fontSize: '1.15rem', color: 'var(--text-h)' }}>
-        Brand theme
-      </h2>
-      <p style={{ margin: '0 0 1.5rem', fontSize: '0.85rem', color: 'var(--text)' }}>
-        Set your brand colors and logo. These apply across the app and are used as
-        defaults when building video ads.
-      </p>
-
-      {/* Logo preview */}
+    <div className="btp-root">
       {local.logoUrl && (
-        <div style={{ marginBottom: 16 }}>
-          <img
-            src={local.logoUrl}
-            alt="Brand logo preview"
-            style={{ maxHeight: 80, maxWidth: 240, objectFit: 'contain', borderRadius: 6 }}
-            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-          />
-        </div>
+        <img
+          src={local.logoUrl}
+          alt="Brand logo preview"
+          className="btp-logo-preview"
+          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+        />
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-        {/* Display name */}
-        <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-h)' }}>
-            Brand name
-          </span>
+      <div className="btp-grid">
+        <label className="btp-field">
+          <span className="btp-field-label">Brand name</span>
           <input
+            className="btp-input"
             value={local.displayName}
             onChange={(e) => patch({ displayName: e.target.value })}
             placeholder="Acme Co."
             maxLength={120}
-            style={inputStyle}
           />
         </label>
 
-        {/* Tagline */}
-        <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-h)' }}>
-            Tagline
-          </span>
+        <label className="btp-field">
+          <span className="btp-field-label">Tagline</span>
           <input
+            className="btp-input"
             value={local.tagline}
             onChange={(e) => patch({ tagline: e.target.value })}
             placeholder="Just do it"
             maxLength={280}
-            style={inputStyle}
           />
         </label>
 
-        {/* Logo URL */}
-        <label style={{ display: 'flex', flexDirection: 'column', gap: 4, gridColumn: '1 / -1' }}>
-          <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-h)' }}>
-            Logo URL (https://)
-          </span>
+        <label className="btp-field btp-full-col">
+          <span className="btp-field-label">Logo URL (https://)</span>
           <input
+            className="btp-input"
             type="url"
             value={local.logoUrl}
             onChange={(e) => patch({ logoUrl: e.target.value })}
             placeholder="https://your-cdn.com/logo.png"
-            style={inputStyle}
           />
-          <span style={{ fontSize: '0.75rem', color: 'var(--text)' }}>
-            Paste a public image URL. The logo appears in the app header and can be used
-            as a watermark in generated video ads.
-          </span>
+          <p className="btp-hint">
+            Paste a public image URL. The logo appears in the app header and is used as a
+            watermark in generated video and image ads.
+          </p>
         </label>
 
-        {/* Primary color */}
-        <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-h)' }}>
-            Primary color
-          </span>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <label className="btp-field">
+          <span className="btp-field-label">Primary color</span>
+          <div className="btp-color-row">
             <input
               type="color"
+              className="btp-color-swatch"
               value={local.primaryHex}
               onChange={(e) => patch({ primaryHex: e.target.value })}
-              style={{ width: 40, height: 36, padding: 2, border: '1px solid var(--border)', borderRadius: 8, cursor: 'pointer', background: 'none' }}
             />
             <input
+              className="btp-input btp-input--mono"
               value={local.primaryHex}
               onChange={(e) => {
                 if (/^#[0-9A-Fa-f]{0,6}$/.test(e.target.value)) patch({ primaryHex: e.target.value })
               }}
               maxLength={7}
-              style={{ ...inputStyle, flex: 1, fontFamily: 'var(--mono)' }}
               placeholder="#7c3aed"
             />
           </div>
         </label>
 
-        {/* Accent color */}
-        <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-h)' }}>
-            Accent color
-          </span>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <label className="btp-field">
+          <span className="btp-field-label">Accent color</span>
+          <div className="btp-color-row">
             <input
               type="color"
+              className="btp-color-swatch"
               value={local.accentHex}
               onChange={(e) => patch({ accentHex: e.target.value })}
-              style={{ width: 40, height: 36, padding: 2, border: '1px solid var(--border)', borderRadius: 8, cursor: 'pointer', background: 'none' }}
             />
             <input
+              className="btp-input btp-input--mono"
               value={local.accentHex}
               onChange={(e) => {
                 if (/^#[0-9A-Fa-f]{0,6}$/.test(e.target.value)) patch({ accentHex: e.target.value })
               }}
               maxLength={7}
-              style={{ ...inputStyle, flex: 1, fontFamily: 'var(--mono)' }}
               placeholder="#a78bfa"
             />
           </div>
         </label>
       </div>
 
-      {/* Color swatches preview */}
-      <div style={{ display: 'flex', gap: 8, marginTop: 12, alignItems: 'center' }}>
-        <div
-          style={{
-            width: 32, height: 32, borderRadius: 8,
-            background: local.primaryHex,
-            border: '1px solid var(--border)',
-          }}
-          title="Primary"
-        />
-        <div
-          style={{
-            width: 32, height: 32, borderRadius: 8,
-            background: local.accentHex,
-            border: '1px solid var(--border)',
-          }}
-          title="Accent"
-        />
-        <span style={{ fontSize: '0.8rem', color: 'var(--text)' }}>Theme preview</span>
+      <div className="btp-swatches">
+        <div className="btp-swatch" style={{ background: local.primaryHex }} title="Primary" />
+        <div className="btp-swatch" style={{ background: local.accentHex }} title="Accent" />
+        <span className="btp-swatch-label">Theme preview</span>
       </div>
 
-      <div style={{ marginTop: 16, display: 'flex', gap: 8, alignItems: 'center' }}>
-        <button
-          type="button"
-          onClick={handleApply}
-          style={{
-            padding: '8px 20px', borderRadius: 8, border: 'none',
-            background: local.primaryHex, color: '#fff',
-            cursor: 'pointer', fontWeight: 600, fontSize: 14,
-          }}
-        >
+      <div className="btp-actions">
+        <button type="button" className="btp-apply-btn" onClick={handleApply}>
           Apply theme
         </button>
-        {saved && (
-          <span style={{ fontSize: '0.85rem', color: '#22c55e' }}>
-            Theme applied and saved.
-          </span>
-        )}
+        {saved && <span className="btp-saved">Theme applied ✓</span>}
       </div>
-    </section>
+    </div>
   )
-}
-
-const inputStyle: React.CSSProperties = {
-  padding: '8px 10px',
-  borderRadius: 8,
-  border: '1px solid var(--border)',
-  background: 'var(--bg)',
-  color: 'var(--text-h)',
-  fontSize: 14,
-  width: '100%',
-  boxSizing: 'border-box',
 }

@@ -1,0 +1,142 @@
+/* ── Brand Theme Panel ────────────────────────────────────────────────── */
+
+.btp-root {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.btp-logo-preview {
+  max-height: 72px;
+  max-width: 200px;
+  object-fit: contain;
+  border-radius: 6px;
+}
+
+.btp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+}
+
+.btp-full-col {
+  grid-column: 1 / -1;
+}
+
+.btp-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.btp-field-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.btp-input {
+  padding: 0.5rem 0.625rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
+  font-size: 0.8rem;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 40px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.btp-input:focus {
+  border-color: var(--brand-primary, #7c3aed);
+}
+
+.btp-input--mono {
+  font-family: var(--mono);
+}
+
+.btp-hint {
+  font-size: 0.72rem;
+  color: var(--text);
+  opacity: 0.65;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.btp-color-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.btp-color-swatch {
+  width: 40px;
+  height: 40px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  background: none;
+  flex-shrink: 0;
+}
+
+.btp-swatches {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.btp-swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.btp-swatch-label {
+  font-size: 0.75rem;
+  color: var(--text);
+  opacity: 0.7;
+}
+
+.btp-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.btp-apply-btn {
+  padding: 0.5rem 1.25rem;
+  border-radius: 8px;
+  border: none;
+  background: var(--brand-primary, #7c3aed);
+  color: #fff;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.8rem;
+  min-height: 40px;
+  transition: opacity 0.15s;
+}
+
+.btp-apply-btn:hover {
+  opacity: 0.85;
+}
+
+.btp-saved {
+  font-size: 0.8rem;
+  color: #22c55e;
+}
+
+@media (max-width: 480px) {
+  .btp-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .btp-full-col {
+    grid-column: 1;
+  }
+}

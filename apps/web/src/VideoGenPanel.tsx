@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from 'react'
+import './video-gen-panel.css'
 
 type VideoPlatform = 'tiktok' | 'reels' | 'shorts' | 'generic_vertical' | 'generic_landscape'
 
@@ -19,6 +20,14 @@ const PLATFORM_LABELS: Record<VideoPlatform, string> = {
   shorts: 'YouTube Shorts',
   generic_vertical: 'Vertical (generic)',
   generic_landscape: 'Landscape (generic)',
+}
+
+const STATUS_LABEL: Record<JobStatus, string> = {
+  queued: 'Queued — waiting for worker…',
+  rendering: 'Rendering scenes…',
+  uploading: 'Uploading to S3…',
+  done: 'Ready',
+  failed: 'Failed',
 }
 
 const TERMINAL: JobStatus[] = ['done', 'failed']
@@ -85,11 +94,7 @@ export function VideoGenPanel() {
       const res = await fetch(`${apiOrigin}/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Tenant-Id': tenantId },
-        body: JSON.stringify({
-          brief: makeBrief(title, body),
-          network: platform,
-          voiceover,
-        }),
+        body: JSON.stringify({ brief: makeBrief(title, body), network: platform, voiceover }),
       })
       const data = await res.json() as { ok: boolean; scriptId?: string; jobId?: string; error?: string }
 
@@ -109,112 +114,91 @@ export function VideoGenPanel() {
     }
   }, [apiOrigin, tenantId, platform, title, body, voiceover, pollJob, stopPolling])
 
-  const statusLabel: Record<JobStatus, string> = {
-    queued: 'Queued — waiting for worker…',
-    rendering: 'Rendering scenes…',
-    uploading: 'Uploading to S3…',
-    done: 'Ready',
-    failed: 'Failed',
-  }
-
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <label style={{ fontSize: 12, fontWeight: 600 }}>Platform</label>
+    <div className="vgp-root">
+      <div className="vgp-field">
+        <label className="vgp-label" htmlFor="vgp-platform">Platform</label>
         <select
+          id="vgp-platform"
+          className="vgp-select"
           value={platform}
-          onChange={e => setPlatform(e.target.value as VideoPlatform)}
-          style={{ padding: '4px 8px', borderRadius: 4, border: '1px solid #ccc', fontSize: 13 }}
+          onChange={(e) => setPlatform(e.target.value as VideoPlatform)}
         >
-          {(Object.keys(PLATFORM_LABELS) as VideoPlatform[]).map(p => (
+          {(Object.keys(PLATFORM_LABELS) as VideoPlatform[]).map((p) => (
             <option key={p} value={p}>{PLATFORM_LABELS[p]}</option>
           ))}
         </select>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <label style={{ fontSize: 12, fontWeight: 600 }}>Video title / hook</label>
+      <div className="vgp-field">
+        <label className="vgp-label" htmlFor="vgp-title">Video title / hook</label>
         <input
+          id="vgp-title"
+          className="vgp-input"
           type="text"
           value={title}
-          onChange={e => setTitle(e.target.value)}
+          onChange={(e) => setTitle(e.target.value)}
           placeholder="e.g. 3 ways to grow on social"
-          style={{ padding: '4px 8px', borderRadius: 4, border: '1px solid #ccc', fontSize: 13 }}
         />
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <label style={{ fontSize: 12, fontWeight: 600 }}>Brief / context (optional)</label>
+      <div className="vgp-field">
+        <label className="vgp-label" htmlFor="vgp-body">Brief / context (optional)</label>
         <textarea
+          id="vgp-body"
+          className="vgp-textarea"
           value={body}
-          onChange={e => setBody(e.target.value)}
+          onChange={(e) => setBody(e.target.value)}
           rows={3}
           placeholder="Extra context for the AI script…"
-          style={{ padding: '4px 8px', borderRadius: 4, border: '1px solid #ccc', fontSize: 13, resize: 'vertical' }}
         />
       </div>
 
-      <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, cursor: 'pointer' }}>
-        <input type="checkbox" checked={voiceover} onChange={e => setVoiceover(e.target.checked)} />
+      <label className="vgp-checkbox-label">
+        <input
+          type="checkbox"
+          checked={voiceover}
+          onChange={(e) => setVoiceover(e.target.checked)}
+        />
         Include AI voiceover (TTS)
       </label>
 
       <button
-        onClick={handleGenerate}
+        className="vgp-generate-btn"
+        onClick={() => void handleGenerate()}
         disabled={loading || !title.trim()}
-        style={{
-          padding: '6px 14px', borderRadius: 4, border: 'none',
-          background: loading ? '#aaa' : '#2563eb', color: '#fff',
-          fontSize: 13, fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer',
-        }}
       >
         {loading ? 'Generating script…' : 'Generate Video'}
       </button>
 
-      {error && (
-        <p style={{ fontSize: 12, color: '#dc2626', margin: 0 }}>{error}</p>
-      )}
+      {error && <p className="vgp-error">{error}</p>}
 
       {job && (
-        <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <p style={{ fontSize: 12, margin: 0, color: job.status === 'failed' ? '#dc2626' : '#374151' }}>
-            <strong>Status:</strong> {statusLabel[job.status]}
+        <div className="vgp-result">
+          <p className={`vgp-status${job.status === 'failed' ? ' vgp-status--failed' : ''}`}>
+            <strong>Status:</strong> {STATUS_LABEL[job.status]}
             {job.duration_s ? ` · ${job.duration_s}s` : ''}
           </p>
 
           {scriptId && (
-            <p style={{ fontSize: 11, color: '#6b7280', margin: 0 }}>
+            <p className="vgp-script-id">
               Script: {scriptId.slice(0, 8)}… · Job: {job.id.slice(0, 8)}…
             </p>
           )}
 
           {job.status === 'done' && job.thumbnail_url && (
-            <img
-              src={job.thumbnail_url}
-              alt="Video thumbnail"
-              style={{ width: '100%', borderRadius: 4, border: '1px solid #e5e7eb' }}
-            />
+            <img src={job.thumbnail_url} alt="Video thumbnail" className="vgp-thumbnail" />
           )}
 
           {job.status === 'done' && job.url && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <video
-                controls
-                src={job.url}
-                style={{ width: '100%', borderRadius: 4, background: '#000' }}
-              />
-              <a
-                href={job.url}
-                download
-                style={{ fontSize: 12, color: '#2563eb', textDecoration: 'underline' }}
-              >
-                Download MP4
-              </a>
-            </div>
+            <>
+              <video controls src={job.url} className="vgp-video" />
+              <a href={job.url} download className="vgp-download-link">Download MP4</a>
+            </>
           )}
 
           {job.status === 'failed' && job.error && (
-            <p style={{ fontSize: 12, color: '#dc2626', margin: 0 }}>{job.error}</p>
+            <p className="vgp-error">{job.error}</p>
           )}
         </div>
       )}
