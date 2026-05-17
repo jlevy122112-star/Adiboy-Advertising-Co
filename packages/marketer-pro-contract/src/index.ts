@@ -3,6 +3,19 @@ import { z } from "zod";
 import { SocialConnectionSchema } from "./social-connections.js";
 
 export {
+  SerpResultSchema,
+  SerpBriefSchema,
+  SerpBriefStatusSchema,
+  SerpBriefRequestSchema,
+  KeywordIntentSchema,
+  type SerpResult,
+  type SerpBrief,
+  type SerpBriefStatus,
+  type SerpBriefRequest,
+  type KeywordIntent,
+} from "./serp-brief.js";
+
+export {
   UserRoleSchema,
   UserSchema,
   SignupBodySchema,
@@ -753,6 +766,10 @@ export const WorkspaceBrandingSchema = z
     themes: z.array(z.string().min(1).max(80)).max(20).optional(),
     /** Website URL — used for brand context and SEO. */
     websiteUrl: z.string().max(2048).optional(),
+    /** Show "Made with Marketer Pro" signature on public share pages. */
+    viralBrandingEnabled: z.boolean().optional(),
+    /** Custom text for the viral branding signature. */
+    viralBrandingText: z.string().max(80).optional(),
   })
   .strict();
 

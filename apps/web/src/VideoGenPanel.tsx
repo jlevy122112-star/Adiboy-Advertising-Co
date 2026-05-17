@@ -1,5 +1,7 @@
 import { useState, useRef, useCallback } from 'react'
 import './video-gen-panel.css'
+import { PresetSelector, type Preset } from './generation/PresetSelector'
+import { GenerationHistoryPanel } from './generation/GenerationHistoryPanel'
 
 type VideoPlatform = 'tiktok' | 'reels' | 'shorts' | 'generic_vertical' | 'generic_landscape'
 
@@ -123,8 +125,31 @@ export function VideoGenPanel() {
     }
   }, [apiOrigin, tenantId, platform, title, body, voiceover, customTagline, customCta, pollJob, stopPolling])
 
+  function applyPreset(preset: Preset) {
+    if (preset.platform) setPlatform(preset.platform as VideoPlatform)
+    if (preset.headline) setTitle(preset.headline)
+    if (preset.body) setBody(preset.body)
+    if (preset.voiceover !== undefined) setVoiceover(preset.voiceover)
+    if (preset.custom_tagline) { setCustomTagline(preset.custom_tagline); setShowAdOptions(true) }
+    if (preset.cta) { setCustomCta(preset.cta); setShowAdOptions(true) }
+  }
+
+  const currentPresetValues = {
+    platform, headline: title, body, voiceover,
+    customTagline: customTagline || undefined,
+    cta: customCta || undefined,
+  }
+
   return (
     <div className="vgp-root">
+      <PresetSelector
+        apiOrigin={apiOrigin}
+        tenantId={tenantId}
+        genType="video"
+        onLoad={applyPreset}
+        currentValues={currentPresetValues}
+      />
+
       <div className="vgp-field">
         <label className="vgp-label" htmlFor="vgp-platform">Platform</label>
         <select
@@ -249,6 +274,18 @@ export function VideoGenPanel() {
           )}
         </div>
       )}
+
+      <div style={{ marginTop: '1rem', borderTop: '1px solid var(--border)', paddingTop: '0.75rem' }}>
+        <GenerationHistoryPanel
+          apiOrigin={apiOrigin}
+          tenantId={tenantId}
+          onReuse={(item) => {
+            const hint = item.reuseHint as Record<string, unknown>
+            if (hint.network && typeof hint.network === 'string') setPlatform(hint.network as VideoPlatform)
+            if (hint.headline && typeof hint.headline === 'string') setTitle(hint.headline)
+          }}
+        />
+      </div>
     </div>
   )
 }

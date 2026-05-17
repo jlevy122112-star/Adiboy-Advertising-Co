@@ -11,6 +11,7 @@
  * CORS:          MARKETER_IMAGE_GEN_HTTP_CORS env var
  */
 
+import { randomUUID } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { z } from "zod";
 import { GenerationBriefSchema } from "@home-link/marketer-pro-contract";
@@ -20,6 +21,14 @@ import {
   listGeneratedAssets,
   updateGeneratedAsset,
 } from "../db/generated-asset.js";
+import {
+  insertGenerationPreset,
+  listGenerationPresets,
+  getGenerationPreset,
+  touchPresetUsed,
+  deleteGenerationPreset,
+} from "../db/generation-presets.js";
+import { listVideoScripts } from "../db/video-script.js";
 
 function cors(res: ServerResponse): void {
   const origin = process.env.MARKETER_IMAGE_GEN_HTTP_CORS?.trim();
@@ -146,6 +155,118 @@ export async function handleImageGenRequest(
       return;
     }
     json(res, 200, { asset });
+    return;
+  }
+
+  // ── Generation History ──────────────────────────────────────────────────
+  // GET /history — merged list of past images + videos for re-use
+  if (req.method === "GET" && pathname === "/history") {
+    const limit = Math.min(Number(url.searchParams.get("limit") ?? "30"), 50);
+    const genType = url.searchParams.get("type") ?? undefined; // 'image' | 'video'
+    const [assets, videos] = await Promise.all([
+      genType === "video" ? [] : listGeneratedAssets({ tenantId, limit }),
+      genType === "image" ? [] : listVideoScripts({ tenantId, limit }),
+    ]);
+    const history = [
+      ...assets
+        .filter((a) => a.url)
+        .map((a) => ({
+          id: a.id,
+          type: "image" as const,
+          platform: a.network ?? "generic",
+          title: a.prompt.slice(0, 80),
+          thumbnailUrl: a.url,
+          url: a.url,
+          status: a.status,
+          createdAt: a.created_at,
+          // Re-use fields
+          reuseHint: {
+            network: a.network,
+            prompt: a.prompt,
+          },
+        })),
+      ...videos
+        .filter((v) => v.status === "rendered" || v.status === "ready")
+        .map((v) => ({
+          id: v.id,
+          type: "video" as const,
+          platform: v.platform,
+          title: v.title,
+          thumbnailUrl: null as string | null,
+          url: null as string | null,
+          status: v.status,
+          createdAt: v.created_at,
+          reuseHint: {
+            network: v.platform,
+            headline: v.title,
+            hashtags: v.hashtags_json,
+          },
+        })),
+    ]
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, limit);
+    json(res, 200, { history });
+    return;
+  }
+
+  // ── Presets ─────────────────────────────────────────────────────────────
+  // GET /presets
+  if (req.method === "GET" && pathname === "/presets") {
+    const genType = url.searchParams.get("type") ?? undefined;
+    const presets = await listGenerationPresets(tenantId, genType);
+    json(res, 200, { presets });
+    return;
+  }
+
+  // POST /presets
+  if (req.method === "POST" && pathname === "/presets") {
+    const PresetBodySchema = z.object({
+      name: z.string().min(1).max(120),
+      description: z.string().max(500).optional(),
+      genType: z.enum(["video", "image", "copy"]).optional(),
+      platform: z.string().max(80).optional(),
+      headline: z.string().max(500).optional(),
+      body: z.string().max(2000).optional(),
+      cta: z.string().max(140).optional(),
+      mood: z.string().max(120).optional(),
+      imageryDirection: z.string().max(500).optional(),
+      customTagline: z.string().max(280).optional(),
+      toneShift: z.string().max(120).optional(),
+      voiceover: z.boolean().optional(),
+      quality: z.enum(["standard", "hd"]).optional(),
+    });
+    const body = await readBody(req);
+    const parsed = PresetBodySchema.safeParse(body);
+    if (!parsed.success) {
+      json(res, 400, { error: "invalid_body", issues: parsed.error.issues });
+      return;
+    }
+    const preset = await insertGenerationPreset({
+      id: randomUUID(),
+      tenantId,
+      ...parsed.data,
+    });
+    json(res, preset ? 201 : 500, preset ? { preset } : { error: "db_error" });
+    return;
+  }
+
+  // POST /presets/:id/use — increment use count and return preset
+  const presetUseMatch = /^\/presets\/([^/]+)\/use$/.exec(pathname);
+  if (req.method === "POST" && presetUseMatch) {
+    const id = presetUseMatch[1]!;
+    await touchPresetUsed(tenantId, id);
+    const preset = await getGenerationPreset(tenantId, id);
+    if (!preset) { json(res, 404, { error: "preset_not_found" }); return; }
+    json(res, 200, { preset });
+    return;
+  }
+
+  // DELETE /presets/:id
+  const presetDeleteMatch = /^\/presets\/([^/]+)$/.exec(pathname);
+  if (req.method === "DELETE" && presetDeleteMatch) {
+    const id = presetDeleteMatch[1]!;
+    const deleted = await deleteGenerationPreset(tenantId, id);
+    json(res, deleted ? 200 : 404, deleted ? { ok: true } : { error: "preset_not_found" });
     return;
   }
 

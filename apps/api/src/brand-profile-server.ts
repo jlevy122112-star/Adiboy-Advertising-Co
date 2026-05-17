@@ -28,6 +28,7 @@ import {
   executeGetBrandingRequestFromSearchParams,
   executePutBrandingRequest,
 } from "./marketer-pro/branding-route.js";
+import { handleLogoUpload } from "./marketer-pro/logo-upload-route.js";
 
 const MAX_BODY_BYTES = 1024 * 1024;
 
@@ -126,6 +127,7 @@ const pathBrandingPut = "/api/marketer-pro/branding";
 const pathBrandingGet = "/api/marketer-pro/branding";
 
 const knownPaths = new Set([pathUpsert, pathGet, pathList, pathBrandingPut]);
+const logoUploadRe = /^\/workspace\/([^/]+)\/logo-upload$/;
 
 const server = createServer(async (req, res) => {
   let fullUrl: URL;
@@ -136,6 +138,23 @@ const server = createServer(async (req, res) => {
     return;
   }
   const {pathname} = fullUrl;
+
+  // Logo upload — dynamic path, handle before knownPaths check
+  const logoMatch = logoUploadRe.exec(pathname);
+  if (logoMatch) {
+    if (req.method === "OPTIONS") {
+      const c = corsHeaders(req);
+      if (c) { res.writeHead(204, c); res.end(); } else { res.writeHead(204); res.end(); }
+      return;
+    }
+    if (req.method !== "POST") {
+      json(req, res, 405, { error: "method_not_allowed" });
+      return;
+    }
+    const tenantId = logoMatch[1]!;
+    await handleLogoUpload(req, res, tenantId);
+    return;
+  }
 
   if (!knownPaths.has(pathname)) {
     json(req, res, 404, { error: "not_found" });

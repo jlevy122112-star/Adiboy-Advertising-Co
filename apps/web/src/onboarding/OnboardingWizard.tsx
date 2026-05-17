@@ -8,7 +8,7 @@ import { useState, useRef } from 'react'
 import { getAccessToken } from '../auth/useAuth'
 import './onboarding.css'
 
-const BRAND_API = import.meta.env.VITE_BRAND_API_ORIGIN as string ?? 'http://localhost:8793'
+const BRAND_API = import.meta.env.VITE_BRAND_API_ORIGIN as string ?? 'http://localhost:8794'
 export const ONBOARDING_DONE_KEY = 'mp_onboarding_done'
 
 const INDUSTRIES = [
@@ -122,22 +122,25 @@ export function OnboardingWizard({ tenantId, onComplete }: Props) {
     const tok = getAccessToken()
 
     try {
-      const res = await fetch(`${BRAND_API}/workspace/${tenantId}/branding`, {
-        method: 'PATCH',
+      const res = await fetch(`${BRAND_API}/api/marketer-pro/branding`, {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           ...(tok ? { Authorization: `Bearer ${tok}` } : {}),
         },
         body: JSON.stringify({
-          displayName: data.businessName || undefined,
-          industryVertical: data.industryVertical || undefined,
-          websiteUrl: data.websiteUrl || undefined,
-          logoUrl: data.logoUrl || undefined,
-          primaryHex: data.primaryHex || undefined,
-          accentHex: data.accentHex || undefined,
-          tagline: data.tagline || undefined,
-          slogans: data.slogans.length > 0 ? data.slogans : undefined,
-          themes: data.themes.length > 0 ? data.themes : undefined,
+          tenantId,
+          branding: {
+            displayName: data.businessName || undefined,
+            industryVertical: data.industryVertical || undefined,
+            websiteUrl: data.websiteUrl || undefined,
+            logoUrl: data.logoUrl || undefined,
+            primaryHex: data.primaryHex || undefined,
+            accentHex: data.accentHex || undefined,
+            tagline: data.tagline || undefined,
+            slogans: data.slogans.length > 0 ? data.slogans : undefined,
+            themes: data.themes.length > 0 ? data.themes : undefined,
+          },
         }),
       })
       if (!res.ok) {

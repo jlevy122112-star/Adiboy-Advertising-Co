@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { getAccessToken } from '../auth/useAuth'
 import './viral.css'
 
-const BRAND_API = import.meta.env.VITE_BRAND_API_ORIGIN as string ?? 'http://localhost:8793'
+const BRAND_API = import.meta.env.VITE_BRAND_API_ORIGIN as string ?? 'http://localhost:8794'
 
 type Props = {
   tenantId: string
@@ -22,10 +22,13 @@ export function BrandingSignatureToggle({ tenantId, enabled: initialEnabled = tr
     setSaving(true)
 
     try {
-      await fetch(`${BRAND_API}/workspace/${tenantId}/branding`, {
-        method: 'PATCH',
+      await fetch(`${BRAND_API}/api/marketer-pro/branding`, {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok}` },
-        body: JSON.stringify({ viralBrandingEnabled: newEnabled, viralBrandingText: newText }),
+        body: JSON.stringify({
+          tenantId,
+          branding: { viralBrandingEnabled: newEnabled, viralBrandingText: newText },
+        }),
       })
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)

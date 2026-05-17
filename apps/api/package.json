@@ -20,6 +20,7 @@
     "start:social-oauth": "node dist/social-oauth-server.js",
     "start:viral": "node dist/viral-loop-server.js",
     "start:viral-worker": "node dist/viral-report-worker.js",
+    "start:serp-brief": "node dist/serp-brief-server.js",
     "db:migrate": "node scripts/migrate.mjs"
   },
   "dependencies": {
