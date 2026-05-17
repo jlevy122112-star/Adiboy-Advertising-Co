@@ -234,7 +234,62 @@ This document is the **repo-wide phased roadmap** for the product. It complement
 
 ---
 
-## Phase 8: SERP-based AI content briefs
+## Phase 8: Authentication, Authorization & Security
+
+**Goal:** Give every user a real identity, harden all API surfaces, and wire social OAuth flows end-to-end.
+
+**Build**
+
+- User signup / login / logout with argon2id password hashing  
+- JWT access tokens (15 min) + rotating refresh tokens (7 days)  
+- Shared JWT middleware replacing static env-var Bearer tokens across all servers  
+- Per-IP sliding-window rate limiting on all HTTP servers  
+- Security headers on every response (HSTS, X-Frame-Options, X-Content-Type-Options, X-XSS-Protection)  
+- Social OAuth PKCE flows — X, Meta (Facebook + Instagram), LinkedIn, YouTube  
+- `/oauth/connect/:network` → `/oauth/callback/:network` exchange + encrypted token storage  
+- pgcrypto AES-256 encryption for all stored OAuth tokens (replaces current plaintext)  
+- Connection management: list, status badges (active / expired / needs reconnect), revoke  
+- Password reset flow (email link, stubbed SMTP, secure token)  
+- RBAC enforcement — wire existing `requireCapability()` into marketer-pro API routes  
+- Login, Signup, and Auth Guard UI (full-page, polished, loading + error states)  
+- `SocialConnectionsPanel.tsx` — connect/disconnect per network with live status  
+- Remove hardcoded `VITE_TENANT_ID`; derive tenant from JWT claims  
+
+**Stack**
+
+| Concern | Choice |
+|---|---|
+| Password hashing | `@node-rs/argon2` (argon2id) |
+| JWT | `jose` (pure ESM, HS256) |
+| OAuth token storage | pgcrypto AES-256 at rest |
+| Rate limiting | Sliding window in-memory (Redis opt-in) |
+
+**New servers**
+
+| Server | Port | Purpose |
+|---|---|---|
+| `auth-server.ts` | 8798 | Signup, login, refresh, logout, password reset, /me |
+| `social-oauth-server.ts` | 8799 | OAuth connect/callback/list/revoke |
+
+**Migrations**
+
+- `016_users.sql` — `users(id, tenant_id, email, password_hash, email_verified, role)`  
+- `017_refresh_tokens.sql` — `refresh_tokens(id, user_id, tenant_id, token_hash, expires_at, revoked_at)`  
+- `018_encrypt_social_tokens.sql` — pgcrypto encrypt existing plaintext OAuth tokens  
+
+**Repo checkpoint (Phase 8)**
+
+- Contract: `packages/marketer-pro-contract/src/auth.ts` — `UserSchema`, `SignupBodySchema`, `LoginBodySchema`, `AuthTokensSchema`, `JwtPayloadSchema`  
+- DB: `apps/api/src/db/users.ts`, `apps/api/src/db/refresh-tokens.ts`  
+- Auth helpers: `apps/api/src/marketer-pro/auth/jwt.ts`, `password.ts`, `rate-limit.ts`, `middleware.ts`  
+- Routes: `apps/api/src/marketer-pro/auth-route.ts`, `apps/api/src/marketer-pro/social-oauth-route.ts`  
+- Social OAuth providers: `apps/api/src/social/oauth/{x,meta,linkedin,youtube}.ts`  
+- Web: `apps/web/src/auth/LoginPage.tsx`, `SignupPage.tsx`, `AuthGuard.tsx`, `useAuth.ts`  
+- Web: `apps/web/src/SocialConnectionsPanel.tsx`  
+
+---
+
+## Phase 9: SERP-based AI content briefs
 
 # Goal:** Generate content briefs from live search results
 
@@ -260,7 +315,7 @@ This document is the **repo-wide phased roadmap** for the product. It complement
 
 ---
 
-## Phase 9: Analytics ingestion
+## Phase 10: Analytics ingestion
 
 # Goal:** Learn from published content
 
@@ -279,7 +334,7 @@ This document is the **repo-wide phased roadmap** for the product. It complement
 
 ---
 
-## Phase 10: Sentiment and social listening
+## Phase 11: Sentiment and social listening
 
 # Goal:** Understand audience reaction and adapt strategy
 
@@ -305,7 +360,7 @@ This document is the **repo-wide phased roadmap** for the product. It complement
 
 ---
 
-## Phase 11: Predictive scheduling
+## Phase 12: Predictive scheduling
 
 ## Goal:** Recommend or automatically choose best posting windows
 
@@ -336,7 +391,7 @@ This document is the **repo-wide phased roadmap** for the product. It complement
 
 ---
 
-## Phase 12: Autonomous workflow agents
+## Phase 13: Autonomous workflow agents
 
 # Goal: Agents manage the full lifecycle with guardrails
 
@@ -360,7 +415,7 @@ This document is the **repo-wide phased roadmap** for the product. It complement
 
 ## Critical rule**
 
-Agents must **not** silently mutate important campaign state. Every meaningful decision should create an #[#5](https://github.com/jlevy122112-star/Marketer-Pro/issues/5) audit event**and support ## human override**.
+Agents must **not** silently mutate important campaign state. Every meaningful decision should create an audit event and support human override.
 
 **Output**
 
@@ -368,7 +423,7 @@ Agents must **not** silently mutate important campaign state. Every meaningful d
 
 ---
 
-## Phase 13: Team collaboration
+## Phase 14: Team collaboration
 
 **Goal:** Support real teams and agencies.
 
@@ -389,7 +444,7 @@ Agents must **not** silently mutate important campaign state. Every meaningful d
 
 ---
 
-## Phase 14: Security, compliance, and auto-remediation
+## Phase 15: Security, compliance, and auto-remediation
 
 **Goal:** Keep AI output and data usage safe.
 

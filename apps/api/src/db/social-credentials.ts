@@ -228,3 +228,27 @@ export async function refreshSocialCredential(
     return { ok: false, reason: "api_error", message }
   }
 }
+
+export async function listSocialCredentials(tenantId: string): Promise<SocialCredentialRow[]> {
+  const sql = getPostgresClient()
+  if (!sql) return []
+  try {
+    return await sql<SocialCredentialRow[]>`
+      SELECT tenant_id, network, access_token, token_secret, refresh_token, expires_at, metadata
+      FROM social_credentials
+      WHERE tenant_id = ${tenantId}
+      ORDER BY network
+    `
+  } catch { return [] }
+}
+
+export async function deleteSocialCredential(tenantId: string, network: string): Promise<boolean> {
+  const sql = getPostgresClient()
+  if (!sql) return false
+  try {
+    const rows = await sql`
+      DELETE FROM social_credentials WHERE tenant_id = ${tenantId} AND network = ${network} RETURNING tenant_id
+    `
+    return rows.length > 0
+  } catch { return false }
+}

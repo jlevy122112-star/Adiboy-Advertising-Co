@@ -3,6 +3,26 @@ import { z } from "zod";
 import { SocialConnectionSchema } from "./social-connections.js";
 
 export {
+  UserRoleSchema,
+  UserSchema,
+  SignupBodySchema,
+  LoginBodySchema,
+  AuthTokensSchema,
+  RefreshBodySchema,
+  PasswordResetRequestBodySchema,
+  PasswordResetBodySchema,
+  JwtPayloadSchema,
+  AuthErrorCode,
+  type User,
+  type UserRole,
+  type SignupBody,
+  type LoginBody,
+  type AuthTokens,
+  type RefreshBody,
+  type JwtPayload,
+} from "./auth.js";
+
+export {
   VideoSceneSchema,
   VideoScriptSchema,
   VideoScriptStatusSchema,

@@ -3,7 +3,9 @@ import { BrandProfileDraftPanel } from './BrandProfileDraftPanel'
 import { BrandThemePanel, useBrandTheme, type BrandingApiConfig } from './BrandThemePanel'
 import { CampaignSyncPanel } from './CampaignSyncPanel'
 import { VideoGenPanel } from './VideoGenPanel'
+import { SocialConnectionsPanel } from './SocialConnectionsPanel'
 import { MarketerCalendar } from './calendar/MarketerCalendar'
+import { AuthGuard } from './auth/AuthGuard'
 import './App.css'
 
 const TENANT_ID = import.meta.env.VITE_TENANT_ID as string | undefined
@@ -23,7 +25,7 @@ function SettingsIcon() {
   )
 }
 
-function App() {
+function AppShell() {
   const { theme, setTheme } = useBrandTheme()
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
@@ -88,10 +90,25 @@ function App() {
               <p className="sidebar-section-title">Video Generator</p>
               <VideoGenPanel />
             </div>
+
+            <div className="sidebar-divider" />
+
+            <div className="sidebar-section">
+              <p className="sidebar-section-title">Social Connections</p>
+              <SocialConnectionsPanel />
+            </div>
           </div>
         </aside>
       </div>
     </div>
+  )
+}
+
+function App() {
+  return (
+    <AuthGuard>
+      <AppShell />
+    </AuthGuard>
   )
 }
 
