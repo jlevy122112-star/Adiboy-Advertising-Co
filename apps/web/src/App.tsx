@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { BrandProfileDraftPanel } from './BrandProfileDraftPanel'
 import { BrandThemePanel, useBrandTheme, type BrandingApiConfig } from './BrandThemePanel'
 import { CampaignSyncPanel } from './CampaignSyncPanel'
+import { VideoGenPanel } from './VideoGenPanel'
 import { MarketerCalendar } from './calendar/MarketerCalendar'
 import './App.css'
 
@@ -79,6 +80,13 @@ function App() {
             <div className="sidebar-section">
               <p className="sidebar-section-title">AI Draft</p>
               <BrandProfileDraftPanel />
+            </div>
+
+            <div className="sidebar-divider" />
+
+            <div className="sidebar-section">
+              <p className="sidebar-section-title">Video Generator</p>
+              <VideoGenPanel />
             </div>
           </div>
         </aside>

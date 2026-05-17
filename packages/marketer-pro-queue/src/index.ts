@@ -28,6 +28,23 @@ export {
 } from "./publish-worker.js";
 
 export {
+  VideoRenderJobPayloadSchema,
+  VideoRenderJobResultSchema,
+  type VideoRenderJobPayload,
+  type VideoRenderJobResult,
+} from "./video-render-job.js";
+
+export {
+  VIDEO_RENDER_QUEUE_NAME,
+  createVideoRenderQueue,
+  defaultVideoRenderJobOptions,
+  enqueueVideoRenderJob,
+  createVideoRenderWorker,
+  type VideoRenderProcessor,
+  type CreateVideoRenderWorkerOptions,
+} from "./video-render-queue.js";
+
+export {
   createHttpPublishRunner,
   createStubPublishRunner,
   resolvePublishRunnerFromEnv,

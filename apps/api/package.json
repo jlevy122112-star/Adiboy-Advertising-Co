@@ -15,6 +15,7 @@
     "start:scheduler": "node dist/scheduler-publish-server.js",
     "start:image-gen": "node dist/image-gen-server.js",
     "start:video-gen": "node dist/video-gen-server.js",
+    "start:video-worker": "node dist/video-worker-cli.js",
     "db:migrate": "node scripts/migrate.mjs"
   },
   "dependencies": {

@@ -27,6 +27,7 @@ export type VideoRenderJobRow = {
   script_id: string;
   s3_key: string | null;
   url: string | null;
+  thumbnail_url: string | null;
   width: number | null;
   height: number | null;
   duration_s: number | null;
@@ -42,7 +43,7 @@ const SCRIPT_COLS = `
 `;
 
 const JOB_COLS = `
-  id, tenant_id, script_id, s3_key, url, width, height, duration_s,
+  id, tenant_id, script_id, s3_key, url, thumbnail_url, width, height, duration_s,
   status, error, created_at, updated_at
 `;
 
@@ -170,6 +171,7 @@ export async function updateVideoRenderJob(
     status?: VideoRenderJobStatus;
     s3Key?: string | null;
     url?: string | null;
+    thumbnailUrl?: string | null;
     durationS?: number | null;
     error?: string | null;
   },
@@ -179,12 +181,13 @@ export async function updateVideoRenderJob(
 
   const rows = await sql<VideoRenderJobRow[]>`
     UPDATE video_render_jobs SET
-      status     = COALESCE(${patch.status ?? null}, status),
-      s3_key     = COALESCE(${patch.s3Key ?? null}, s3_key),
-      url        = COALESCE(${patch.url ?? null}, url),
-      duration_s = COALESCE(${patch.durationS ?? null}, duration_s),
-      error      = COALESCE(${patch.error ?? null}, error),
-      updated_at = now()
+      status        = COALESCE(${patch.status ?? null}, status),
+      s3_key        = COALESCE(${patch.s3Key ?? null}, s3_key),
+      url           = COALESCE(${patch.url ?? null}, url),
+      thumbnail_url = COALESCE(${patch.thumbnailUrl ?? null}, thumbnail_url),
+      duration_s    = COALESCE(${patch.durationS ?? null}, duration_s),
+      error         = COALESCE(${patch.error ?? null}, error),
+      updated_at    = now()
     WHERE tenant_id = ${tenantId} AND id = ${id}
     RETURNING ${sql.unsafe(JOB_COLS)}
   `;

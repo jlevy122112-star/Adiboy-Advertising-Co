@@ -7,6 +7,7 @@
  * Env:
  *   VIDEO_GEN_HOST  (default 127.0.0.1)
  *   VIDEO_GEN_PORT  (default 8797)
+ *   REDIS_URL       (default redis://127.0.0.1:6379)
  *   MARKETER_VIDEO_GEN_HTTP_TOKEN  — optional Bearer auth
  *   MARKETER_VIDEO_GEN_HTTP_CORS   — optional CORS origin(s)
  *   MARKETER_OPENAI_API_KEY / OPENAI_API_KEY  — required
@@ -15,12 +16,17 @@
  */
 
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import { createRedisConnection, createVideoRenderQueue } from "@home-link/marketer-pro-queue";
 import { closePostgres } from "./db/postgres.js";
-import { handleVideoGenRequest } from "./marketer-pro/video-gen-route.js";
+import { makeVideoGenHandler } from "./marketer-pro/video-gen-route.js";
 
 const MAX_BODY_BYTES = 2 * 1024 * 1024;
 const host = process.env.VIDEO_GEN_HOST ?? "127.0.0.1";
 const port = Number(process.env.VIDEO_GEN_PORT ?? 8797);
+
+const redis = createRedisConnection();
+const videoQueue = createVideoRenderQueue(redis);
+const handleVideoGenRequest = makeVideoGenHandler(videoQueue);
 
 function checkBearer(req: IncomingMessage, res: ServerResponse): boolean {
   const expected = process.env.MARKETER_VIDEO_GEN_HTTP_TOKEN?.trim();
@@ -80,12 +86,15 @@ server.listen(port, host, () => {
     openai: !!(process.env.MARKETER_OPENAI_API_KEY || process.env.OPENAI_API_KEY),
     s3: !!process.env.AWS_S3_BUCKET,
     database: !!process.env.DATABASE_URL,
+    redis: !!process.env.REDIS_URL,
   }));
 });
 
 async function shutdown(signal: string) {
   console.log(JSON.stringify({ level: "info", event: "video_gen_server_shutdown", signal }));
   await new Promise<void>((r) => server.close(() => r()));
+  await videoQueue.close().catch(() => {});
+  await redis.quit().catch(() => {});
   await closePostgres().catch(() => {});
   process.exit(0);
 }
