@@ -426,3 +426,25 @@ export async function persistScheduleEntryPublishOutcome(
     );
   }
 }
+
+export type ScheduleEntryBasic = {
+  id: string; tenant_id: string; network: string | null;
+  status: string; external_id: string | null;
+};
+
+export async function getScheduleEntry(
+  tenantId: string,
+  scheduleEntryId: string,
+): Promise<ScheduleEntryBasic | null> {
+  const sql = getPostgresClient();
+  if (!sql) return null;
+  try {
+    const rows = await sql<ScheduleEntryBasic[]>`
+      SELECT id, tenant_id, network, status, external_id
+      FROM schedule_entries
+      WHERE tenant_id = ${tenantId} AND id = ${scheduleEntryId}
+      LIMIT 1
+    `;
+    return rows[0] ?? null;
+  } catch { return null; }
+}

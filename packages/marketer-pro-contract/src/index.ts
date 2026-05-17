@@ -3,6 +3,17 @@ import { z } from "zod";
 import { SocialConnectionSchema } from "./social-connections.js";
 
 export {
+  AnalyticsSnapshotSchema,
+  AnalyticsSummarySchema,
+  AnalyticsNetworkSchema,
+  AnalyticsPeriodSchema,
+  type AnalyticsSnapshot,
+  type AnalyticsSummary,
+  type AnalyticsNetwork,
+  type AnalyticsPeriod,
+} from "./analytics.js";
+
+export {
   SerpResultSchema,
   SerpBriefSchema,
   SerpBriefStatusSchema,
