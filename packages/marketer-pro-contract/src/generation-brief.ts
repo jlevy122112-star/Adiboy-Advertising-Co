@@ -26,7 +26,6 @@
  * `obsolete` is the only terminal-of-terminals; from it nothing flows.
  */
 
-import { createHash } from "node:crypto";
 import { z } from "zod";
 
 import { BrandThemeOverrideSchema } from "./brand-theme.js";
@@ -722,7 +721,13 @@ export function recordFieldSource(
 /* -------------------------------------------------------------------------- */
 
 function hash8(input: string): string {
-  return createHash("sha1").update(input).digest("hex").slice(0, 8);
+  // Browser + Node compatible: simple deterministic hash (djb2)
+  let h = 5381;
+  for (let i = 0; i < input.length; i++) {
+    h = ((h << 5) + h) ^ input.charCodeAt(i);
+    h = h >>> 0;
+  }
+  return h.toString(16).padStart(8, "0");
 }
 
 /**
