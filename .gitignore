@@ -39,10 +39,24 @@ Desktop.ini
 *.swo
 *~
 
-# Cursor IDE — local caches, MCP descriptors, agent transcripts (Windows: long paths break `git add`)
+# Cursor IDE — block entirely, corrupted and not part of this build
 .cursor/
-!.cursor/rules/
-!.cursor/rules/**
+.cursorignore
+.cursorconfig
+skills-cursor/
+canvas/sdk/
+
+# git.ai — block entirely
+.git-ai/
+git-ai/
+.gitai/
+gitai/
+
+# AI tracking / telemetry — block entirely
+ai-tracking/
+.ai-tracking/
+ai-code-tracking.db
+*.ai-tracking
 
 # Optional tooling caches
 .eslintcache
