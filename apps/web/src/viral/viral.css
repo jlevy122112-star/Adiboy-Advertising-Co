@@ -412,6 +412,41 @@
   line-height: 1.4;
 }
 
+.bst-locked {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.bst-toggle--locked {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.bst-lock-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  background: #334155;
+  color: #94a3b8;
+  border-radius: 4px;
+  padding: 0.125rem 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.bst-locked-text {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.bst-locked-text strong {
+  color: #818cf8;
+}
+
 @media (max-width: 480px) {
   .scm-card { padding: 1.25rem; border-radius: 12px; }
   .scm-channels { gap: 0.25rem; }

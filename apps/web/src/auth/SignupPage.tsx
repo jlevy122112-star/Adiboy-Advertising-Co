@@ -10,28 +10,44 @@ const ERROR_MESSAGES: Record<string, string> = {
   invalid_body: 'Please check your details and try again.',
 }
 
+function passwordStrength(pw: string): { score: number; label: string; color: string } {
+  let score = 0
+  if (pw.length >= 8) score++
+  if (pw.length >= 12) score++
+  if (/[A-Z]/.test(pw)) score++
+  if (/[0-9]/.test(pw)) score++
+  if (/[^A-Za-z0-9]/.test(pw)) score++
+  if (score <= 1) return { score, label: 'Weak', color: '#ef4444' }
+  if (score <= 2) return { score, label: 'Fair', color: '#f59e0b' }
+  if (score <= 3) return { score, label: 'Good', color: '#3b82f6' }
+  return { score, label: 'Strong', color: '#22c55e' }
+}
+
 export function SignupPage({ onSwitchToLogin }: Props) {
   const { signup } = useAuth()
   const [email, setEmail] = useState('')
+  const [emailTouched, setEmailTouched] = useState(false)
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
+  const [confirmTouched, setConfirmTouched] = useState(false)
   const [tenantId, setTenantId] = useState(import.meta.env.VITE_TENANT_ID as string ?? '')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const emailError = emailTouched && email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+    ? 'Enter a valid email address.' : null
+  const confirmError = confirmTouched && confirm && confirm !== password
+    ? 'Passwords do not match.' : null
+  const strength = password ? passwordStrength(password) : null
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setError(null)
-
-    if (password !== confirm) {
-      setError('Passwords do not match.')
-      return
-    }
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters.')
-      return
-    }
-
+    setEmailTouched(true)
+    setConfirmTouched(true)
+    if (emailError || confirmError) return
+    if (password !== confirm) { setError('Passwords do not match.'); return }
+    if (password.length < 8) { setError('Password must be at least 8 characters.'); return }
     setLoading(true)
     const err = await signup(email.trim().toLowerCase(), password, tenantId.trim())
     setLoading(false)
@@ -68,15 +84,17 @@ export function SignupPage({ onSwitchToLogin }: Props) {
             <label className="auth-label" htmlFor="email">Email</label>
             <input
               id="email"
-              className="auth-input"
+              className={`auth-input${emailError ? ' auth-input--error' : ''}`}
               type="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
+              onBlur={() => setEmailTouched(true)}
               placeholder="you@company.com"
               required
               autoComplete="email"
               autoFocus
             />
+            {emailError && <span className="auth-field-error">{emailError}</span>}
           </div>
 
           <div className="auth-field">
@@ -91,25 +109,39 @@ export function SignupPage({ onSwitchToLogin }: Props) {
               required
               autoComplete="new-password"
             />
+            {strength && (
+              <div className="auth-strength">
+                <div className="auth-strength-bars">
+                  {[1,2,3,4].map(i => (
+                    <div
+                      key={i}
+                      className="auth-strength-bar"
+                      style={{ background: i <= strength.score ? strength.color : '#334155' }}
+                    />
+                  ))}
+                </div>
+                <span className="auth-strength-label" style={{ color: strength.color }}>{strength.label}</span>
+              </div>
+            )}
           </div>
 
           <div className="auth-field">
             <label className="auth-label" htmlFor="confirm">Confirm password</label>
             <input
               id="confirm"
-              className="auth-input"
+              className={`auth-input${confirmError ? ' auth-input--error' : ''}`}
               type="password"
               value={confirm}
               onChange={e => setConfirm(e.target.value)}
+              onBlur={() => setConfirmTouched(true)}
               placeholder="Repeat password"
               required
               autoComplete="new-password"
             />
+            {confirmError && <span className="auth-field-error">{confirmError}</span>}
           </div>
 
-          {error && (
-            <div className="auth-error" role="alert">{error}</div>
-          )}
+          {error && <div className="auth-error" role="alert">{error}</div>}
 
           <button className="auth-btn" type="submit" disabled={loading}>
             {loading ? <span className="auth-spinner" /> : 'Create account'}
@@ -118,9 +150,7 @@ export function SignupPage({ onSwitchToLogin }: Props) {
 
         <p className="auth-switch">
           Already have an account?{' '}
-          <button className="auth-link" type="button" onClick={onSwitchToLogin}>
-            Sign in
-          </button>
+          <button className="auth-link" type="button" onClick={onSwitchToLogin}>Sign in</button>
         </p>
       </div>
     </div>

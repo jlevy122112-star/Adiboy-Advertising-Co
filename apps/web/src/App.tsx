@@ -6,7 +6,6 @@ import { VideoGenPanel } from './VideoGenPanel'
 import { SocialConnectionsPanel } from './SocialConnectionsPanel'
 import { MarketerCalendar } from './calendar/MarketerCalendar'
 import { AuthGuard } from './auth/AuthGuard'
-import { ViralDashboard } from './viral/ViralDashboard'
 import { BrandingSignatureToggle } from './viral/BrandingSignatureToggle'
 import { SerpBriefPanel } from './serp/SerpBriefPanel'
 import AnalyticsDashboard from './analytics/AnalyticsDashboard'
@@ -14,7 +13,6 @@ import { SentimentPanel } from './sentiment/SentimentPanel'
 import { PredictiveSchedulePanel } from './predictive/PredictiveSchedulePanel'
 import { AutonomousAgentPanel } from './autonomous/AutonomousAgentPanel'
 import { TeamPanel } from './team/TeamPanel'
-import { SafetyDashboard } from './safety/SafetyDashboard'
 import './App.css'
 
 const TENANT_ID = import.meta.env.VITE_TENANT_ID as string | undefined
@@ -110,15 +108,8 @@ function AppShell() {
             <div className="sidebar-divider" />
 
             <div className="sidebar-section">
-              <p className="sidebar-section-title">Viral Growth</p>
-              <ViralDashboard />
-            </div>
-
-            <div className="sidebar-divider" />
-
-            <div className="sidebar-section">
               <p className="sidebar-section-title">Branding Signature</p>
-              {TENANT_ID && <BrandingSignatureToggle tenantId={TENANT_ID} />}
+              {TENANT_ID && <BrandingSignatureToggle tenantId={TENANT_ID} isPaidPlan={false} />}
             </div>
 
             <div className="sidebar-divider" />
@@ -163,12 +154,6 @@ function AppShell() {
               {TENANT_ID && <TeamPanel tenantId={TENANT_ID} />}
             </div>
 
-            <div className="sidebar-divider" />
-
-            <div className="sidebar-section">
-              <p className="sidebar-section-title">Safety &amp; Compliance</p>
-              <SafetyDashboard />
-            </div>
           </div>
         </aside>
       </div>

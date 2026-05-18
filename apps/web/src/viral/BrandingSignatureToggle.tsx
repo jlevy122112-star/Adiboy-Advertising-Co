@@ -6,11 +6,12 @@ const BRAND_API = import.meta.env.VITE_BRAND_API_ORIGIN as string ?? 'http://loc
 
 type Props = {
   tenantId: string
+  isPaidPlan?: boolean
   enabled?: boolean
   brandingText?: string
 }
 
-export function BrandingSignatureToggle({ tenantId, enabled: initialEnabled = true, brandingText: initialText = 'Made with Marketer Pro' }: Props) {
+export function BrandingSignatureToggle({ tenantId, isPaidPlan = false, enabled: initialEnabled = true, brandingText: initialText = 'Made with Marketer Pro' }: Props) {
   const [enabled, setEnabled] = useState(initialEnabled)
   const [text, setText] = useState(initialText)
   const [saving, setSaving] = useState(false)
@@ -40,6 +41,24 @@ export function BrandingSignatureToggle({ tenantId, enabled: initialEnabled = tr
     const v = e.target.checked
     setEnabled(v)
     void save(v, text)
+  }
+
+  if (!isPaidPlan) {
+    return (
+      <div className="bst-root">
+        <div className="bst-locked">
+          <label className="bst-toggle bst-toggle--locked">
+            <input type="checkbox" checked disabled />
+            <span className="bst-toggle-label">Show branding signature on shared content</span>
+          </label>
+          <span className="bst-lock-badge">Free plan</span>
+        </div>
+        <p className="bst-locked-text">
+          "Made with Marketer Pro" appears on all your shared content.{' '}
+          <strong>Upgrade to Pro</strong> to remove it.
+        </p>
+      </div>
+    )
   }
 
   return (
