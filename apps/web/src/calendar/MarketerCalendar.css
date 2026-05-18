@@ -992,3 +992,148 @@
   gap: 5px;
   align-items: center;
 }
+
+/* ── Premium UI upgrade ─────────────────────────────────────────────────── */
+
+/* Elevated header */
+.mc-header {
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--mc-border);
+  margin-bottom: 1rem;
+}
+
+.mc-title {
+  font-size: 1.375rem;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+}
+
+.mc-sub {
+  font-size: 0.75rem;
+  opacity: 0.6;
+}
+
+/* Stat pills in rhythm bar */
+.mc-rhythm {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.875rem;
+}
+
+.mc-rhythm span {
+  background: color-mix(in srgb, var(--mc-accent) 8%, var(--bg, #fff));
+  border: 1px solid color-mix(in srgb, var(--mc-accent) 18%, transparent);
+  border-radius: 20px;
+  padding: 0.2rem 0.65rem;
+  font-size: 0.75rem;
+  color: var(--text, #666);
+}
+
+.mc-rhythm span strong {
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+/* Premium weekday labels */
+.mc-weekdays span {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text, #888);
+  opacity: 0.55;
+  text-align: center;
+  padding: 0.2rem 0;
+}
+
+/* Day cell polish */
+.mc-day {
+  border-radius: 12px;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+}
+
+.mc-day:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08), 0 0 0 1px var(--mc-accent-soft);
+}
+
+/* Today cell: accent glow */
+.mc-day--today {
+  background: color-mix(in srgb, var(--mc-accent) 6%, var(--bg, #fff));
+  box-shadow: 0 0 0 2px var(--mc-accent), 0 4px 16px color-mix(in srgb, var(--mc-accent) 20%, transparent);
+}
+
+/* Post chips: subtle glass shimmer */
+.mc-post-chip {
+  border-radius: 6px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.2);
+}
+
+/* Week view post cards */
+.mc-week-post-card {
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+
+.mc-week-post-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.2);
+}
+
+/* Day view post cards */
+.mc-day-post-card {
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.15s, transform 0.1s;
+}
+
+.mc-day-post-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+/* Drawer premium */
+.mc-drawer {
+  padding: 1.5rem;
+  background: var(--surface, var(--bg, #fff));
+}
+
+.mc-drawer h2 {
+  font-size: 1.125rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+/* Navigation buttons */
+.mc-nav .mc-btn {
+  font-weight: 600;
+  padding: 0.375rem 0.75rem;
+}
+
+/* View toggle polish */
+.mc-view-toggle {
+  border-radius: 10px;
+  background: var(--bg-muted, var(--mc-border));
+}
+
+.mc-view-btn {
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.75rem;
+}
+
+/* Overflow popover polish */
+.mc-overflow-popover {
+  border-radius: 12px;
+  box-shadow: var(--shadow-xl);
+}
+
+/* Quick-add popover polish */
+.mc-quick-add-popover {
+  border-radius: 12px;
+  box-shadow: var(--shadow-xl);
+}
+
