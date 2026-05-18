@@ -18,11 +18,16 @@
 import { createServer } from "node:http";
 import { closePostgres } from "./db/postgres.js";
 import { handleSentimentRequest } from "./marketer-pro/sentiment-route.js";
+import { requireAuth } from "./marketer-pro/auth/middleware.js";
 
 const host = process.env.SENTIMENT_HOST ?? "127.0.0.1";
 const port = Number(process.env.SENTIMENT_PORT ?? 8803);
 
-const server = createServer((req, res) => {
+const server = createServer(async (req, res) => {
+  if (req.method === "OPTIONS") { res.writeHead(204); res.end(); return; }
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+  req.headers["x-tenant-id"] = auth.tenantId;
   handleSentimentRequest(req, res).catch((err) => {
     console.error(JSON.stringify({ level: "error", event: "sentiment_unhandled", message: String(err) }));
     if (!res.headersSent) {

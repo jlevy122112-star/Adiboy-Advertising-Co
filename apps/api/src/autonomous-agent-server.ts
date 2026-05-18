@@ -14,11 +14,16 @@
 import { createServer } from "node:http";
 import { closePostgres } from "./db/postgres.js";
 import { handleAutonomousRequest } from "./marketer-pro/autonomous-route.js";
+import { requireAuth } from "./marketer-pro/auth/middleware.js";
 
 const host = process.env.AUTONOMOUS_HOST ?? "127.0.0.1";
 const port = Number(process.env.AUTONOMOUS_PORT ?? 8805);
 
-const server = createServer((req, res) => {
+const server = createServer(async (req, res) => {
+  if (req.method === "OPTIONS") { res.writeHead(204); res.end(); return; }
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+  req.headers["x-tenant-id"] = auth.tenantId;
   handleAutonomousRequest(req, res).catch((err) => {
     console.error(JSON.stringify({ level: "error", event: "autonomous_unhandled", message: String(err) }));
     if (!res.headersSent) {

@@ -17,11 +17,16 @@
 import { createServer } from "node:http";
 import { closePostgres } from "./db/postgres.js";
 import { handleAnalyticsRequest } from "./marketer-pro/analytics-route.js";
+import { requireAuth } from "./marketer-pro/auth/middleware.js";
 
 const host = process.env.ANALYTICS_HOST ?? "127.0.0.1";
 const port = Number(process.env.ANALYTICS_PORT ?? 8802);
 
-const server = createServer((req, res) => {
+const server = createServer(async (req, res) => {
+  if (req.method === "OPTIONS") { res.writeHead(204); res.end(); return; }
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+  req.headers["x-tenant-id"] = auth.tenantId;
   handleAnalyticsRequest(req, res).catch((err) => {
     console.error(JSON.stringify({ level: "error", event: "analytics_unhandled", message: String(err) }));
     if (!res.headersSent) {
