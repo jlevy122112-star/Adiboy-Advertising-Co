@@ -1,7 +1,6 @@
 {
     "recommendations": [
         "redis.redis-for-vscode",
-        "git-ai.git-ai-vscode",
         "github.vscode-github-actions",
         "liuyuanfan.git-list",
         "sourcery.sourcery",

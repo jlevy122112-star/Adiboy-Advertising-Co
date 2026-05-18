@@ -38,17 +38,15 @@ Purpose: Marketer-Pro — merge full upstream workspace definitions when syncing
 
 Terse. Direct. Code-focused.
 
-Example: `Fixed parser.js:23` not "I've identified and resolved the memory leak issue..."
-
 ## Priorities
 
-1. Working code over perfect code
-2. Simple over clever
-3. Delete over maintain
-4. Ship over discuss
+1. Working code 
+2. Simple and clever
+3. Maintain
+4. Discuss
 
 ## Individual Preferences
 
-Include your personal preferences (not checked into git):
+Include your personal preferences:
 
 - @~/.claude/Marketer Pro v1.0-preferences.md
