@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import "./predictive.css";
+import { apiFetch } from "../hooks/useApi";
 
 type ConfidenceLevel = "low" | "medium" | "high";
 
@@ -112,19 +113,17 @@ export function PredictiveSchedulePanel({ tenantId }: Props) {
   const [contentType, setContentType] = useState("");
   const [timezone,    setTimezone]    = useState("America/New_York");
   const [loading,     setLoading]     = useState(false);
+  const [predictError, setPredictError] = useState<string | null>(null);
   const [rec,         setRec]         = useState<ScheduleRecommendation | null>(null);
   const [history,     setHistory]     = useState<ScheduleRecommendation[]>([]);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [applying,    setApplying]    = useState(false);
   const [applied,     setApplied]     = useState<string | null>(null);
 
-  const headers = { "X-Tenant-Id": tenantId, "Content-Type": "application/json" };
-
-  // Load history on mount
   const loadHistory = useCallback(async () => {
-    const res = await fetch(`${apiOrigin}/schedule/history?limit=5`, { headers: { "X-Tenant-Id": tenantId } });
-    if (res.ok) setHistory((await res.json() as { recommendations: ScheduleRecommendation[] }).recommendations);
-  }, [tenantId]);
+    const res = await apiFetch<{ recommendations: ScheduleRecommendation[] }>(`${apiOrigin}/schedule/history?limit=5`);
+    if (res.ok) setHistory(res.data.recommendations);
+  }, []);
 
   useEffect(() => { loadHistory(); }, [loadHistory]);
 
@@ -133,42 +132,36 @@ export function PredictiveSchedulePanel({ tenantId }: Props) {
     setRec(null);
     setSelectedKey(null);
     setApplied(null);
-    try {
-      const res = await fetch(`${apiOrigin}/schedule/predict`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          network,
-          contentType: contentType || undefined,
-          audienceTimezone: timezone || undefined,
-        }),
-      });
-      if (res.ok) {
-        const data = await res.json() as { recommendation: ScheduleRecommendation };
-        setRec(data.recommendation);
-        await loadHistory();
-      }
-    } finally {
-      setLoading(false);
+    setPredictError(null);
+    const res = await apiFetch<{ recommendation: ScheduleRecommendation }>(`${apiOrigin}/schedule/predict`, {
+      method: "POST",
+      json: {
+        network,
+        contentType: contentType || undefined,
+        audienceTimezone: timezone || undefined,
+      },
+    });
+    if (res.ok) {
+      setRec(res.data.recommendation);
+      await loadHistory();
+    } else {
+      setPredictError("Prediction failed. Please try again.");
     }
+    setLoading(false);
   }
 
   async function applySlot(slot: BestTimeSlot) {
     if (!rec?.id) return;
     setApplying(true);
-    try {
-      const res = await fetch(`${apiOrigin}/schedule/apply/${rec.id}`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({ slot }),
-      });
-      if (res.ok) {
-        setApplied(`${slot.dayOfWeek}:${slot.hourUTC}`);
-        await loadHistory();
-      }
-    } finally {
-      setApplying(false);
+    const res = await apiFetch(`${apiOrigin}/schedule/apply/${rec.id}`, {
+      method: "POST",
+      json: { slot },
+    });
+    if (res.ok) {
+      setApplied(`${slot.dayOfWeek}:${slot.hourUTC}`);
+      await loadHistory();
     }
+    setApplying(false);
   }
 
   const topSlotKeys = new Set((rec?.topSlots ?? []).map(s => `${s.dayOfWeek}:${s.hourUTC}`));
@@ -268,7 +261,14 @@ export function PredictiveSchedulePanel({ tenantId }: Props) {
         </>
       )}
 
-      {!loading && !rec && (
+      {predictError && (
+        <div className="ps-error-row">
+          <p className="ps-error">{predictError}</p>
+          <button className="ps-predict-btn" onClick={predict}>Retry</button>
+        </div>
+      )}
+
+      {!loading && !rec && !predictError && (
         <div className="ps-empty">
           <div className="ps-empty-icon">⏰</div>
           <p className="ps-empty-text">

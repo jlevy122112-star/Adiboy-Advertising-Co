@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import "./sentiment.css";
+import { apiFetch } from "../hooks/useApi";
 
 type SentimentScore = "positive" | "negative" | "neutral" | "mixed";
 type BrandSafetyFlag =
@@ -84,39 +85,34 @@ export function SentimentPanel({ tenantId }: Props) {
   const [comments, setComments] = useState<SocialComment[]>([]);
   const [filter, setFilter]     = useState<Filter>("all");
   const [loading, setLoading]   = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [refreshingId, setRefreshingId] = useState<string | null>(null);
   const [copied, setCopied]     = useState<string | null>(null);
 
-  const headers = useMemo(() => ({ "X-Tenant-Id": tenantId }), [tenantId]);
-
   const load = useCallback(async () => {
     setLoading(true);
-    try {
-      const negativeOnly   = filter === "signals" ? "true" : "false";
-      const brandSafetyOnly = filter === "flagged" ? "true" : "false";
-      const sentimentQ     = ["positive","negative","neutral","mixed"].includes(filter) ? `&sentiment=${filter}` : "";
+    setLoadError(null);
+    const negativeOnly    = filter === "signals" ? "true" : "false";
+    const brandSafetyOnly = filter === "flagged"  ? "true" : "false";
+    const sentimentQ      = ["positive","negative","neutral","mixed"].includes(filter) ? `&sentiment=${filter}` : "";
 
-      const [sumRes, listRes] = await Promise.all([
-        fetch(`${apiOrigin}/sentiment/summary`, { headers }),
-        fetch(`${apiOrigin}/sentiment?limit=60&negativeOnly=${negativeOnly}&brandSafetyOnly=${brandSafetyOnly}${sentimentQ}`, { headers }),
-      ]);
-      if (sumRes.ok)  setSummary((await sumRes.json() as { summary: SentimentSummary }).summary);
-      if (listRes.ok) setComments((await listRes.json() as { comments: SocialComment[] }).comments);
-    } finally {
-      setLoading(false);
-    }
-  }, [tenantId, filter, headers]);
+    const [sumRes, listRes] = await Promise.all([
+      apiFetch<{ summary: SentimentSummary }>(`${apiOrigin}/sentiment/summary`),
+      apiFetch<{ comments: SocialComment[] }>(`${apiOrigin}/sentiment?limit=60&negativeOnly=${negativeOnly}&brandSafetyOnly=${brandSafetyOnly}${sentimentQ}`),
+    ]);
+    if (sumRes.ok)  setSummary(sumRes.data.summary);
+    if (listRes.ok) setComments(listRes.data.comments);
+    if (!sumRes.ok && !listRes.ok) setLoadError("Failed to load sentiment data.");
+    setLoading(false);
+  }, [filter]);
 
   useEffect(() => { load(); }, [load]);
 
   async function refresh(scheduleEntryId: string) {
     setRefreshingId(scheduleEntryId);
-    try {
-      await fetch(`${apiOrigin}/sentiment/refresh/${scheduleEntryId}`, { method: "POST", headers });
-      await load();
-    } finally {
-      setRefreshingId(null);
-    }
+    await apiFetch(`${apiOrigin}/sentiment/refresh/${scheduleEntryId}`, { method: "POST" });
+    await load();
+    setRefreshingId(null);
   }
 
   async function copyResponse(id: string, text: string) {
@@ -145,6 +141,13 @@ export function SentimentPanel({ tenantId }: Props) {
             <div key={i} className="sp-skeleton sp-skeleton-line" />
           ))}
         </>
+      )}
+
+      {!loading && loadError && (
+        <div className="sp-load-error">
+          <p>{loadError}</p>
+          <button className="sp-reload-btn" onClick={load}>Retry</button>
+        </div>
       )}
 
       {!loading && (

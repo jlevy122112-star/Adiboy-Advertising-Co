@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import './autonomous.css'
+import { apiFetch } from '../hooks/useApi'
 
 const API_ORIGIN = (import.meta.env.VITE_AUTONOMOUS_API_ORIGIN as string | undefined) ?? 'http://localhost:8805'
 
@@ -94,6 +95,7 @@ export function AutonomousAgentPanel({ tenantId }: { tenantId: string }) {
   const [networks, setNetworks] = useState<string[]>(['instagram', 'linkedin'])
   const [scope, setScope] = useState<Scope>('single_post')
   const [launching, setLaunching] = useState(false)
+  const [launchError, setLaunchError] = useState<string | null>(null)
   const [runs, setRuns] = useState<Run[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -101,28 +103,18 @@ export function AutonomousAgentPanel({ tenantId }: { tenantId: string }) {
   const [detailLoading, setDetailLoading] = useState(false)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  const headers = { 'Content-Type': 'application/json', 'X-Tenant-Id': tenantId }
-
   const loadRuns = useCallback(async () => {
-    try {
-      const r = await fetch(`${API_ORIGIN}/runs?limit=20`, { headers })
-      if (!r.ok) return
-      const data = await r.json() as { runs: Run[] }
-      setRuns(data.runs ?? [])
-    } catch { /* ignore */ }
-    finally { setLoading(false) }
-  }, [tenantId])
+    const r = await apiFetch<{ runs: Run[] }>(`${API_ORIGIN}/runs?limit=20`)
+    if (r.ok) setRuns(r.data.runs ?? [])
+    setLoading(false)
+  }, [])
 
   const loadDetail = useCallback(async (id: string) => {
     setDetailLoading(true)
-    try {
-      const r = await fetch(`${API_ORIGIN}/runs/${id}`, { headers })
-      if (!r.ok) return
-      const data = await r.json() as { run: Run; events: RunEvent[] }
-      setDetail({ ...data.run, events: data.events ?? [] })
-    } catch { /* ignore */ }
-    finally { setDetailLoading(false) }
-  }, [tenantId])
+    const r = await apiFetch<{ run: Run; events: RunEvent[] }>(`${API_ORIGIN}/runs/${id}`)
+    if (r.ok) setDetail({ ...r.data.run, events: r.data.events ?? [] })
+    setDetailLoading(false)
+  }, [])
 
   useEffect(() => {
     loadRuns()
@@ -147,27 +139,24 @@ export function AutonomousAgentPanel({ tenantId }: { tenantId: string }) {
   async function launch() {
     if (!networks.length || launching) return
     setLaunching(true)
-    try {
-      const r = await fetch(`${API_ORIGIN}/runs`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ networks, scope }),
-      })
-      if (r.ok) {
-        const data = await r.json() as { runId: string }
-        await loadRuns()
-        setSelectedId(data.runId)
-      }
-    } catch { /* ignore */ }
-    finally { setLaunching(false) }
+    setLaunchError(null)
+    const r = await apiFetch<{ runId: string }>(`${API_ORIGIN}/runs`, {
+      method: 'POST',
+      json: { networks, scope },
+    })
+    if (r.ok) {
+      await loadRuns()
+      setSelectedId(r.data.runId)
+    } else {
+      setLaunchError('Launch failed. Check your connections and try again.')
+    }
+    setLaunching(false)
   }
 
   async function doAction(id: string, action: 'cancel' | 'pause' | 'resume') {
-    try {
-      await fetch(`${API_ORIGIN}/runs/${id}/${action}`, { method: 'POST', headers })
-      await loadRuns()
-      await loadDetail(id)
-    } catch { /* ignore */ }
+    await apiFetch(`${API_ORIGIN}/runs/${id}/${action}`, { method: 'POST' })
+    await loadRuns()
+    await loadDetail(id)
   }
 
   const hasActive = runs.some(r => isActive(r.state))
@@ -225,6 +214,7 @@ export function AutonomousAgentPanel({ tenantId }: { tenantId: string }) {
         >
           {launching ? 'Launching…' : `Launch${hasActive ? ' Another' : ''} Run`}
         </button>
+        {launchError && <p className="au-launch-error">{launchError}</p>}
       </div>
 
       {/* Run list */}

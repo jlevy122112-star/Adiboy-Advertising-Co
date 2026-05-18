@@ -1,8 +1,9 @@
-import { useState, type ReactNode } from 'react'
+import { useState, useEffect, useRef, type ReactNode } from 'react'
 import { useAuth } from './useAuth'
 import { LoginPage } from './LoginPage'
 import { SignupPage } from './SignupPage'
 import { OnboardingWizard, ONBOARDING_DONE_KEY } from '../onboarding/OnboardingWizard'
+import { useToast } from '../components/Toast'
 
 const TENANT_ID = import.meta.env.VITE_TENANT_ID as string | undefined
 
@@ -10,10 +11,19 @@ type Props = { children: ReactNode }
 
 export function AuthGuard({ children }: Props) {
   const { state, logout } = useAuth()
+  const toast = useToast()
   const [view, setView] = useState<'login' | 'signup'>('login')
   const [onboardingDone, setOnboardingDone] = useState(
     () => !!localStorage.getItem(ONBOARDING_DONE_KEY)
   )
+  const prevStatusRef = useRef(state.status)
+
+  useEffect(() => {
+    if (prevStatusRef.current === 'authenticated' && state.status === 'unauthenticated') {
+      toast('Session expired. Please sign in again.', 'warning')
+    }
+    prevStatusRef.current = state.status
+  }, [state.status])
 
   if (state.status === 'loading') {
     return (

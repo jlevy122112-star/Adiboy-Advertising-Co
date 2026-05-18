@@ -2,6 +2,7 @@ import { useState, useRef, useCallback } from 'react'
 import './video-gen-panel.css'
 import { PresetSelector, type Preset } from './generation/PresetSelector'
 import { GenerationHistoryPanel } from './generation/GenerationHistoryPanel'
+import { apiFetch } from './hooks/useApi'
 
 type VideoPlatform = 'tiktok' | 'reels' | 'shorts' | 'generic_vertical' | 'generic_landscape'
 
@@ -73,17 +74,13 @@ export function VideoGenPanel() {
   const pollJob = useCallback((jid: string) => {
     if (!apiOrigin) return
     pollRef.current = setInterval(async () => {
-      try {
-        const res = await fetch(`${apiOrigin}/job/${jid}`, {
-          headers: { 'X-Tenant-Id': tenantId },
-        })
-        if (!res.ok) return
-        const data = await res.json() as { job: RenderJob }
-        setJob(data.job)
-        if (TERMINAL.includes(data.job.status)) stopPolling()
-      } catch { /* network hiccup — keep polling */ }
+      const result = await apiFetch<{ job: RenderJob }>(`${apiOrigin}/job/${jid}`)
+      if (result.ok) {
+        setJob(result.data.job)
+        if (TERMINAL.includes(result.data.job.status)) stopPolling()
+      }
     }, 3000)
-  }, [apiOrigin, tenantId, stopPolling])
+  }, [apiOrigin, stopPolling])
 
   const handleGenerate = useCallback(async () => {
     if (!apiOrigin) { setError('VITE_VIDEO_GEN_API_ORIGIN not set'); return }
@@ -95,34 +92,30 @@ export function VideoGenPanel() {
     setScriptId(null)
     stopPolling()
 
-    try {
-      const res = await fetch(`${apiOrigin}/generate`, {
+    const result = await apiFetch<{ ok: boolean; scriptId?: string; jobId?: string; error?: string }>(
+      `${apiOrigin}/generate`,
+      {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Tenant-Id': tenantId },
-        body: JSON.stringify({
-        brief: makeBrief(title, body),
-        network: platform,
-        voiceover,
-        customTagline: customTagline.trim() || undefined,
-        customCta: customCta.trim() || undefined,
-      }),
-      })
-      const data = await res.json() as { ok: boolean; scriptId?: string; jobId?: string; error?: string }
-
-      if (!data.ok || !data.jobId) {
-        setError(data.error ?? 'Generation failed')
-        setLoading(false)
-        return
+        json: {
+          brief: makeBrief(title, body),
+          network: platform,
+          voiceover,
+          customTagline: customTagline.trim() || undefined,
+          customCta: customCta.trim() || undefined,
+        },
       }
+    )
 
-      setScriptId(data.scriptId ?? null)
-      setJob({ id: data.jobId, status: 'queued', url: null, thumbnail_url: null, duration_s: null, error: null })
+    if (!result.ok || !result.data.jobId) {
+      setError(result.ok ? (result.data.error ?? 'Generation failed') : result.error)
       setLoading(false)
-      pollJob(data.jobId)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Network error')
-      setLoading(false)
+      return
     }
+
+    setScriptId(result.data.scriptId ?? null)
+    setJob({ id: result.data.jobId, status: 'queued', url: null, thumbnail_url: null, duration_s: null, error: null })
+    setLoading(false)
+    pollJob(result.data.jobId)
   }, [apiOrigin, tenantId, platform, title, body, voiceover, customTagline, customCta, pollJob, stopPolling])
 
   function applyPreset(preset: Preset) {
@@ -269,8 +262,13 @@ export function VideoGenPanel() {
             </>
           )}
 
-          {job.status === 'failed' && job.error && (
-            <p className="vgp-error">{job.error}</p>
+          {job.status === 'failed' && (
+            <div className="vgp-failed-row">
+              {job.error && <p className="vgp-error">{job.error}</p>}
+              <button className="vgp-retry-btn" onClick={() => void handleGenerate()}>
+                Retry
+              </button>
+            </div>
           )}
         </div>
       )}

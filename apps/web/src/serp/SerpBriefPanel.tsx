@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import type { SerpBrief } from '@home-link/marketer-pro-contract'
 import './serp-brief.css'
+import { apiFetch } from '../hooks/useApi'
 
 type Props = {
   apiOrigin: string
@@ -37,36 +38,24 @@ export function SerpBriefPanel({ apiOrigin, tenantId, industryVertical, onUseBri
   }, [])
 
   const loadHistory = useCallback(async () => {
-    try {
-      const r = await fetch(`${apiOrigin}/serp-briefs?limit=10`, {
-        headers: { 'X-Tenant-Id': tenantId },
-      })
-      if (r.ok) {
-        const d = await r.json() as { briefs: SerpBrief[] }
-        setHistory(d.briefs)
-      }
-    } catch { /* non-critical */ }
-  }, [apiOrigin, tenantId])
+    const r = await apiFetch<{ briefs: SerpBrief[] }>(`${apiOrigin}/serp-briefs?limit=10`)
+    if (r.ok) setHistory(r.data.briefs)
+  }, [apiOrigin])
 
   useEffect(() => { void loadHistory() }, [loadHistory])
 
   const pollBrief = useCallback((id: string) => {
     pollRef.current = setInterval(async () => {
-      try {
-        const r = await fetch(`${apiOrigin}/serp-briefs/${id}`, {
-          headers: { 'X-Tenant-Id': tenantId },
-        })
-        if (!r.ok) return
-        const d = await r.json() as { brief: SerpBrief }
-        setActiveBrief(d.brief)
-        if (d.brief.status === 'done' || d.brief.status === 'failed') {
-          stopPoll()
-          setLoading(false)
-          void loadHistory()
-        }
-      } catch { /* keep polling */ }
+      const r = await apiFetch<{ brief: SerpBrief }>(`${apiOrigin}/serp-briefs/${id}`)
+      if (!r.ok) return
+      setActiveBrief(r.data.brief)
+      if (r.data.brief.status === 'done' || r.data.brief.status === 'failed') {
+        stopPoll()
+        setLoading(false)
+        void loadHistory()
+      }
     }, 2500)
-  }, [apiOrigin, tenantId, stopPoll, loadHistory])
+  }, [apiOrigin, stopPoll, loadHistory])
 
   async function handleGenerate() {
     if (!keyword.trim()) return
@@ -75,24 +64,17 @@ export function SerpBriefPanel({ apiOrigin, tenantId, industryVertical, onUseBri
     setActiveBrief(null)
     stopPoll()
 
-    try {
-      const r = await fetch(`${apiOrigin}/serp-briefs`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Tenant-Id': tenantId },
-        body: JSON.stringify({ keyword: keyword.trim(), industryVertical }),
-      })
-      if (!r.ok) {
-        setError(`Request failed (${r.status})`)
-        setLoading(false)
-        return
-      }
-      const d = await r.json() as { brief: SerpBrief }
-      setActiveBrief(d.brief)
-      pollBrief(d.brief.id)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Network error')
+    const r = await apiFetch<{ brief: SerpBrief }>(`${apiOrigin}/serp-briefs`, {
+      method: 'POST',
+      json: { keyword: keyword.trim(), industryVertical },
+    })
+    if (!r.ok) {
+      setError(r.error ?? `Request failed`)
       setLoading(false)
+      return
     }
+    setActiveBrief(r.data.brief)
+    pollBrief(r.data.brief.id)
   }
 
   return (
@@ -122,7 +104,10 @@ export function SerpBriefPanel({ apiOrigin, tenantId, industryVertical, onUseBri
       )}
 
       {activeBrief?.status === 'failed' && (
-        <p className="sb-error">{activeBrief.error ?? 'Analysis failed'}</p>
+        <div className="sb-failed-row">
+          <p className="sb-error">{activeBrief.error ?? 'Analysis failed'}</p>
+          <button className="sb-retry-btn" onClick={() => void handleGenerate()}>Retry</button>
+        </div>
       )}
 
       {activeBrief?.status === 'done' && (

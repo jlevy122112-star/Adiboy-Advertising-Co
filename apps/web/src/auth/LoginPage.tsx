@@ -13,14 +13,20 @@ const ERROR_MESSAGES: Record<string, string> = {
 export function LoginPage({ onSwitchToSignup }: Props) {
   const { login } = useAuth()
   const [email, setEmail] = useState('')
+  const [emailTouched, setEmailTouched] = useState(false)
   const [password, setPassword] = useState('')
   const [tenantId, setTenantId] = useState(import.meta.env.VITE_TENANT_ID as string ?? '')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const emailError = emailTouched && email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+    ? 'Enter a valid email address.' : null
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setError(null)
+    setEmailTouched(true)
+    if (emailError) return
     setLoading(true)
     const err = await login(email.trim().toLowerCase(), password, tenantId.trim())
     setLoading(false)
@@ -57,19 +63,23 @@ export function LoginPage({ onSwitchToSignup }: Props) {
             <label className="auth-label" htmlFor="email">Email</label>
             <input
               id="email"
-              className="auth-input"
+              className={`auth-input${emailError ? ' auth-input--error' : ''}`}
               type="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
+              onBlur={() => setEmailTouched(true)}
               placeholder="you@company.com"
               required
               autoComplete="email"
               autoFocus
             />
+            {emailError && <span className="auth-field-error">{emailError}</span>}
           </div>
 
           <div className="auth-field">
-            <label className="auth-label" htmlFor="password">Password</label>
+            <label className="auth-label" htmlFor="password">
+              Password
+            </label>
             <input
               id="password"
               className="auth-input"

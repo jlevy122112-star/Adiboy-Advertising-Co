@@ -362,3 +362,6 @@
 @media (max-width: 380px) {
   .ps-heatmap { grid-template-columns: 24px repeat(7, 1fr); }
 }
+
+.ps-error-row { display: flex; flex-direction: column; gap: 0.375rem; }
+.ps-error { font-size: 0.75rem; color: #fca5a5; margin: 0; }

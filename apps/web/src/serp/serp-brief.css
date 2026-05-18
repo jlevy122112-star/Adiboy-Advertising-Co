@@ -208,3 +208,7 @@
     width: 100%;
   }
 }
+
+.sb-failed-row { display: flex; flex-direction: column; gap: 0.375rem; }
+.sb-retry-btn { align-self: flex-start; font-size: 0.7rem; font-weight: 600; padding: 0.25rem 0.65rem; border-radius: 5px; border: 1px solid #ef4444; background: rgba(239,68,68,0.08); color: #fca5a5; cursor: pointer; }
+.sb-retry-btn:hover { background: rgba(239,68,68,0.18); }
