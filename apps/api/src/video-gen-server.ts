@@ -19,6 +19,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { createRedisConnection, createVideoRenderQueue } from "@home-link/marketer-pro-queue";
 import { closePostgres } from "./db/postgres.js";
 import { makeVideoGenHandler } from "./marketer-pro/video-gen-route.js";
+import { requireAuth } from "./marketer-pro/auth/middleware.js";
 
 const MAX_BODY_BYTES = 2 * 1024 * 1024;
 const host = process.env.VIDEO_GEN_HOST ?? "127.0.0.1";
@@ -61,7 +62,9 @@ const server = createServer(async (req, res) => {
     return;
   }
 
-  if (!checkBearer(req, res)) return;
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+  req.headers["x-tenant-id"] = auth.tenantId;
 
   let size = 0;
   req.on("data", (chunk: Buffer) => {

@@ -14,6 +14,7 @@
 import { createServer } from "node:http";
 import { closePostgres } from "./db/postgres.js";
 import { buildSafetyRouter } from "./marketer-pro/safety-route.js";
+import { requireAuth } from "./marketer-pro/auth/middleware.js";
 
 const host = process.env.SAFETY_HOST ?? "127.0.0.1";
 const port = Number(process.env.SAFETY_PORT ?? 8807);
@@ -21,11 +22,14 @@ const cors = process.env.MARKETER_SAFETY_HTTP_CORS ?? "*";
 
 const router = buildSafetyRouter();
 
-const server = createServer((req, res) => {
+const server = createServer(async (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", cors);
   res.setHeader("Access-Control-Allow-Methods", "GET,POST,DELETE,OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type,x-workspace-id");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type,x-workspace-id,Authorization");
   if (req.method === "OPTIONS") { res.writeHead(204); res.end(); return; }
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+  req.headers["x-tenant-id"] = auth.tenantId;
 
   router(req, res).catch((err) => {
     console.error(JSON.stringify({ level: "error", event: "safety_unhandled", message: String(err) }));

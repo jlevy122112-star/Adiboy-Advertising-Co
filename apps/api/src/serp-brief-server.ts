@@ -15,11 +15,16 @@
 import { createServer } from "node:http";
 import { closePostgres } from "./db/postgres.js";
 import { handleSerpRequest } from "./marketer-pro/serp-route.js";
+import { requireAuth } from "./marketer-pro/auth/middleware.js";
 
 const host = process.env.SERP_BRIEF_HOST ?? "127.0.0.1";
 const port = Number(process.env.SERP_BRIEF_PORT ?? 8801);
 
-const server = createServer((req, res) => {
+const server = createServer(async (req, res) => {
+  if (req.method === "OPTIONS") { res.writeHead(204); res.end(); return; }
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+  req.headers["x-tenant-id"] = auth.tenantId;
   handleSerpRequest(req, res).catch((err) => {
     console.error(JSON.stringify({ level: "error", event: "serp_unhandled", message: String(err) }));
     if (!res.headersSent) {

@@ -22,6 +22,7 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 
 import { closePostgres } from "./db/postgres.js";
+import { requireAuth } from "./marketer-pro/auth/middleware.js";
 import {
   executeApproveGenerationDraftRequest,
   executeCreateGenerationDraftRequest,
@@ -162,9 +163,9 @@ const server = createServer(async (req, res) => {
     }
   }
 
-  if (!checkBearer(req, res)) {
-    return;
-  }
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+  req.headers["x-tenant-id"] = auth.tenantId;
 
   if (req.method === "GET" && pathname === pathGet) {
     const outcome = await executeGetGenerationDraftRequestFromSearchParams(

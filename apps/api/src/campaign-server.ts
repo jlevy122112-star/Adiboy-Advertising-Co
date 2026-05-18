@@ -22,6 +22,7 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 
 import { closePostgres } from "./db/postgres.js";
+import { requireAuth } from "./marketer-pro/auth/middleware.js";
 import {
   executeAttachScheduleEntryCampaignRequest,
   executeCreateCampaignRequest,
@@ -177,6 +178,16 @@ const knownPaths = new Set([
 ]);
 
 const server = createServer(async (req, res) => {
+  if (req.method === "OPTIONS") {
+    const c = corsHeaders(req);
+    if (c) { res.writeHead(204, c); res.end(); } else { res.writeHead(204); res.end(); }
+    return;
+  }
+
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+  req.headers["x-tenant-id"] = auth.tenantId;
+
   let fullUrl: URL;
   try {
     fullUrl = new URL(req.url ?? "/", `http://${host}`);
@@ -185,22 +196,8 @@ const server = createServer(async (req, res) => {
     return;
   }
   const pathname = fullUrl.pathname;
-
   if (!knownPaths.has(pathname)) {
     json(req, res, 404, { error: "not_found" });
-    return;
-  }
-
-  if (req.method === "OPTIONS") {
-    const c = corsHeaders(req);
-    if (c) {
-      res.writeHead(204, c);
-      res.end();
-      return;
-    }
-  }
-
-  if (!checkBearer(req, res)) {
     return;
   }
 
