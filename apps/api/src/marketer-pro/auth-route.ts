@@ -13,10 +13,13 @@ import { hashPassword, verifyPassword } from "./auth/password.js";
 import {
   signAccessToken,
   signRefreshToken,
+  signPasswordResetToken,
+  verifyPasswordResetToken,
   verifyRefreshToken,
   ACCESS_TOKEN_TTL_S_EXPORT as ACCESS_TTL,
   REFRESH_TOKEN_TTL_S_EXPORT as REFRESH_TTL,
 } from "./auth/jwt.js";
+import { sendPasswordResetEmail } from "./auth/mailer.js";
 import { authRateLimit } from "./auth/rate-limit.js";
 import { requireAuth, securityHeaders } from "./auth/middleware.js";
 import { getUserByEmail, getUserById, insertUser, updateUserPassword } from "../db/users.js";
@@ -186,8 +189,13 @@ export async function handleAuthRequest(req: IncomingMessage, res: ServerRespons
     if (!parsed.success) { json(res, 400, { error: "invalid_body" }); return; }
 
     // Always return 200 to avoid user enumeration
-    // TODO: send email via SMTP when configured
-    console.info(JSON.stringify({ level: "info", event: "password_reset_requested", email: parsed.data.email, tenantId: parsed.data.tenantId }));
+    const user = await getUserByEmail(parsed.data.tenantId, parsed.data.email);
+    if (user) {
+      const resetToken = await signPasswordResetToken(user.id, user.tenant_id);
+      const appOrigin = process.env.APP_ORIGIN?.trim() ?? "http://localhost:5173";
+      const resetUrl = `${appOrigin}/reset-password?token=${encodeURIComponent(resetToken)}`;
+      await sendPasswordResetEmail(user.email, resetUrl);
+    }
     json(res, 200, { ok: true, message: "If that account exists, a reset link has been sent." });
     return;
   }
@@ -198,16 +206,14 @@ export async function handleAuthRequest(req: IncomingMessage, res: ServerRespons
     const parsed = PasswordResetBodySchema.safeParse(body);
     if (!parsed.success) { json(res, 400, { error: "invalid_body" }); return; }
 
-    // Token is a signed JWT with type=reset — verify and apply
-    const { verifyAccessToken: verifyJwt } = await import("./auth/jwt.js");
-    const claims = await verifyJwt(parsed.data.token);
+    const claims = await verifyPasswordResetToken(parsed.data.token);
     if (!claims) { json(res, 401, { error: AuthErrorCode.TOKEN_INVALID }); return; }
 
     const passwordHash = await hashPassword(parsed.data.password);
-    const updated = await updateUserPassword(claims.sub, passwordHash);
+    const updated = await updateUserPassword(claims.userId, passwordHash);
     if (!updated) { json(res, 404, { error: AuthErrorCode.USER_NOT_FOUND }); return; }
 
-    await revokeAllUserTokens(claims.sub);
+    await revokeAllUserTokens(claims.userId);
     json(res, 200, { ok: true });
     return;
   }

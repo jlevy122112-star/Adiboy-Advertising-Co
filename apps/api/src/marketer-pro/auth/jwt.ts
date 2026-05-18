@@ -54,5 +54,24 @@ export async function verifyRefreshToken(token: string): Promise<{ userId: strin
   }
 }
 
+export async function signPasswordResetToken(userId: string, tenantId: string): Promise<string> {
+  return new SignJWT({ tid: tenantId, type: "reset" })
+    .setProtectedHeader({ alg: "HS256" })
+    .setSubject(userId)
+    .setIssuedAt()
+    .setExpirationTime("1h")
+    .sign(getSecret());
+}
+
+export async function verifyPasswordResetToken(token: string): Promise<{ userId: string; tenantId: string } | null> {
+  try {
+    const { payload } = await jwtVerify(token, getSecret());
+    if ((payload as JWTPayload & { type?: string })["type"] !== "reset") return null;
+    return { userId: payload.sub as string, tenantId: payload["tid"] as string };
+  } catch {
+    return null;
+  }
+}
+
 export const ACCESS_TOKEN_TTL_S_EXPORT = ACCESS_TOKEN_TTL_S;
 export const REFRESH_TOKEN_TTL_S_EXPORT = REFRESH_TOKEN_TTL_S;
