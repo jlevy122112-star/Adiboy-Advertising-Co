@@ -2,7 +2,7 @@
  * Applies SQL migrations in lexical order from ../db/migrations/*.sql
  */
 
-/* global process, console */
+/* global process, console, URL */
 
 import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
