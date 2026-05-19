@@ -80,7 +80,7 @@ interface Props {
   tenantId: string;
 }
 
-export function SentimentPanel({ tenantId }: Props) {
+export function SentimentPanel({ tenantId: _tenantId }: Props) {
   const [summary, setSummary]   = useState<SentimentSummary | null>(null);
   const [comments, setComments] = useState<SocialComment[]>([]);
   const [filter, setFilter]     = useState<Filter>("all");
