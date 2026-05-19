@@ -11,8 +11,8 @@
   "scripts": {
     "prepare": "husky",
     "typecheck": "node node_modules/typescript/lib/tsc.js -b tsconfig.workspaces.json --pretty false",
-    "lint": "node --max-old-space-size=4096 node_modules/.bin/eslint packages apps --max-warnings 999 --ignore-pattern apps/marketer-pro-mobile",
-    "lint:fix": "node --max-old-space-size=4096 node_modules/.bin/eslint packages apps --fix --max-warnings 999 --ignore-pattern apps/marketer-pro-mobile",
+    "lint": "node --max-old-space-size=4096 node_modules/eslint/bin/eslint.js packages apps --max-warnings 999 --ignore-pattern apps/marketer-pro-mobile",
+    "lint:fix": "node --max-old-space-size=4096 node_modules/eslint/bin/eslint.js packages apps --fix --max-warnings 999 --ignore-pattern apps/marketer-pro-mobile",
     "verify": "node scripts/verify-workspace.mjs",
     "test:packages": "vitest run",
     "test:check": "npm run typecheck && npm run test:packages",
