@@ -25,7 +25,7 @@ function seoColor(score: number): string {
   return '#22c55e'
 }
 
-export function SerpBriefPanel({ apiOrigin, tenantId: _tenantId, industryVertical, onUseBrief }: Props) {
+export function SerpBriefPanel({ apiOrigin, industryVertical, onUseBrief }: Props) {
   const [keyword, setKeyword] = useState('')
   const [loading, setLoading] = useState(false)
   const [activeBrief, setActiveBrief] = useState<SerpBrief | null>(null)

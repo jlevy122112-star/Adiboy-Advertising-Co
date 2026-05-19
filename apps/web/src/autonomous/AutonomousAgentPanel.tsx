@@ -91,7 +91,7 @@ function ProgressBar({ pct }: { pct: number }) {
   )
 }
 
-export function AutonomousAgentPanel({ tenantId: _tenantId }: { tenantId: string }) {
+export function AutonomousAgentPanel(_props: { tenantId: string }) {
   const [networks, setNetworks] = useState<string[]>(['instagram', 'linkedin'])
   const [scope, setScope] = useState<Scope>('single_post')
   const [launching, setLaunching] = useState(false)

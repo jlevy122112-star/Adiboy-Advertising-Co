@@ -108,7 +108,7 @@ interface Props {
   tenantId: string;
 }
 
-export function PredictiveSchedulePanel({ tenantId: _tenantId }: Props) {
+export function PredictiveSchedulePanel(_props: Props) {
   const [network,     setNetwork]     = useState("instagram");
   const [contentType, setContentType] = useState("");
   const [timezone,    setTimezone]    = useState("America/New_York");
