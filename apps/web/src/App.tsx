@@ -203,7 +203,7 @@ function AppShell() {
                     <div className="app-panel-label">Sentiment & Listening</div>
                     <PlanGate requiredPlan="pro" feature="Sentiment Analysis">
                       <ErrorBoundary label="Sentiment">
-                        <SentimentPanel tenantId={tenantId} />
+                        <SentimentPanel />
                       </ErrorBoundary>
                     </PlanGate>
                   </div>
@@ -211,7 +211,7 @@ function AppShell() {
                     <div className="app-panel-label">Best Time to Post</div>
                     <PlanGate requiredPlan="pro" feature="Predictive Scheduling">
                       <ErrorBoundary label="Predictive Schedule">
-                        <PredictiveSchedulePanel tenantId={tenantId} />
+                        <PredictiveSchedulePanel />
                       </ErrorBoundary>
                     </PlanGate>
                   </div>
@@ -275,7 +275,7 @@ function AppShell() {
                 <div className="app-panel-label">Autonomous Agent</div>
                 <PlanGate requiredPlan="pro" feature="Autonomous Agent">
                   <ErrorBoundary label="Autonomous Agent">
-                    {tenantId && <AutonomousAgentPanel tenantId={tenantId} />}
+                    <AutonomousAgentPanel />
                   </ErrorBoundary>
                 </PlanGate>
               </div>

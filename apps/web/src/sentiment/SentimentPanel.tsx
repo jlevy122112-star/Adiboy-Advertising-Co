@@ -76,11 +76,7 @@ function SentimentBadge({ score }: { score: SentimentScore | null }) {
   return <span className={`sp-sentiment-badge sp-badge-${score}`}>{emoji} {score}</span>;
 }
 
-interface Props {
-  tenantId: string;
-}
-
-export function SentimentPanel(_props: Props) {
+export function SentimentPanel() {
   const [summary, setSummary]   = useState<SentimentSummary | null>(null);
   const [comments, setComments] = useState<SocialComment[]>([]);
   const [filter, setFilter]     = useState<Filter>("all");
