@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useAuth } from './useAuth'
 import './auth.css'
+import '../legal/legal.css'
 
 type Props = { onSwitchToLogin: () => void }
 
@@ -152,6 +153,13 @@ export function SignupPage({ onSwitchToLogin }: Props) {
           Already have an account?{' '}
           <button className="auth-link" type="button" onClick={onSwitchToLogin}>Sign in</button>
         </p>
+
+        <div className="legal-footer-links">
+          By signing up you agree to our{' '}
+          <a href="#/terms">Terms of Service</a>
+          <span className="sep"> and </span>
+          <a href="#/privacy">Privacy Policy</a>
+        </div>
       </div>
     </div>
   )

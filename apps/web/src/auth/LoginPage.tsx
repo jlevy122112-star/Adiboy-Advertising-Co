@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useAuth } from './useAuth'
 import './auth.css'
+import '../legal/legal.css'
 
 type Props = { onSwitchToSignup: () => void }
 
@@ -107,6 +108,12 @@ export function LoginPage({ onSwitchToSignup }: Props) {
             Create one
           </button>
         </p>
+
+        <div className="legal-footer-links">
+          <a href="#/privacy">Privacy Policy</a>
+          <span className="sep">·</span>
+          <a href="#/terms">Terms of Service</a>
+        </div>
       </div>
     </div>
   )

@@ -27,6 +27,7 @@
     "start:autonomous": "node dist/autonomous-agent-server.js",
     "start:team": "node dist/team-server.js",
     "start:safety": "node dist/safety-server.js",
+    "start:billing": "node dist/billing-server.js",
     "db:migrate": "node scripts/migrate.mjs"
   },
   "dependencies": {
@@ -44,6 +45,7 @@
     "jose": "^6.2.3",
     "nodemailer": "^8.0.7",
     "postgres": "^3.4.5",
+    "stripe": "^22.1.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {

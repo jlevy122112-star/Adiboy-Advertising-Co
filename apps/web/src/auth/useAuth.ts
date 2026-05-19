@@ -2,12 +2,15 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 
 const AUTH_API = import.meta.env.VITE_AUTH_API_ORIGIN as string ?? 'http://localhost:8798'
 
+export type PlanTier = 'free' | 'pro' | 'enterprise'
+
 export type AuthUser = {
   id: string
   email: string
   role: string
   tenantId: string
   emailVerified: boolean
+  plan: PlanTier
 }
 
 type Tokens = {
@@ -91,7 +94,7 @@ export function useAuth() {
     })
     if (!res.ok) return null
     const { user } = await res.json() as { user: AuthUser }
-    return user
+    return { plan: 'free', ...user } as AuthUser
   }, [])
 
   useEffect(() => {
@@ -127,11 +130,11 @@ export function useAuth() {
       const { error } = await res.json() as { error: string }
       return error
     }
-    const { user, tokens } = await res.json() as { user: AuthUser; tokens: Tokens }
+    const { user: u1, tokens } = await res.json() as { user: AuthUser; tokens: Tokens }
     _accessToken = tokens.accessToken
     saveRefreshToken(tokens.refreshToken)
     scheduleRefresh(tokens.expiresIn)
-    setState({ status: 'authenticated', user, accessToken: tokens.accessToken })
+    setState({ status: 'authenticated', user: { plan: 'free', ...u1 }, accessToken: tokens.accessToken })
     return null
   }, [scheduleRefresh])
 
@@ -145,11 +148,11 @@ export function useAuth() {
       const { error } = await res.json() as { error: string }
       return error
     }
-    const { user, tokens } = await res.json() as { user: AuthUser; tokens: Tokens }
+    const { user: u2, tokens } = await res.json() as { user: AuthUser; tokens: Tokens }
     _accessToken = tokens.accessToken
     saveRefreshToken(tokens.refreshToken)
     scheduleRefresh(tokens.expiresIn)
-    setState({ status: 'authenticated', user, accessToken: tokens.accessToken })
+    setState({ status: 'authenticated', user: { plan: 'free', ...u2 }, accessToken: tokens.accessToken })
     return null
   }, [scheduleRefresh])
 

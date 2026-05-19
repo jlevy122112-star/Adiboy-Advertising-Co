@@ -14,6 +14,10 @@ import { SentimentPanel } from './sentiment/SentimentPanel'
 import { PredictiveSchedulePanel } from './predictive/PredictiveSchedulePanel'
 import { AutonomousAgentPanel } from './autonomous/AutonomousAgentPanel'
 import { TeamPanel } from './team/TeamPanel'
+import { PlanGate } from './billing/PlanGate'
+import { PricingPage } from './billing/PricingPage'
+import { usePlan } from './billing/usePlan'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import './App.css'
 
 const TENANT_ID = import.meta.env.VITE_TENANT_ID as string | undefined
@@ -24,7 +28,7 @@ const brandingApiConfig: BrandingApiConfig | null =
     ? { tenantId: TENANT_ID, apiOrigin: BRAND_API_ORIGIN }
     : null
 
-type Tab = 'calendar' | 'analytics' | 'ai-studio' | 'campaigns' | 'team' | 'brand'
+type Tab = 'calendar' | 'analytics' | 'ai-studio' | 'campaigns' | 'team' | 'brand' | 'pricing'
 
 const TABS: Array<{ id: Tab; label: string; icon: string }> = [
   { id: 'calendar',   label: 'Calendar',   icon: '▦' },
@@ -33,6 +37,7 @@ const TABS: Array<{ id: Tab; label: string; icon: string }> = [
   { id: 'campaigns',  label: 'Campaigns',  icon: '◎' },
   { id: 'team',       label: 'Team',       icon: '◉' },
   { id: 'brand',      label: 'Brand',      icon: '◆' },
+  { id: 'pricing',    label: 'Pricing',    icon: '◇' },
 ]
 
 function NavIcon({ id }: { id: Tab }) {
@@ -77,6 +82,12 @@ function NavIcon({ id }: { id: Tab }) {
         <path d="M10 2l2.1 4.3 4.7.7-3.4 3.3.8 4.7L10 12.6l-4.2 2.4.8-4.7L3.2 7l4.7-.7z" />
       </svg>
     ),
+    pricing: (
+      <svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="10" cy="10" r="8" />
+        <path d="M10 6v1.5M10 12.5V14M8 8.5c0-1.1.9-1.5 2-1.5s2 .5 2 1.5-1 1.5-2 1.5-2 .5-2 1.5.9 1.5 2 1.5 2-.4 2-1.5" />
+      </svg>
+    ),
   }
   return <>{icons[id]}</>
 }
@@ -111,6 +122,7 @@ function UserAvatar({ email, onLogout }: { email: string; onLogout: () => void }
 function AppShell() {
   const { theme, setTheme } = useBrandTheme()
   const { state, logout } = useAuth()
+  const { plan, isFree } = usePlan()
   const [activeTab, setActiveTab] = useState<Tab>('calendar')
 
   const brandName = theme.displayName.trim() || 'Marketer Pro'
@@ -151,7 +163,13 @@ function AppShell() {
         </div>
 
         <div className="app-nav-right">
-          <div className="app-free-badge">Free plan</div>
+          <button
+            className={`app-free-badge${!isFree ? ' app-free-badge--paid' : ''}`}
+            onClick={() => setActiveTab('pricing')}
+            title="View pricing plans"
+          >
+            {plan === 'free' ? 'Free plan' : plan === 'pro' ? 'Pro' : 'Enterprise'}
+          </button>
           {userEmail && <UserAvatar email={userEmail} onLogout={logout} />}
         </div>
       </nav>
@@ -160,7 +178,9 @@ function AppShell() {
       <main className="app-main">
         {activeTab === 'calendar' && (
           <div className="app-canvas">
-            <MarketerCalendar />
+            <ErrorBoundary label="Calendar">
+              <MarketerCalendar />
+            </ErrorBoundary>
           </div>
         )}
 
@@ -175,15 +195,25 @@ function AppShell() {
                 <>
                   <div className="app-panel-card app-panel-card--full">
                     <div className="app-panel-label">Performance</div>
-                    <AnalyticsDashboard tenantId={tenantId} />
+                    <ErrorBoundary label="Analytics Dashboard">
+                      <AnalyticsDashboard tenantId={tenantId} />
+                    </ErrorBoundary>
                   </div>
                   <div className="app-panel-card">
                     <div className="app-panel-label">Sentiment & Listening</div>
-                    <SentimentPanel tenantId={tenantId} />
+                    <PlanGate requiredPlan="pro" feature="Sentiment Analysis">
+                      <ErrorBoundary label="Sentiment">
+                        <SentimentPanel tenantId={tenantId} />
+                      </ErrorBoundary>
+                    </PlanGate>
                   </div>
                   <div className="app-panel-card">
                     <div className="app-panel-label">Best Time to Post</div>
-                    <PredictiveSchedulePanel tenantId={tenantId} />
+                    <PlanGate requiredPlan="pro" feature="Predictive Scheduling">
+                      <ErrorBoundary label="Predictive Schedule">
+                        <PredictiveSchedulePanel tenantId={tenantId} />
+                      </ErrorBoundary>
+                    </PlanGate>
                   </div>
                 </>
               )}
@@ -200,15 +230,27 @@ function AppShell() {
             <div className="app-panel-grid">
               <div className="app-panel-card">
                 <div className="app-panel-label">Video Generator</div>
-                <VideoGenPanel />
+                <PlanGate requiredPlan="pro" feature="AI Video Generator">
+                  <ErrorBoundary label="Video Generator">
+                    <VideoGenPanel />
+                  </ErrorBoundary>
+                </PlanGate>
               </div>
               <div className="app-panel-card">
                 <div className="app-panel-label">SERP Research</div>
-                {tenantId && <SerpBriefPanel apiOrigin={import.meta.env.VITE_SERP_API_ORIGIN as string ?? ''} tenantId={tenantId} />}
+                <PlanGate requiredPlan="pro" feature="SERP Keyword Research">
+                  <ErrorBoundary label="SERP Research">
+                    {tenantId && <SerpBriefPanel apiOrigin={import.meta.env.VITE_SERP_API_ORIGIN as string ?? ''} tenantId={tenantId} />}
+                  </ErrorBoundary>
+                </PlanGate>
               </div>
               <div className="app-panel-card">
                 <div className="app-panel-label">Brand Profile Draft</div>
-                <BrandProfileDraftPanel />
+                <PlanGate requiredPlan="pro" feature="AI Brand Profile Draft">
+                  <ErrorBoundary label="Brand Profile Draft">
+                    <BrandProfileDraftPanel />
+                  </ErrorBoundary>
+                </PlanGate>
               </div>
             </div>
           </div>
@@ -223,15 +265,27 @@ function AppShell() {
             <div className="app-panel-grid">
               <div className="app-panel-card">
                 <div className="app-panel-label">Campaign Sync</div>
-                <CampaignSyncPanel />
+                <PlanGate requiredPlan="pro" feature="Campaign Sync & Live Publishing">
+                  <ErrorBoundary label="Campaign Sync">
+                    <CampaignSyncPanel />
+                  </ErrorBoundary>
+                </PlanGate>
               </div>
               <div className="app-panel-card">
                 <div className="app-panel-label">Autonomous Agent</div>
-                {tenantId && <AutonomousAgentPanel tenantId={tenantId} />}
+                <PlanGate requiredPlan="pro" feature="Autonomous Agent">
+                  <ErrorBoundary label="Autonomous Agent">
+                    {tenantId && <AutonomousAgentPanel tenantId={tenantId} />}
+                  </ErrorBoundary>
+                </PlanGate>
               </div>
               <div className="app-panel-card">
                 <div className="app-panel-label">Social Connections</div>
-                <SocialConnectionsPanel />
+                <PlanGate requiredPlan="pro" feature="Social Connections & Publishing">
+                  <ErrorBoundary label="Social Connections">
+                    <SocialConnectionsPanel />
+                  </ErrorBoundary>
+                </PlanGate>
               </div>
             </div>
           </div>
@@ -246,10 +300,20 @@ function AppShell() {
             <div className="app-panel-grid app-panel-grid--centered">
               {tenantId && (
                 <div className="app-panel-card app-panel-card--wide">
-                  <TeamPanel tenantId={tenantId} />
+                  <ErrorBoundary label="Team">
+                    <TeamPanel tenantId={tenantId} />
+                  </ErrorBoundary>
                 </div>
               )}
             </div>
+          </div>
+        )}
+
+        {activeTab === 'pricing' && (
+          <div className="app-tab-view">
+            <ErrorBoundary label="Pricing">
+              <PricingPage />
+            </ErrorBoundary>
           </div>
         )}
 
@@ -262,27 +326,43 @@ function AppShell() {
             <div className="app-panel-grid app-panel-grid--centered">
               <div className="app-panel-card app-panel-card--wide">
                 <div className="app-panel-label">Workspace Theme</div>
-                <BrandThemePanel theme={theme} onThemeChange={setTheme} apiConfig={brandingApiConfig} />
+                <ErrorBoundary label="Brand Theme">
+                  <BrandThemePanel theme={theme} onThemeChange={setTheme} apiConfig={brandingApiConfig} />
+                </ErrorBoundary>
               </div>
               {tenantId && (
                 <div className="app-panel-card">
                   <div className="app-panel-label">Branding Signature</div>
-                  <BrandingSignatureToggle tenantId={tenantId} isPaidPlan={false} />
+                  <ErrorBoundary label="Branding Signature">
+                    <BrandingSignatureToggle tenantId={tenantId} isPaidPlan={false} />
+                  </ErrorBoundary>
                 </div>
               )}
             </div>
           </div>
         )}
       </main>
+
+      <footer className="app-footer">
+        © {new Date().getFullYear()} Marketer Pro
+        <span className="sep">·</span>
+        <a href="#/privacy">Privacy</a>
+        <span className="sep">·</span>
+        <a href="#/terms">Terms</a>
+        <span className="sep">·</span>
+        <a href="mailto:support@marketer.pro">Support</a>
+      </footer>
     </div>
   )
 }
 
 function App() {
   return (
-    <AuthGuard>
-      <AppShell />
-    </AuthGuard>
+    <ErrorBoundary label="Application">
+      <AuthGuard>
+        <AppShell />
+      </AuthGuard>
+    </ErrorBoundary>
   )
 }
 

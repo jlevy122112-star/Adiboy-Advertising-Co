@@ -175,7 +175,9 @@ export async function handleAuthRequest(req: IncomingMessage, res: ServerRespons
     if (!auth) return;
     const user = await getUserById(auth.userId);
     if (!user) { json(res, 404, { error: AuthErrorCode.USER_NOT_FOUND }); return; }
-    json(res, 200, { user: { id: user.id, email: user.email, role: user.role, tenantId: user.tenant_id, emailVerified: user.email_verified } });
+    const { getWorkspacePlan } = await import("../db/workspace-billing.js");
+    const plan = await getWorkspacePlan(auth.tenantId);
+    json(res, 200, { user: { id: user.id, email: user.email, role: user.role, tenantId: user.tenant_id, emailVerified: user.email_verified, plan } });
     return;
   }
 

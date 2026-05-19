@@ -124,7 +124,7 @@
 
 .app-nav-tab--active .app-nav-tab-icon { opacity: 1; }
 
-/* Free plan badge */
+/* Plan badge */
 .app-free-badge {
   font-size: 0.625rem;
   font-weight: 800;
@@ -135,6 +135,16 @@
   border: 1px solid rgba(217, 119, 6, 0.25);
   border-radius: var(--radius-full);
   padding: 0.2rem 0.55rem;
+  cursor: pointer;
+  transition: opacity var(--duration-fast);
+}
+
+.app-free-badge:hover { opacity: 0.8; }
+
+.app-free-badge--paid {
+  color: var(--accent);
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
 }
 
 /* User menu */
@@ -438,6 +448,39 @@
   color: var(--danger);
   background: var(--danger-bg);
 }
+
+/* ── App footer ──────────────────────────────────────────────────────────── */
+
+.app-footer {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border-subtle);
+  background: var(--surface);
+}
+
+.app-footer a {
+  color: var(--text-muted);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-style: dashed;
+  cursor: pointer;
+  background: none;
+  border: none;
+  font-size: inherit;
+  font-family: inherit;
+  padding: 0;
+  transition: color var(--duration-fast);
+}
+
+.app-footer a:hover { color: var(--accent); }
+
+.app-footer .sep { opacity: 0.35; }
 
 /* ── Responsive ──────────────────────────────────────────────────────────── */
 
