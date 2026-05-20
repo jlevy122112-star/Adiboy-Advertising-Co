@@ -6,6 +6,7 @@ import { startXOAuth, exchangeXCode } from "../social/oauth/x.js";
 import { startMetaOAuth, exchangeMetaCode } from "../social/oauth/meta.js";
 import { startLinkedInOAuth, exchangeLinkedInCode } from "../social/oauth/linkedin.js";
 import { startYouTubeOAuth, exchangeYouTubeCode } from "../social/oauth/youtube.js";
+import { startTikTokOAuth, exchangeTikTokCode } from "../social/oauth/tiktok.js";
 
 type PendingOAuth = { codeVerifier?: string; state: string; userId: string; tenantId: string; network: string };
 const pending = new Map<string, PendingOAuth>();
@@ -24,7 +25,7 @@ function json(res: ServerResponse, status: number, body: unknown): void {
   res.end(JSON.stringify(body));
 }
 
-const SUPPORTED = ["x", "meta", "linkedin", "youtube"] as const;
+const SUPPORTED = ["x", "meta", "linkedin", "youtube", "tiktok"] as const;
 type Network = (typeof SUPPORTED)[number];
 
 function isSupportedNetwork(n: string): n is Network {
@@ -62,6 +63,10 @@ export async function handleSocialOAuthRequest(req: IncomingMessage, res: Server
     } else if (network === "linkedin") {
       const r = startLinkedInOAuth(state);
       redirectUrl = r.url;
+    } else if (network === "tiktok") {
+      const r = startTikTokOAuth(state);
+      redirectUrl = r.url;
+      codeVerifier = r.codeVerifier;
     } else {
       const r = startYouTubeOAuth(state);
       redirectUrl = r.url;
@@ -93,6 +98,7 @@ export async function handleSocialOAuthRequest(req: IncomingMessage, res: Server
       let accessToken: string;
       let refreshToken: string | null = null;
       let expiresIn: number | null = null;
+      let metadata: Record<string, unknown> | undefined;
 
       if (network === "x") {
         const t = await exchangeXCode(code, pend.codeVerifier!);
@@ -103,13 +109,18 @@ export async function handleSocialOAuthRequest(req: IncomingMessage, res: Server
       } else if (network === "linkedin") {
         const t = await exchangeLinkedInCode(code);
         accessToken = t.accessToken; refreshToken = t.refreshToken; expiresIn = t.expiresIn;
+      } else if (network === "tiktok") {
+        const t = await exchangeTikTokCode(code, pend.codeVerifier!);
+        accessToken = t.accessToken; refreshToken = t.refreshToken; expiresIn = t.expiresIn;
+        // Store openId in metadata for later publish/analytics use
+        metadata = { openId: t.openId };
       } else {
         const t = await exchangeYouTubeCode(code, pend.codeVerifier!);
         accessToken = t.accessToken; refreshToken = t.refreshToken; expiresIn = t.expiresIn;
       }
 
       const expiresAt = expiresIn ? new Date(Date.now() + expiresIn * 1000).toISOString() : null;
-      await upsertSocialCredential({ tenantId: pend.tenantId, network, accessToken, refreshToken, expiresAt });
+      await upsertSocialCredential({ tenantId: pend.tenantId, network, accessToken, refreshToken, expiresAt, metadata });
 
       // Redirect to frontend success page
       const frontendBase = process.env.MARKETER_FRONTEND_URL?.trim() ?? "http://localhost:5173";

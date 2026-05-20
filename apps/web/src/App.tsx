@@ -9,6 +9,7 @@ import { AuthGuard } from './auth/AuthGuard'
 import { useAuth } from './auth/useAuth'
 import { BrandingSignatureToggle } from './viral/BrandingSignatureToggle'
 import { SerpBriefPanel } from './serp/SerpBriefPanel'
+import { TikTokStudioPanel } from './tiktok/TikTokStudioPanel'
 import AnalyticsDashboard from './analytics/AnalyticsDashboard'
 import { SentimentPanel } from './sentiment/SentimentPanel'
 import { PredictiveSchedulePanel } from './predictive/PredictiveSchedulePanel'
@@ -268,6 +269,14 @@ function AppShell() {
                 <PlanGate requiredPlan="pro" feature="AI Brand Profile Draft">
                   <ErrorBoundary label="Brand Profile Draft">
                     <BrandProfileDraftPanel />
+                  </ErrorBoundary>
+                </PlanGate>
+              </div>
+              <div className="app-panel-card app-panel-card--full">
+                <div className="app-panel-label">TikTok Creative Studio</div>
+                <PlanGate requiredPlan="pro" feature="TikTok Creative Studio">
+                  <ErrorBoundary label="TikTok Studio">
+                    <TikTokStudioPanel />
                   </ErrorBoundary>
                 </PlanGate>
               </div>

@@ -9,6 +9,7 @@ import { metaAnalyticsProvider } from "../analytics/meta-analytics.js";
 import { xAnalyticsProvider } from "../analytics/x-analytics.js";
 import { linkedinAnalyticsProvider } from "../analytics/linkedin-analytics.js";
 import { youtubeAnalyticsProvider } from "../analytics/youtube-analytics.js";
+import { tiktokAnalyticsProvider } from "../analytics/tiktok-analytics.js";
 import { upsertAnalyticsSnapshot } from "../db/analytics-snapshot.js";
 import { getScheduleEntry } from "../db/schedule-entry.js";
 
@@ -18,6 +19,7 @@ const PROVIDERS: Partial<Record<AnalyticsNetwork, AnalyticsProvider>> = {
   x: xAnalyticsProvider,
   linkedin: linkedinAnalyticsProvider,
   youtube: youtubeAnalyticsProvider,
+  tiktok: tiktokAnalyticsProvider,
 };
 
 function resolveProvider(network: AnalyticsNetwork): AnalyticsProvider {
