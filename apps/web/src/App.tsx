@@ -10,6 +10,8 @@ import { useAuth } from './auth/useAuth'
 import { BrandingSignatureToggle } from './viral/BrandingSignatureToggle'
 import { SerpBriefPanel } from './serp/SerpBriefPanel'
 import { TikTokStudioPanel } from './tiktok/TikTokStudioPanel'
+import { InstagramStudioPanel } from './instagram/InstagramStudioPanel'
+import { XStudioPanel } from './x-studio/XStudioPanel'
 import AnalyticsDashboard from './analytics/AnalyticsDashboard'
 import { SentimentPanel } from './sentiment/SentimentPanel'
 import { PredictiveSchedulePanel } from './predictive/PredictiveSchedulePanel'
@@ -269,6 +271,22 @@ function AppShell() {
                 <PlanGate requiredPlan="pro" feature="AI Brand Profile Draft">
                   <ErrorBoundary label="Brand Profile Draft">
                     <BrandProfileDraftPanel />
+                  </ErrorBoundary>
+                </PlanGate>
+              </div>
+              <div className="app-panel-card app-panel-card--full">
+                <div className="app-panel-label">Instagram Creative Studio</div>
+                <PlanGate requiredPlan="pro" feature="Instagram Creative Studio">
+                  <ErrorBoundary label="Instagram Studio">
+                    <InstagramStudioPanel />
+                  </ErrorBoundary>
+                </PlanGate>
+              </div>
+              <div className="app-panel-card app-panel-card--full">
+                <div className="app-panel-label">X Creative Studio</div>
+                <PlanGate requiredPlan="pro" feature="X Creative Studio">
+                  <ErrorBoundary label="X Studio">
+                    <XStudioPanel />
                   </ErrorBoundary>
                 </PlanGate>
               </div>
