@@ -10,7 +10,8 @@
  *   - Direct publish via campaign API
  */
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
+import { useContentBrief } from '../generation/ContentBriefContext'
 import { useBrandTheme } from '../BrandThemePanel'
 import { MediaDropZone, type MediaItem } from '../platform-studio/MediaDropZone'
 import { ScheduleCalendar, type BestTimeSlot } from '../platform-studio/ScheduleCalendar'
@@ -198,6 +199,15 @@ function PinterestPhoneMock({ draft }: { draft: PinterestDraft }) {
 export function PinterestStudioPanel() {
   const { theme } = useBrandTheme()
   const [draft, setDraft] = useState<PinterestDraft>(DEFAULT_DRAFT)
+  const { briefId, adaptation, isSelected } = useContentBrief('pinterest')
+  useEffect(() => {
+    if (!briefId || !adaptation || !isSelected) return
+    const title = adaptation.copy.headline ?? ''
+    const description = [adaptation.copy.body, adaptation.copy.cta].filter(Boolean).join(' ')
+    const keywords = adaptation.copy.hashtags ?? []
+    setDraft(d => ({ ...d, title: title.slice(0, 100), description: description.slice(0, 500), keywords: keywords.slice(0, 20) }))
+  }, [briefId, adaptation, isSelected])
+
   const [keywordInput, setKeywordInput] = useState('')
   const [publishing, setPublishing] = useState(false)
   const [publishResult, setPublishResult] = useState<{ ok: boolean; message: string } | null>(null)

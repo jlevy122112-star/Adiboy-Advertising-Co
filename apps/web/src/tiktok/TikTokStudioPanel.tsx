@@ -10,7 +10,8 @@
  *   - Direct publish or schedule via campaign
  */
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
+import { useContentBrief } from '../generation/ContentBriefContext'
 import { apiFetch } from '../hooks/useApi'
 import './tiktok-studio.css'
 
@@ -166,6 +167,13 @@ const DEFAULT_POST: TikTokPost = {
 
 export function TikTokStudioPanel() {
   const [post, setPost] = useState<TikTokPost>(DEFAULT_POST)
+  const { briefId, adaptation, isSelected } = useContentBrief('tiktok')
+  useEffect(() => {
+    if (!briefId || !adaptation || !isSelected) return
+    const body = [adaptation.copy.headline, adaptation.copy.body, adaptation.copy.cta].filter(Boolean).join('\n\n')
+    setPost(p => ({ ...p, caption: body.slice(0, CAPTION_MAX), hashtags: adaptation.copy.hashtags ?? p.hashtags }))
+  }, [briefId, adaptation, isSelected])
+
   const [hashtagInput, setHashtagInput] = useState('')
   const [generating, setGenerating] = useState(false)
   const [publishing, setPublishing] = useState(false)

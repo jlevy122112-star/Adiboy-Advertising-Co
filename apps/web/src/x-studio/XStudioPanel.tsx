@@ -16,7 +16,8 @@
  *   - Partner Readiness checklist
  */
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
+import { useContentBrief } from '../generation/ContentBriefContext'
 import { useBrandTheme } from '../BrandThemePanel'
 import { MediaDropZone, type MediaItem } from '../platform-studio/MediaDropZone'
 import { ScheduleCalendar, type BestTimeSlot } from '../platform-studio/ScheduleCalendar'
@@ -492,6 +493,17 @@ export function XStudioPanel() {
     if (draft.pollOptions.length <= 2) return
     setDraft(d => ({ ...d, pollOptions: d.pollOptions.filter((_, idx) => idx !== i) }))
   }
+
+  const { briefId, adaptation, isSelected } = useContentBrief('x')
+  useEffect(() => {
+    if (!briefId || !adaptation || !isSelected) return
+    const body = [adaptation.copy.headline, adaptation.copy.body].filter(Boolean).join(' ')
+    setDraft(d => ({
+      ...d,
+      cards: [{ ...d.cards[0], text: body.slice(0, TWEET_MAX) }],
+      hashtags: adaptation.copy.hashtags ?? d.hashtags,
+    }))
+  }, [briefId, adaptation, isSelected])
 
   const onTagsChange = useCallback((t: string[]) => setDraft(d => ({ ...d, hashtags: t })), [])
   const onSchedule   = useCallback((dt: Date)    => setDraft(d => ({ ...d, scheduledAt: dt })), [])

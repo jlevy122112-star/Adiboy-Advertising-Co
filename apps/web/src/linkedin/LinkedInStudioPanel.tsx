@@ -16,7 +16,8 @@
  *   - Partner Readiness checklist (7 items)
  */
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
+import { useContentBrief } from '../generation/ContentBriefContext'
 import { useBrandTheme } from '../BrandThemePanel'
 import { MediaDropZone, type MediaItem } from '../platform-studio/MediaDropZone'
 import { ScheduleCalendar, type BestTimeSlot } from '../platform-studio/ScheduleCalendar'
@@ -329,6 +330,13 @@ export function LinkedInStudioPanel() {
   function patch(partial: Partial<LiDraft>) {
     setDraft(d => ({ ...d, ...partial }))
   }
+
+  const { briefId, adaptation, isSelected } = useContentBrief('linkedin')
+  useEffect(() => {
+    if (!briefId || !adaptation || !isSelected) return
+    const body = [adaptation.copy.headline, adaptation.copy.body, adaptation.copy.cta].filter(Boolean).join('\n\n')
+    setDraft(d => ({ ...d, body: body.slice(0, 3000), hashtags: adaptation.copy.hashtags ?? d.hashtags }))
+  }, [briefId, adaptation, isSelected])
 
   const onMediaChange        = useCallback((m: MediaItem[]) => setDraft(d => ({ ...d, media: m })),        [])
   const onArticleCoverChange = useCallback((m: MediaItem[]) => setDraft(d => ({ ...d, articleCover: m })), [])

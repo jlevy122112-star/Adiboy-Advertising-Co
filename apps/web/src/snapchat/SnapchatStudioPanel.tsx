@@ -10,7 +10,8 @@
  *   - Direct publish via campaign API
  */
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
+import { useContentBrief } from '../generation/ContentBriefContext'
 import { useBrandTheme } from '../BrandThemePanel'
 import { MediaDropZone, type MediaItem } from '../platform-studio/MediaDropZone'
 import { ScheduleCalendar, type BestTimeSlot } from '../platform-studio/ScheduleCalendar'
@@ -224,6 +225,13 @@ const AD_TYPE_LABELS: Record<AdType, string> = {
 export function SnapchatStudioPanel() {
   const { theme } = useBrandTheme()
   const [draft, setDraft] = useState<SnapchatDraft>(DEFAULT_DRAFT)
+  const { briefId, adaptation, isSelected } = useContentBrief('snapchat')
+  useEffect(() => {
+    if (!briefId || !adaptation || !isSelected) return
+    const caption = [adaptation.copy.headline, adaptation.copy.body].filter(Boolean).join(' ')
+    setDraft(d => ({ ...d, caption: caption.slice(0, 250), spotlightCaption: caption.slice(0, 250) }))
+  }, [briefId, adaptation, isSelected])
+
   const [publishing, setPublishing] = useState(false)
   const [publishResult, setPublishResult] = useState<{ ok: boolean; message: string } | null>(null)
 

@@ -18,7 +18,8 @@
  *   - Long-form 16:9 phone preview with action bar
  */
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
+import { useContentBrief } from '../generation/ContentBriefContext'
 import { useBrandTheme } from '../BrandThemePanel'
 import { MediaDropZone, type MediaItem } from '../platform-studio/MediaDropZone'
 import { ScheduleCalendar, type BestTimeSlot } from '../platform-studio/ScheduleCalendar'
@@ -334,6 +335,14 @@ function LongFormPreview({ draft }: { draft: YtDraft }) {
 export function YouTubeStudioPanel() {
   const { theme } = useBrandTheme()
   const [draft, setDraft]         = useState<YtDraft>(DEFAULT_DRAFT)
+  const { briefId, adaptation, isSelected } = useContentBrief('youtube')
+  useEffect(() => {
+    if (!briefId || !adaptation || !isSelected) return
+    const title = adaptation.copy.headline ?? ''
+    const desc  = [adaptation.copy.body, adaptation.copy.cta].filter(Boolean).join('\n\n')
+    setDraft(d => ({ ...d, title: title.slice(0, 100), description: desc.slice(0, 5000), hashtags: adaptation.copy.hashtags ?? d.hashtags }))
+  }, [briefId, adaptation, isSelected])
+
   const [generating, setGenerating] = useState(false)
   const [publishing, setPublishing] = useState(false)
   const [result, setResult]         = useState<{ ok: boolean; message: string } | null>(null)

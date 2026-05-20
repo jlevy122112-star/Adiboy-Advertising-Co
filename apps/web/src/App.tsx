@@ -1,4 +1,6 @@
 import { useState, useMemo } from 'react'
+import { ContentBriefProvider } from './generation/ContentBriefContext'
+import { ContentBriefGenerator } from './generation/ContentBriefGenerator'
 import { BrandProfileDraftPanel } from './BrandProfileDraftPanel'
 import { BrandThemePanel, useBrandTheme, type BrandingApiConfig } from './BrandThemePanel'
 import { CampaignSyncPanel } from './CampaignSyncPanel'
@@ -255,6 +257,11 @@ function AppShell() {
               <p className="app-tab-sub">Generate video, research keywords, and draft brand content with AI.</p>
             </div>
             <div className="app-panel-grid">
+              <div className="app-panel-card app-panel-card--full">
+                <ErrorBoundary label="Content Brief Generator">
+                  <ContentBriefGenerator />
+                </ErrorBoundary>
+              </div>
               <div className="app-panel-card">
                 <div className="app-panel-label">Video Generator</div>
                 <PlanGate requiredPlan="pro" feature="AI Video Generator">
@@ -451,11 +458,13 @@ function AppShell() {
 
 function App() {
   return (
-    <ErrorBoundary label="Application">
-      <AuthGuard>
-        <AppShell />
-      </AuthGuard>
-    </ErrorBoundary>
+    <ContentBriefProvider>
+      <ErrorBoundary label="Application">
+        <AuthGuard>
+          <AppShell />
+        </AuthGuard>
+      </ErrorBoundary>
+    </ContentBriefProvider>
   )
 }
 

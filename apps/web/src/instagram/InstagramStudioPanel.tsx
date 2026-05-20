@@ -15,7 +15,8 @@
  *   - Partner Readiness checklist
  */
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
+import { useContentBrief } from '../generation/ContentBriefContext'
 import { useBrandTheme } from '../BrandThemePanel'
 import { MediaDropZone, type MediaItem } from '../platform-studio/MediaDropZone'
 import { ScheduleCalendar, type BestTimeSlot } from '../platform-studio/ScheduleCalendar'
@@ -358,6 +359,17 @@ export function InstagramStudioPanel() {
   function setFormat(f: IgFormat) {
     setDraft(d => ({ ...d, format: f, media: [] }))
   }
+
+  const { briefId, adaptation, isSelected } = useContentBrief('instagram')
+  useEffect(() => {
+    if (!briefId || !adaptation || !isSelected) return
+    const body = [adaptation.copy.headline, adaptation.copy.body, adaptation.copy.cta].filter(Boolean).join('\n\n')
+    setDraft(d => ({
+      ...d,
+      caption: body.slice(0, CAPTION_MAX),
+      hashtags: adaptation.copy.hashtags ?? d.hashtags,
+    }))
+  }, [briefId, adaptation, isSelected])
 
   const onMediaChange = useCallback((m: MediaItem[]) => setDraft(d => ({ ...d, media: m })), [])
   const onTagsChange  = useCallback((t: string[])    => setDraft(d => ({ ...d, hashtags: t })), [])
