@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import './autonomous.css'
 import { apiFetch } from '../hooks/useApi'
+import { getAccessToken } from '../auth/useAuth'
 
 const API_ORIGIN = (import.meta.env.VITE_AUTONOMOUS_API_ORIGIN as string | undefined) ?? 'http://localhost:8805'
 
@@ -101,7 +102,7 @@ export function AutonomousAgentPanel() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [detail, setDetail] = useState<RunDetail | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const sseRef = useRef<EventSource | null>(null)
 
   const loadRuns = useCallback(async () => {
     const r = await apiFetch<{ runs: Run[] }>(`${API_ORIGIN}/runs?limit=20`)
@@ -118,12 +119,35 @@ export function AutonomousAgentPanel() {
 
   useEffect(() => {
     loadRuns()
-    pollRef.current = setInterval(() => {
-      loadRuns()
-      if (selectedId) loadDetail(selectedId)
-    }, 5000)
-    return () => { if (pollRef.current) clearInterval(pollRef.current) }
-  }, [loadRuns, selectedId])
+
+    const tok = getAccessToken()
+    const sseUrl = `${API_ORIGIN}/runs/events${tok ? `?_tok=${encodeURIComponent(tok)}` : ''}`
+    let es: EventSource
+
+    function connect() {
+      es = new EventSource(sseUrl)
+      sseRef.current = es
+
+      es.addEventListener('run_updated', () => {
+        void loadRuns()
+      })
+
+      es.onerror = () => {
+        es.close()
+        setTimeout(connect, 3000)
+      }
+    }
+
+    connect()
+
+    return () => {
+      sseRef.current?.close()
+    }
+  }, [loadRuns])
+
+  // Re-fetch detail whenever selectedId changes or runs list updates
+  const runsRef = useRef(runs)
+  runsRef.current = runs
 
   useEffect(() => {
     if (selectedId) loadDetail(selectedId)

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { apiFetch } from '../hooks/useApi'
+import { openExternal } from '../lib/browser'
 import './pricing.css'
 
 const BILLING_API = import.meta.env.VITE_BILLING_API_ORIGIN as string ?? 'http://localhost:8806'
@@ -15,7 +16,7 @@ async function startCheckout(priceId: string, annual: boolean): Promise<void> {
     json: { priceId: priceId || undefined, annual },
   })
   if (res.ok && res.data.url) {
-    window.location.href = res.data.url
+    openExternal(res.data.url)
   } else {
     alert('Checkout unavailable — please contact support@marketer.pro')
   }

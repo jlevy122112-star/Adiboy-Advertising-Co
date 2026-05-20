@@ -119,6 +119,25 @@ function UserAvatar({ email, onLogout }: { email: string; onLogout: () => void }
   )
 }
 
+function MobileNav({ activeTab, setActiveTab }: { activeTab: Tab; setActiveTab: (t: Tab) => void }) {
+  return (
+    <nav className="app-mobile-nav" aria-label="Mobile navigation">
+      {TABS.map(tab => (
+        <button
+          key={tab.id}
+          className={`app-mobile-nav-btn${activeTab === tab.id ? ' app-mobile-nav-btn--active' : ''}`}
+          onClick={() => setActiveTab(tab.id)}
+          aria-current={activeTab === tab.id ? 'page' : undefined}
+          aria-label={tab.label}
+        >
+          <span className="app-mobile-nav-icon"><NavIcon id={tab.id} /></span>
+          <span className="app-mobile-nav-label">{tab.label}</span>
+        </button>
+      ))}
+    </nav>
+  )
+}
+
 function AppShell() {
   const { theme, setTheme } = useBrandTheme()
   const { state, logout } = useAuth()
@@ -342,6 +361,8 @@ function AppShell() {
           </div>
         )}
       </main>
+
+      <MobileNav activeTab={activeTab} setActiveTab={setActiveTab} />
 
       <footer className="app-footer">
         © {new Date().getFullYear()} Marketer Pro

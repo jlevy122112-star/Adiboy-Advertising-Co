@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { storageGet, storageSet, storageRemove } from '../lib/storage'
 
 const AUTH_API = import.meta.env.VITE_AUTH_API_ORIGIN as string ?? 'http://localhost:8798'
 
@@ -26,16 +27,16 @@ type AuthState =
 
 const TOKEN_KEY = 'mp_refresh_token'
 
-function saveRefreshToken(token: string) {
-  try { localStorage.setItem(TOKEN_KEY, token) } catch { /* storage unavailable */ }
+async function saveRefreshToken(token: string) {
+  await storageSet(TOKEN_KEY, token)
 }
 
-function loadRefreshToken(): string | null {
-  try { return localStorage.getItem(TOKEN_KEY) } catch { return null }
+async function loadRefreshToken(): Promise<string | null> {
+  return storageGet(TOKEN_KEY)
 }
 
-function clearRefreshToken() {
-  try { localStorage.removeItem(TOKEN_KEY) } catch { /* storage unavailable */ }
+async function clearRefreshToken() {
+  await storageRemove(TOKEN_KEY)
 }
 
 async function apiRefresh(refreshToken: string): Promise<{ tokens: Tokens } | null> {
@@ -66,7 +67,7 @@ export function useAuth() {
   }, [])
 
   const silentRefresh = useCallback(async () => {
-    const stored = loadRefreshToken()
+    const stored = await loadRefreshToken()
     if (!stored) { setState({ status: 'unauthenticated' }); return }
 
     if (_refreshPromise) { await _refreshPromise; return }
@@ -98,17 +99,17 @@ export function useAuth() {
   }, [])
 
   useEffect(() => {
-    const stored = loadRefreshToken()
-    if (!stored) { setState({ status: 'unauthenticated' }); return }
+    loadRefreshToken().then(async stored => {
+      if (!stored) { setState({ status: 'unauthenticated' }); return }
 
-    apiRefresh(stored).then(async data => {
+      const data = await apiRefresh(stored)
       if (!data) {
-        clearRefreshToken()
+        await clearRefreshToken()
         setState({ status: 'unauthenticated' })
         return
       }
       _accessToken = data.tokens.accessToken
-      saveRefreshToken(data.tokens.refreshToken)
+      await saveRefreshToken(data.tokens.refreshToken)
       scheduleRefresh(data.tokens.expiresIn)
       const user = await fetchMe(data.tokens.accessToken)
       if (!user) { setState({ status: 'unauthenticated' }); return }
@@ -132,7 +133,7 @@ export function useAuth() {
     }
     const { user: u1, tokens } = await res.json() as { user: AuthUser; tokens: Tokens }
     _accessToken = tokens.accessToken
-    saveRefreshToken(tokens.refreshToken)
+    await saveRefreshToken(tokens.refreshToken)
     scheduleRefresh(tokens.expiresIn)
     setState({ status: 'authenticated', user: { plan: 'free', ...u1 }, accessToken: tokens.accessToken })
     return null
@@ -150,15 +151,15 @@ export function useAuth() {
     }
     const { user: u2, tokens } = await res.json() as { user: AuthUser; tokens: Tokens }
     _accessToken = tokens.accessToken
-    saveRefreshToken(tokens.refreshToken)
+    await saveRefreshToken(tokens.refreshToken)
     scheduleRefresh(tokens.expiresIn)
     setState({ status: 'authenticated', user: { plan: 'free', ...u2 }, accessToken: tokens.accessToken })
     return null
   }, [scheduleRefresh])
 
   const logout = useCallback(async () => {
-    const stored = loadRefreshToken()
-    clearRefreshToken()
+    const stored = await loadRefreshToken()
+    await clearRefreshToken()
     _accessToken = null
     if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current)
     setState({ status: 'unauthenticated' })

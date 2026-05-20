@@ -111,3 +111,16 @@
 .au-reload-btn:hover { background: rgba(124,58,237,0.13); }
 
 .au-launch-error { font-size: 0.72rem; color: #fca5a5; margin: 0.25rem 0 0; }
+
+/* ─── Mobile ─────────────────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  .au-network-grid { gap: 0.25rem; }
+  .au-network-btn { font-size: 0.6rem; padding: 0.25rem 0.6rem; }
+  .au-launch-btn { font-size: 0.75rem; padding: 0.5rem 1rem; }
+  .au-post { flex-wrap: wrap; }
+  .au-post-headline { flex-basis: 100%; order: -1; }
+  .au-log { max-height: 140px; }
+  .au-run-id { display: none; }
+  .au-detail { padding: 0.6rem; }
+}

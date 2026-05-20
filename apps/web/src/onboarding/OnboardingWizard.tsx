@@ -6,6 +6,7 @@
 
 import { useState, useRef } from 'react'
 import { getAccessToken } from '../auth/useAuth'
+import { storageSet } from '../lib/storage'
 import './onboarding.css'
 
 const BRAND_API = import.meta.env.VITE_BRAND_API_ORIGIN as string ?? 'http://localhost:8794'
@@ -153,13 +154,13 @@ export function OnboardingWizard({ tenantId, onComplete }: Props) {
       // Non-blocking — allow onboarding to complete even if API is down
     }
 
-    localStorage.setItem(ONBOARDING_DONE_KEY, '1')
+    void storageSet(ONBOARDING_DONE_KEY, '1')
     setSaving(false)
     onComplete()
   }
 
   function skip() {
-    localStorage.setItem(ONBOARDING_DONE_KEY, '1')
+    void storageSet(ONBOARDING_DONE_KEY, '1')
     onComplete()
   }
 

@@ -4,6 +4,7 @@ import { LoginPage } from './LoginPage'
 import { SignupPage } from './SignupPage'
 import { OnboardingWizard, ONBOARDING_DONE_KEY } from '../onboarding/OnboardingWizard'
 import { useToast } from '../components/Toast'
+import { storageGet } from '../lib/storage'
 
 const TENANT_ID = import.meta.env.VITE_TENANT_ID as string | undefined
 
@@ -13,10 +14,12 @@ export function AuthGuard({ children }: Props) {
   const { state, logout } = useAuth()
   const toast = useToast()
   const [view, setView] = useState<'login' | 'signup'>('login')
-  const [onboardingDone, setOnboardingDone] = useState(
-    () => !!localStorage.getItem(ONBOARDING_DONE_KEY)
-  )
+  const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null)
   const prevStatusRef = useRef(state.status)
+
+  useEffect(() => {
+    storageGet(ONBOARDING_DONE_KEY).then(val => setOnboardingDone(!!val))
+  }, [])
 
   useEffect(() => {
     if (prevStatusRef.current === 'authenticated' && state.status === 'unauthenticated') {
@@ -25,7 +28,7 @@ export function AuthGuard({ children }: Props) {
     prevStatusRef.current = state.status
   }, [state.status])
 
-  if (state.status === 'loading') {
+  if (state.status === 'loading' || onboardingDone === null) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#0f172a' }}>
         <span style={{ width: 32, height: 32, border: '3px solid #334155', borderTopColor: '#6366f1', borderRadius: '50%', animation: 'auth-spin 0.7s linear infinite', display: 'block' }} />
