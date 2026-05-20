@@ -12,6 +12,11 @@ import { SerpBriefPanel } from './serp/SerpBriefPanel'
 import { TikTokStudioPanel } from './tiktok/TikTokStudioPanel'
 import { InstagramStudioPanel } from './instagram/InstagramStudioPanel'
 import { XStudioPanel } from './x-studio/XStudioPanel'
+import { LinkedInStudioPanel } from './linkedin/LinkedInStudioPanel'
+import { YouTubeStudioPanel } from './youtube/YouTubeStudioPanel'
+import { FacebookStudioPanel } from './facebook/FacebookStudioPanel'
+import { PinterestStudioPanel } from './pinterest/PinterestStudioPanel'
+import { SnapchatStudioPanel } from './snapchat/SnapchatStudioPanel'
 import AnalyticsDashboard from './analytics/AnalyticsDashboard'
 import { SentimentPanel } from './sentiment/SentimentPanel'
 import { PredictiveSchedulePanel } from './predictive/PredictiveSchedulePanel'
@@ -295,6 +300,46 @@ function AppShell() {
                 <PlanGate requiredPlan="pro" feature="TikTok Creative Studio">
                   <ErrorBoundary label="TikTok Studio">
                     <TikTokStudioPanel />
+                  </ErrorBoundary>
+                </PlanGate>
+              </div>
+              <div className="app-panel-card app-panel-card--full">
+                <div className="app-panel-label">LinkedIn Creative Studio</div>
+                <PlanGate requiredPlan="pro" feature="LinkedIn Creative Studio">
+                  <ErrorBoundary label="LinkedIn Studio">
+                    <LinkedInStudioPanel />
+                  </ErrorBoundary>
+                </PlanGate>
+              </div>
+              <div className="app-panel-card app-panel-card--full">
+                <div className="app-panel-label">YouTube Studio</div>
+                <PlanGate requiredPlan="pro" feature="YouTube Studio">
+                  <ErrorBoundary label="YouTube Studio">
+                    <YouTubeStudioPanel />
+                  </ErrorBoundary>
+                </PlanGate>
+              </div>
+              <div className="app-panel-card app-panel-card--full">
+                <div className="app-panel-label">Facebook Creative Studio</div>
+                <PlanGate requiredPlan="pro" feature="Facebook Creative Studio">
+                  <ErrorBoundary label="Facebook Studio">
+                    <FacebookStudioPanel />
+                  </ErrorBoundary>
+                </PlanGate>
+              </div>
+              <div className="app-panel-card app-panel-card--full">
+                <div className="app-panel-label">Pinterest Creative Studio</div>
+                <PlanGate requiredPlan="pro" feature="Pinterest Creative Studio">
+                  <ErrorBoundary label="Pinterest Studio">
+                    <PinterestStudioPanel />
+                  </ErrorBoundary>
+                </PlanGate>
+              </div>
+              <div className="app-panel-card app-panel-card--full">
+                <div className="app-panel-label">Snapchat Creative Studio</div>
+                <PlanGate requiredPlan="pro" feature="Snapchat Creative Studio">
+                  <ErrorBoundary label="Snapchat Studio">
+                    <SnapchatStudioPanel />
                   </ErrorBoundary>
                 </PlanGate>
               </div>
