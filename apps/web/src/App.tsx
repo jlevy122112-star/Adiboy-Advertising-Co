@@ -4,6 +4,7 @@ import { ContentBriefGenerator } from './generation/ContentBriefGenerator'
 import { BrandProfileDraftPanel } from './BrandProfileDraftPanel'
 import { BrandThemePanel, useBrandTheme, type BrandingApiConfig } from './BrandThemePanel'
 import { CampaignSyncPanel } from './CampaignSyncPanel'
+import { CampaignOrchestrator } from './generation/CampaignOrchestrator'
 import { VideoGenPanel } from './VideoGenPanel'
 import { SocialConnectionsPanel } from './SocialConnectionsPanel'
 import { MarketerCalendar } from './calendar/MarketerCalendar'
@@ -356,11 +357,14 @@ function AppShell() {
 
         {activeTab === 'campaigns' && (
           <div className="app-tab-view">
-            <div className="app-tab-header">
-              <h1 className="app-tab-title">Campaigns</h1>
-              <p className="app-tab-sub">Manage and publish campaigns autonomously across all platforms.</p>
-            </div>
             <div className="app-panel-grid">
+              <div className="app-panel-card app-panel-card--full">
+                <PlanGate requiredPlan="pro" feature="Campaign Orchestrator">
+                  <ErrorBoundary label="Campaign Orchestrator">
+                    <CampaignOrchestrator />
+                  </ErrorBoundary>
+                </PlanGate>
+              </div>
               <div className="app-panel-card">
                 <div className="app-panel-label">Campaign Sync</div>
                 <PlanGate requiredPlan="pro" feature="Campaign Sync & Live Publishing">
