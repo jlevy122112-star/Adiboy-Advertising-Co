@@ -1,5 +1,19 @@
 # Marketer Pro
 
+---
+
+## 🚨 THE ONLY GOAL: GET INTO ALL THREE STORES
+
+> **[`docs/STORE-LAUNCH.md`](docs/STORE-LAUNCH.md) — read this first.**
+>
+> 1. Finish the Capacitor build (iOS + Android native shell)
+> 2. Open Apple Developer + Google Play Console + Microsoft Partner Center accounts
+> 3. Hit every mandatory store requirement (privacy policy, icons, screenshots, compliance)
+>
+> Nothing else ships until we are live in the **App Store, Google Play, and Microsoft Store.**
+
+---
+
 An **AI Content Generator, Planner, and Scheduler** for businesses and
 solopreneurs. Generate every common marketing asset — Facebook profile
 picture, YouTube banner, Instagram ad, LinkedIn cover, blog hero, podcast
