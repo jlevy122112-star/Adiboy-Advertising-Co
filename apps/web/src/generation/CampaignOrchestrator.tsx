@@ -8,6 +8,7 @@
 import { useState, useCallback, useRef } from 'react'
 import { useBrandTheme } from '../BrandThemePanel'
 import { apiFetch } from '../hooks/useApi'
+import { CampaignCalendar } from './CampaignCalendar'
 
 import './campaign-orchestrator.css'
 
@@ -584,7 +585,7 @@ export function CampaignOrchestrator() {
       },
     )
 
-    if (!res.ok) {
+    if (res.ok === false) {
       setError(`Generation failed: ${res.error}`)
       setStep('input')
       return

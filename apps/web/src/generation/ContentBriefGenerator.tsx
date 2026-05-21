@@ -57,7 +57,7 @@ const TONES: Array<{ value: BriefTone; label: string; desc: string }> = [
 /* -------------------------------------------------------------------------- */
 
 function PlatformToggle({
-  network, label, color, textColor, icon, selected, onToggle,
+  network: _network, label, color, textColor, icon, selected, onToggle,
 }: typeof PLATFORMS[0] & { selected: boolean; onToggle: () => void }) {
   return (
     <button
@@ -77,7 +77,7 @@ function PlatformToggle({
 }
 
 function AdaptationCard({
-  network, label, color, icon, body, hashtags, warnings,
+  network: _network, label, color, icon, body, hashtags, warnings,
 }: {
   network: PublishableNetwork
   label: string
@@ -200,7 +200,7 @@ export function ContentBriefGenerator() {
 
     setGenerating(false)
 
-    if (!result.ok) {
+    if (result.ok === false) {
       setError(`Generation failed: ${result.error}`)
       return
     }

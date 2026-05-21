@@ -524,8 +524,8 @@ export function XStudioPanel() {
           },
         }
       )
-      if (res.data?.text) patchCard(0, { ...draft.cards[0], text: res.data.text })
-      if (res.data?.hashtags?.length) {
+      if (res.ok && res.data?.text) patchCard(0, { ...draft.cards[0]!, text: res.data.text })
+      if (res.ok && res.data?.hashtags?.length) {
         const merged = [...new Set([...draft.hashtags, ...res.data.hashtags])].slice(0, 10)
         setDraft(d => ({ ...d, hashtags: merged }))
       }
@@ -556,11 +556,11 @@ export function XStudioPanel() {
           },
         }
       )
-      if (res.data?.ok) {
+      if (res.ok && res.data?.ok) {
         setResult({ ok: true, message: `Published! Tweet ID: ${res.data.tweetId ?? '—'}` })
         setDraft(DEFAULT_DRAFT)
       } else {
-        setResult({ ok: false, message: res.data?.detail ?? 'Publish failed — check your X connection.' })
+        setResult({ ok: false, message: (res.ok ? res.data?.detail : undefined) ?? 'Publish failed — check your X connection.' })
       }
     } finally {
       setPublishing(false)

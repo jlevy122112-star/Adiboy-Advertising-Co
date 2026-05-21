@@ -1,0 +1,2 @@
+/* campaign-orchestrator.css — placeholder, full styles on publish-infra-verification branch */
+.co-root { display: flex; flex-direction: column; height: 100%; overflow-y: auto; background: #12121f; color: #e8e8f0; font-family: system-ui, sans-serif; }

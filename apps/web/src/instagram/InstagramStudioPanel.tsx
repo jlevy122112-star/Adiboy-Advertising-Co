@@ -386,8 +386,8 @@ export function InstagramStudioPanel() {
           json: { format: draft.format, hashtags: draft.hashtags, brandName: theme.displayName },
         }
       )
-      if (res.data?.caption) update('caption', res.data.caption)
-      if (res.data?.hashtags?.length) {
+      if (res.ok && res.data?.caption) update('caption', res.data.caption)
+      if (res.ok && res.data?.hashtags?.length) {
         const merged = [...new Set([...draft.hashtags, ...res.data.hashtags])].slice(0, 30)
         update('hashtags', merged)
       }
@@ -417,11 +417,11 @@ export function InstagramStudioPanel() {
           },
         }
       )
-      if (res.data?.ok) {
+      if (res.ok && res.data?.ok) {
         setResult({ ok: true, message: `Published! Post ID: ${res.data.postId ?? '—'}` })
         setDraft(DEFAULT_DRAFT)
       } else {
-        setResult({ ok: false, message: res.data?.detail ?? 'Publish failed — check your Instagram connection.' })
+        setResult({ ok: false, message: (res.ok ? res.data?.detail : undefined) ?? 'Publish failed — check your Instagram connection.' })
       }
     } finally {
       setPublishing(false)
