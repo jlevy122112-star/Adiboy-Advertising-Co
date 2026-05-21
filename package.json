@@ -24,7 +24,12 @@
     "api:scheduler": "npm run build -w @home-link/marketer-api && npm run start:scheduler -w @home-link/marketer-api",
     "api:campaign": "npm run build -w @home-link/marketer-api && npm run start:campaign -w @home-link/marketer-api",
     "api:brand": "npm run build -w @home-link/marketer-api && npm run start:brand-profile -w @home-link/marketer-api",
-    "db:migrate": "npm run db:migrate -w @home-link/marketer-api"
+    "db:migrate": "npm run db:migrate -w @home-link/marketer-api",
+    "mobile:build:ios": "npm run build:ios -w @home-link/marketer-pro-mobile",
+    "mobile:build:android": "npm run build:android -w @home-link/marketer-pro-mobile",
+    "mobile:open:ios": "npm run open:ios -w @home-link/marketer-pro-mobile",
+    "mobile:open:android": "npm run open:android -w @home-link/marketer-pro-mobile",
+    "mobile:sync": "npm run sync -w @home-link/marketer-pro-mobile"
   },
   "devDependencies": {
     "@eslint/js": "^9.16.0",

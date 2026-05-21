@@ -1,0 +1,8 @@
+{
+  "_comment": "Paste these keys into ios/App/App/Info.plist after `npx cap add ios`",
+  "NSCameraUsageDescription": "Marketer Pro uses your camera to capture images for your posts.",
+  "NSPhotoLibraryUsageDescription": "Marketer Pro accesses your photo library to attach images to posts.",
+  "NSPhotoLibraryAddUsageDescription": "Marketer Pro saves generated images to your photo library.",
+  "NSMicrophoneUsageDescription": "Marketer Pro uses your microphone for video content creation.",
+  "NSUserTrackingUsageDescription": "We use analytics to improve the app experience. No data is sold to third parties."
+}
