@@ -383,7 +383,7 @@ export function InstagramStudioPanel() {
         `${CAMPAIGN_API}/ai/instagram-caption`,
         {
           method: 'POST',
-          json: { format: draft.format, hashtags: draft.hashtags, brandName: theme.displayName }),
+          json: { format: draft.format, hashtags: draft.hashtags, brandName: theme.displayName },
         }
       )
       if (res.data?.caption) update('caption', res.data.caption)

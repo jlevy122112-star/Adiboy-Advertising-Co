@@ -521,7 +521,7 @@ export function XStudioPanel() {
             existingText: draft.cards[0]?.text,
             hashtags: draft.hashtags,
             brandName: theme.displayName,
-          }),
+          },
         }
       )
       if (res.data?.text) patchCard(0, { ...draft.cards[0], text: res.data.text })
