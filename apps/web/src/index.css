@@ -1,35 +1,42 @@
 /* ── Design tokens ─────────────────────────────────────────────────────── */
 
 :root {
-  /* Brand */
+  /* ── Brand ────────────────────────────────────────────────────────────── */
   --brand-primary: #7c3aed;
   --brand-accent: #a78bfa;
 
-  /* Surface */
+  /* ── Surface ──────────────────────────────────────────────────────────── */
   --bg: #ffffff;
   --bg-subtle: #f8f7ff;
   --bg-muted: #f1f0f9;
   --surface: #ffffff;
   --surface-raised: #ffffff;
 
-  /* Text */
+  /*
+   * --color-bg-base: used by AuthGuard loading screen.
+   * Intentionally dark in both modes — it's a full-screen
+   * pre-auth state that should feel like a neutral launch screen.
+   */
+  --color-bg-base: #0f172a;
+
+  /* ── Text ─────────────────────────────────────────────────────────────── */
   --text: #5b5671;
   --text-h: #120e24;
   --text-muted: #9390a8;
   --text-placeholder: #b0adc4;
 
-  /* Border */
+  /* ── Border ───────────────────────────────────────────────────────────── */
   --border: #e4e2f0;
   --border-focus: var(--brand-primary);
   --border-subtle: #efedf8;
 
-  /* Accent states */
+  /* ── Accent states ────────────────────────────────────────────────────── */
   --accent: #7c3aed;
   --accent-bg: rgba(124, 58, 237, 0.08);
   --accent-border: rgba(124, 58, 237, 0.3);
   --accent-hover: #6d28d9;
 
-  /* Semantic */
+  /* ── Semantic ─────────────────────────────────────────────────────────── */
   --success: #059669;
   --success-bg: #ecfdf5;
   --warning: #d97706;
@@ -39,11 +46,11 @@
   --info: #2563eb;
   --info-bg: #eff6ff;
 
-  /* Utility */
+  /* ── Utility ──────────────────────────────────────────────────────────── */
   --code-bg: #f3f2fb;
   --social-bg: rgba(248, 247, 255, 0.8);
 
-  /* Shadow system */
+  /* ── Shadow system ────────────────────────────────────────────────────── */
   --shadow-xs: 0 1px 2px rgba(0,0,0,.04);
   --shadow-sm: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
   --shadow-md: 0 4px 6px -1px rgba(0,0,0,.07), 0 2px 4px -2px rgba(0,0,0,.05);
@@ -51,7 +58,7 @@
   --shadow-xl: 0 20px 25px -5px rgba(0,0,0,.1), 0 8px 10px -6px rgba(0,0,0,.06);
   --shadow: var(--shadow-lg);
 
-  /* Radius */
+  /* ── Radius ───────────────────────────────────────────────────────────── */
   --radius-xs: 4px;
   --radius-sm: 6px;
   --radius-md: 8px;
@@ -60,18 +67,103 @@
   --radius-2xl: 20px;
   --radius-full: 9999px;
 
-  /* Motion */
+  /* ── Motion ───────────────────────────────────────────────────────────── */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in-out: cubic-bezier(0.45, 0, 0.55, 1);
   --duration-fast: 120ms;
   --duration-base: 200ms;
   --duration-slow: 350ms;
 
-  /* Type */
+  /* ── Type ─────────────────────────────────────────────────────────────── */
   --sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --heading: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --mono: 'JetBrains Mono', ui-monospace, 'Cascadia Code', Consolas, monospace;
 
+  /* ── Z-index hierarchy ────────────────────────────────────────────────────
+   *
+   * A single source of truth for every stacking layer in the app.
+   * All z-index values across App.css, AuthGuard, and every modal must
+   * reference these tokens — never hardcode a z-index number.
+   *
+   * Layer map:
+   *   --z-base          0    Normal document flow
+   *   --z-raised        1    Slightly elevated (overlays, form inputs)
+   *   --z-card          2    Post cards, quick-add buttons
+   *   --z-hover         10   Hover effects (Snapchat panel, predictive)
+   *   --z-calendar-bd   40   Calendar drawer backdrop
+   *   --z-calendar-dw   50   Calendar drawer
+   *   --z-nav           200  Top nav bar
+   *   --z-nav-overlay   200  AuthNavInjector — lives inside nav layer
+   *   --z-mobile-nav    300  Bottom mobile nav
+   *   --z-dropdown      500  User dropdown, calendar overflow popover
+   *   --z-modal         1000 All modals: UpgradeModal, PostEditModal,
+   *                          billing, ConfirmModal, auth nav injector
+   *   --z-drag-ghost    9999 Calendar drag preview (must be topmost)
+   *
+   * ─────────────────────────────────────────────────────────────────────── */
+  --z-base:          0;
+  --z-raised:        1;
+  --z-card:          2;
+  --z-hover:         10;
+  --z-calendar-bd:   40;
+  --z-calendar-dw:   50;
+  --z-nav:           200;
+  --z-nav-overlay:   200;
+  --z-mobile-nav:    300;
+  --z-dropdown:      500;
+  --z-modal:         1000;
+  --z-drag-ghost:    9999;
+
+  /* ── Layout dimensions ────────────────────────────────────────────────────
+   *
+   * Centralised here so calc() expressions in App.css, AuthGuard,
+   * and any future component all stay in sync automatically.
+   *
+   * --nav-height           : default top nav height
+   * --nav-height-mobile    : compressed nav on ≤640px
+   * --nav-height-landscape : extra-compressed nav in landscape phone mode
+   * --mobile-nav-height    : bottom tab bar height (before safe area)
+   *
+   * ─────────────────────────────────────────────────────────────────────── */
+  --nav-height:            58px;
+  --nav-height-mobile:     52px;
+  --nav-height-landscape:  44px;
+  --mobile-nav-height:     56px;
+
+  /* ── Avatar sizes ─────────────────────────────────────────────────────────
+   *
+   * xs : 28px — sub-340px screens
+   * sm : 34px — default nav avatar
+   * md : 40px — profile pages, larger contexts
+   * lg : 48px — onboarding, team panel
+   *
+   * ─────────────────────────────────────────────────────────────────────── */
+  --avatar-size-xs: 28px;
+  --avatar-size-sm: 34px;
+  --avatar-size-md: 40px;
+  --avatar-size-lg: 48px;
+
+  /* ── Spinner (AuthGuard loading screen) ───────────────────────────────── */
+  --spinner-size:         2rem;
+  --spinner-border:       3px;
+  --color-spinner-track:  #334155;   /* slate-700 — visible on dark bg-base */
+
+  /* ── Auth nav injector positioning ───────────────────────────────────────
+   *
+   * Controls where AuthNavInjector sits in the top-right of the nav.
+   * Adjust these if the nav layout changes (e.g. new right-side controls).
+   *
+   * ─────────────────────────────────────────────────────────────────────── */
+  --auth-nav-inset-end:        3.5rem;   /* desktop: distance from right edge */
+  --auth-nav-inset-end-mobile: 1rem;     /* ≤480px: tighter to edge */
+
+  /* ── Space scale (convenience aliases) ───────────────────────────────── */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+
+  /* ── Global base ──────────────────────────────────────────────────────── */
   font-family: var(--sans);
   font-size: 15px;
   line-height: 1.6;
@@ -90,25 +182,36 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
+    /* Surfaces */
     --bg: #0f0e17;
     --bg-subtle: #141320;
     --bg-muted: #1a1828;
     --surface: #16151f;
     --surface-raised: #1d1c29;
 
+    /*
+     * Loading screen background stays the same dark value in both modes —
+     * it's intentionally neutral and appears before any theme is applied.
+     */
+    --color-bg-base: #0f172a;
+
+    /* Text */
     --text: #9490b0;
     --text-h: #f0eeff;
     --text-muted: #5e5a78;
     --text-placeholder: #48445e;
 
+    /* Border */
     --border: #2a2838;
     --border-subtle: #221f32;
 
+    /* Accent */
     --accent: #a78bfa;
     --accent-bg: rgba(167, 139, 250, 0.12);
     --accent-border: rgba(167, 139, 250, 0.3);
     --accent-hover: #c4b5fd;
 
+    /* Semantic */
     --success: #34d399;
     --success-bg: rgba(52, 211, 153, 0.1);
     --warning: #fbbf24;
@@ -118,20 +221,25 @@
     --info: #60a5fa;
     --info-bg: rgba(96, 165, 250, 0.1);
 
+    /* Utility */
     --code-bg: #1a1828;
     --social-bg: rgba(26, 24, 40, 0.6);
 
+    /* Shadows — heavier in dark mode for contrast */
     --shadow-xs: 0 1px 2px rgba(0,0,0,.2);
     --shadow-sm: 0 1px 3px rgba(0,0,0,.3), 0 1px 2px rgba(0,0,0,.2);
     --shadow-md: 0 4px 6px -1px rgba(0,0,0,.35), 0 2px 4px -2px rgba(0,0,0,.25);
     --shadow-lg: 0 10px 15px -3px rgba(0,0,0,.4), 0 4px 6px -4px rgba(0,0,0,.3);
     --shadow-xl: 0 20px 25px -5px rgba(0,0,0,.5), 0 8px 10px -6px rgba(0,0,0,.35);
+
+    /* Spinner track — slightly lighter in dark mode for visibility */
+    --color-spinner-track: #475569;   /* slate-600 */
   }
 
   #social .button-icon { filter: invert(1) brightness(2); }
 }
 
-/* ── Base ───────────────────────────────────────────────────────────────── */
+/* ── Base reset ─────────────────────────────────────────────────────────── */
 
 *, *::before, *::after { box-sizing: border-box; }
 
@@ -145,6 +253,8 @@ body { margin: 0; }
   flex-direction: column;
   text-align: left;
 }
+
+/* ── Typography ─────────────────────────────────────────────────────────── */
 
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--heading);
@@ -200,9 +310,9 @@ code {
 
 /* ── Scrollbar ──────────────────────────────────────────────────────────── */
 
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: var(--radius-full); }
+::-webkit-scrollbar           { width: 6px; height: 6px; }
+::-webkit-scrollbar-track     { background: transparent; }
+::-webkit-scrollbar-thumb     { background: var(--border); border-radius: var(--radius-full); }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
 /* ── Focus ring ─────────────────────────────────────────────────────────── */
@@ -220,15 +330,20 @@ code {
   color: var(--text-h);
 }
 
-/* ── Skeleton loader utility ────────────────────────────────────────────── */
+/* ── Skeleton loader ────────────────────────────────────────────────────── */
 
 @keyframes shimmer {
-  0% { background-position: -400px 0; }
-  100% { background-position: 400px 0; }
+  0%   { background-position: -400px 0; }
+  100% { background-position:  400px 0; }
 }
 
 .skeleton {
-  background: linear-gradient(90deg, var(--bg-muted) 25%, var(--bg-subtle) 50%, var(--bg-muted) 75%);
+  background: linear-gradient(
+    90deg,
+    var(--bg-muted) 25%,
+    var(--bg-subtle) 50%,
+    var(--bg-muted) 75%
+  );
   background-size: 400px 100%;
   animation: shimmer 1.4s ease-in-out infinite;
   border-radius: var(--radius-sm);
@@ -238,7 +353,16 @@ code {
 
 @keyframes fade-in {
   from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .animate-in { animation: fade-in 200ms var(--ease-out) both; }
+
+/* ── Auth spinner animation ─────────────────────────────────────────────── */
+/*
+ * Defined here so it's available globally before any component CSS loads.
+ * AuthGuard references this via the .auth-spinner class in its own <style>.
+ */
+@keyframes auth-spin {
+  to { transform: rotate(360deg); }
+}
