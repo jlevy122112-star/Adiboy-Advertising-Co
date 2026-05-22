@@ -1,3 +1,20 @@
+/*
+ * App.css — Marketer Pro App Shell
+ *
+ * Z-index hierarchy (matches index.css tokens):
+ *   --z-nav          : 200  — top nav bar
+ *   --z-mobile-nav   : 300  — bottom mobile nav
+ *   --z-dropdown     : 500  — user dropdown
+ *   --z-modal        : 1000 — modals / overlays (UpgradeModal, PostEditModal, etc.)
+ *   --z-drag-ghost   : 9999 — calendar drag preview
+ *
+ * CSS custom property tokens used (define in index.css):
+ *   --nav-height           : 58px
+ *   --mobile-nav-height    : 56px
+ *   --avatar-size-sm       : 34px
+ *   --avatar-size-md       : 40px
+ */
+
 /* ── App Shell ──────────────────────────────────────────────────────────── */
 
 .app-shell {
@@ -12,7 +29,7 @@
 
 .app-nav {
   flex-shrink: 0;
-  height: 58px;
+  height: var(--nav-height, 58px);                 /* token — used in calc() below */
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -20,7 +37,7 @@
   background: var(--surface);
   border-bottom: 1px solid var(--border-subtle);
   gap: 1rem;
-  z-index: 200;
+  z-index: var(--z-nav, 200);
   box-shadow: 0 1px 0 var(--border-subtle), var(--shadow-xs);
 }
 
@@ -108,7 +125,15 @@
 .app-nav-tab--active::after {
   content: '';
   position: absolute;
-  bottom: -9px;
+  /*
+   * Derive from nav height so this never needs a magic number.
+   * The indicator sits flush at the bottom of the nav bar (border edge).
+   * Formula: push down by half the gap between tab bottom and nav bottom.
+   * Since tab is 40px and nav is var(--nav-height, 58px):
+   *   offset = (58 - 40) / 2 + 1px border compensation ≈ 9px
+   * Using calc keeps it correct if --nav-height ever changes.
+   */
+  bottom: calc((var(--nav-height, 58px) - 40px) / -2 + 0px);
   left: 0.75rem;
   right: 0.75rem;
   height: 2px;
@@ -123,6 +148,28 @@
 }
 
 .app-nav-tab--active .app-nav-tab-icon { opacity: 1; }
+
+/* Hamburger — shown on mobile when tab labels are hidden */
+.app-hamburger {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--avatar-size-sm, 34px);
+  height: var(--avatar-size-sm, 34px);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background var(--duration-fast), color var(--duration-fast);
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.app-hamburger:hover {
+  background: var(--bg-muted);
+  color: var(--text-h);
+}
 
 /* Plan badge */
 .app-free-badge {
@@ -156,8 +203,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  /* Token with sensible fallback — override in index.css if needed */
+  width: var(--avatar-size-sm, 34px);
+  height: var(--avatar-size-sm, 34px);
   border-radius: var(--radius-full);
   border: 2px solid var(--border);
   background: var(--accent-bg);
@@ -186,10 +234,14 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-xl);
-  min-width: 200px;
+  /*
+   * Was: min-width: 200px — overflows on 320px screens.
+   * Now: clamp to viewport width minus 1rem each side (safe for all screens).
+   */
+  min-width: min(200px, calc(100vw - 2rem));
   overflow: hidden;
   animation: fade-in 150ms var(--ease-out) both;
-  z-index: 500;
+  z-index: var(--z-dropdown, 500);
 }
 
 .app-user-email {
@@ -199,6 +251,11 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  /*
+   * Was: max-width: 160px — could clip badly on narrow viewports.
+   * Now: fluid — collapses proportionally below 160px.
+   */
+  max-width: min(160px, calc(100vw - 3rem));
 }
 
 .app-user-divider { height: 1px; background: var(--border-subtle); }
@@ -227,6 +284,8 @@
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
+  /* Consistent safe-area bottom so notched phones never clip last content */
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 /* Calendar tab — full viewport canvas */
@@ -301,13 +360,8 @@
   border-color: var(--border);
 }
 
-.app-panel-card--full {
-  grid-column: 1 / -1;
-}
-
-.app-panel-card--wide {
-  grid-column: span 2;
-}
+.app-panel-card--full { grid-column: 1 / -1; }
+.app-panel-card--wide { grid-column: span 2; }
 
 .app-panel-label {
   font-size: 0.6875rem;
@@ -330,7 +384,7 @@
   display: inline-block;
 }
 
-/* ── Social connections (referenced from app shell) ─────────────────────── */
+/* ── Social connections ──────────────────────────────────────────────────── */
 
 .sc-panel { display: flex; flex-direction: column; gap: 0.5rem; }
 
@@ -406,9 +460,9 @@
 }
 
 .sc-status { font-size: 0.6875rem; font-weight: 600; }
-.sc-status--ok { color: var(--success); }
+.sc-status--ok   { color: var(--success); }
 .sc-status--warn { color: var(--warning); }
-.sc-status--off { color: var(--text-muted); }
+.sc-status--off  { color: var(--text-muted); }
 
 .sc-btn {
   border-radius: var(--radius-sm);
@@ -479,7 +533,6 @@
 }
 
 .app-footer a:hover { color: var(--accent); }
-
 .app-footer .sep { opacity: 0.35; }
 
 /* ── Mobile bottom nav ───────────────────────────────────────────────────── */
@@ -490,11 +543,12 @@
   bottom: 0;
   left: 0;
   right: 0;
-  z-index: 300;
+  z-index: var(--z-mobile-nav, 300);
   background: var(--surface);
   border-top: 1px solid var(--border-subtle);
   box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.08);
   padding: 0 0.25rem;
+  /* Safe area for iPhone home indicator & Android gesture bar */
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
@@ -512,13 +566,11 @@
   cursor: pointer;
   transition: color var(--duration-fast);
   -webkit-tap-highlight-color: transparent;
-  min-height: 56px;
+  min-height: var(--mobile-nav-height, 56px);
   position: relative;
 }
 
-.app-mobile-nav-btn--active {
-  color: var(--accent);
-}
+.app-mobile-nav-btn--active { color: var(--accent); }
 
 .app-mobile-nav-btn--active::before {
   content: '';
@@ -538,9 +590,7 @@
   opacity: 0.85;
 }
 
-.app-mobile-nav-btn--active .app-mobile-nav-icon {
-  opacity: 1;
-}
+.app-mobile-nav-btn--active .app-mobile-nav-icon { opacity: 1; }
 
 .app-mobile-nav-label {
   font-size: 0.5625rem;
@@ -551,43 +601,98 @@
 
 /* ── Responsive ──────────────────────────────────────────────────────────── */
 
+/* Large tablet / small desktop */
 @media (max-width: 900px) {
-  .app-panel-grid--wide { grid-template-columns: 1fr; }
-  .app-panel-card--full { grid-column: 1; }
-  .app-panel-card--wide { grid-column: 1; }
+  .app-panel-grid--wide    { grid-template-columns: 1fr; }
+  .app-panel-card--full    { grid-column: 1; }
+  .app-panel-card--wide    { grid-column: 1; }
 }
 
+/* Tablet portrait */
 @media (max-width: 768px) {
-  .app-nav { padding: 0 0.875rem; gap: 0.5rem; }
-  .app-nav-left { gap: 0.75rem; }
+  .app-nav        { padding: 0 0.875rem; gap: 0.5rem; }
+  .app-nav-left   { gap: 0.75rem; }
   .app-nav-tab-label { display: none; }
-  .app-nav-tab { padding: 0 0.5rem; }
-  .app-tab-view { padding: 1.25rem 1rem 3rem; }
+  .app-nav-tab    { padding: 0 0.5rem; }
+  .app-tab-view   { padding: 1.25rem 1rem 3rem; }
   .app-panel-grid { grid-template-columns: 1fr; }
-  .app-tab-title { font-size: 1.375rem; }
+  .app-tab-title  { font-size: 1.375rem; }
 }
 
+/* Mobile — switch to bottom nav */
 @media (max-width: 640px) {
-  /* Switch to bottom tab navigation */
-  .app-mobile-nav { display: flex; }
-  .app-nav-tabs { display: none; }
-  .app-nav { height: 52px; }
-  .app-nav-left { gap: 0.5rem; }
-  .app-main { padding-bottom: 72px; }
-  .app-footer { display: none; }
+  .app-mobile-nav    { display: flex; }
+  .app-nav-tabs      { display: none; }
+  .app-nav           { height: var(--nav-height-mobile, 52px); }
+  .app-nav-left      { gap: 0.5rem; }
+  /*
+   * Reserve space for the bottom nav + safe area.
+   * Using var so components that need this value can reference it.
+   */
+  .app-main {
+    padding-bottom: calc(
+      var(--mobile-nav-height, 56px) +
+      env(safe-area-inset-bottom, 0px)
+    );
+  }
+  .app-footer        { display: none; }
 
-  .app-tab-view { padding: 1rem 0.875rem 1.5rem; }
-  .app-tab-header { margin-bottom: 1rem; }
-  .app-tab-title { font-size: 1.25rem; }
-  .app-tab-sub { font-size: 0.8125rem; }
+  .app-tab-view      { padding: 1rem 0.875rem 1.5rem; }
+  .app-tab-header    { margin-bottom: 1rem; }
+  .app-tab-title     { font-size: 1.25rem; }
+  .app-tab-sub       { font-size: 0.8125rem; }
 
-  .app-panel-grid { gap: 0.75rem; }
-  .app-panel-card { border-radius: var(--radius-lg); }
+  .app-panel-grid    { gap: 0.75rem; }
+  .app-panel-card    { border-radius: var(--radius-lg); }
 }
 
+/* Small phone */
 @media (max-width: 480px) {
-  .app-nav-brand { display: none; }
-  .app-free-badge { display: none; }
-  .app-tab-view { padding: 0.875rem 0.75rem 1.25rem; }
-  .app-panel-card { padding: 0.875rem; }
+  .app-nav-brand   { display: none; }
+  .app-free-badge  { display: none; }
+  .app-hamburger   { display: flex; }     /* show hamburger when brand is hidden */
+  .app-tab-view    { padding: 0.875rem 0.75rem 1.25rem; }
+  .app-panel-card  { padding: 0.875rem; }
+}
+
+/* Very small phone (320px class devices, e.g. iPhone SE 1st gen) */
+@media (max-width: 340px) {
+  .app-nav         { padding: 0 0.5rem; gap: 0.25rem; }
+  .app-avatar-btn  {
+    width: var(--avatar-size-xs, 28px);
+    height: var(--avatar-size-xs, 28px);
+  }
+  .app-user-dropdown {
+    /* On 320px screens the dropdown must not escape the viewport */
+    right: -0.25rem;
+    min-width: calc(100vw - 1rem);
+  }
+  .app-tab-view    { padding: 0.625rem 0.5rem 1rem; }
+  .app-panel-card  { padding: 0.75rem 0.625rem; border-radius: var(--radius-md); }
+  .app-tab-title   { font-size: 1.125rem; }
+  .app-mobile-nav-label { display: none; }   /* icon-only on tiny screens */
+}
+
+/* Landscape phone — short viewport, wide width */
+@media (max-height: 500px) and (orientation: landscape) {
+  .app-nav {
+    height: var(--nav-height-landscape, 44px);
+  }
+  .app-mobile-nav {
+    /* Keep mobile nav but compress it */
+    padding-top: 0;
+  }
+  .app-mobile-nav-btn {
+    min-height: 40px;
+    padding: 0.25rem 0.25rem 0.2rem;
+    gap: 0.125rem;
+  }
+  .app-mobile-nav-label { display: none; }   /* icon-only in landscape */
+  .app-main {
+    padding-bottom: calc(
+      40px + env(safe-area-inset-bottom, 0px)
+    );
+  }
+  .app-tab-view   { padding: 0.5rem 1rem 1rem; }
+  .app-tab-header { margin-bottom: 0.5rem; }
 }
