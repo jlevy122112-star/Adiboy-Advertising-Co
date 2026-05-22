@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { CalendarApiConfig } from './calendar/calendarApi.js'
 import { updateScheduleEntry, deleteScheduleEntry } from './calendar/calendarApi.js'
 import type { DayKey, PlannedPost } from './calendar/calendarTypes.js'
+import './PostEditModal.css'
 
 // ─── Local types ────────────────────────────────────────────────────────────
 
@@ -29,7 +30,7 @@ type PostMetadata = {
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const VIDEO_FILTER_PRESETS = ['none', 'warm', 'cool', 'dramatic', 'faded', 'vivid', 'bw'] as const
-const VIDEO_EFFECTS = ['fade_in', 'fade_out', 'grain', 'sharpen', 'glow'] as const
+const VIDEO_EFFECTS        = ['fade_in', 'fade_out', 'grain', 'sharpen', 'glow'] as const
 const NETWORKS = [
   'facebook', 'instagram', 'x', 'linkedin', 'youtube', 'tiktok', 'email', 'generic',
 ] as const
@@ -55,19 +56,26 @@ const YOUTUBE_CATEGORIES = [
 // ─── Defaults & loaders ──────────────────────────────────────────────────────
 
 function defaultVideoOptions(): VideoOptions {
-  return { filterPreset: 'none', textTitle: '', textCaption: '', textHashtags: '', textEmoji: '', effects: [] }
+  return {
+    filterPreset: 'none', textTitle: '', textCaption: '',
+    textHashtags: '', textEmoji: '', effects: [],
+  }
 }
 
 function loadVideoOptions(postId: string, fromDb?: Record<string, unknown> | null): VideoOptions {
   if (fromDb != null) return { ...defaultVideoOptions(), ...(fromDb as Partial<VideoOptions>) }
   try {
     const raw = sessionStorage.getItem(`video-opts:${postId}`)
-    return raw ? { ...defaultVideoOptions(), ...(JSON.parse(raw) as Partial<VideoOptions>) } : defaultVideoOptions()
+    return raw
+      ? { ...defaultVideoOptions(), ...(JSON.parse(raw) as Partial<VideoOptions>) }
+      : defaultVideoOptions()
   } catch { return defaultVideoOptions() }
 }
 
 function saveVideoOptions(postId: string, opts: VideoOptions) {
-  try { sessionStorage.setItem(`video-opts:${postId}`, JSON.stringify(opts)) } catch { /* storage unavailable */ }
+  try {
+    sessionStorage.setItem(`video-opts:${postId}`, JSON.stringify(opts))
+  } catch { /* storage unavailable */ }
 }
 
 function defaultMetadata(): PostMetadata {
@@ -81,19 +89,6 @@ function defaultMetadata(): PostMetadata {
 function loadMetadata(fromDb?: Record<string, unknown> | null): PostMetadata {
   if (fromDb != null) return { ...defaultMetadata(), ...(fromDb as Partial<PostMetadata>) }
   return defaultMetadata()
-}
-
-// ─── Shared input style ──────────────────────────────────────────────────────
-
-const inputStyle: React.CSSProperties = {
-  padding: '8px 10px', borderRadius: 8,
-  border: '1px solid var(--border)',
-  background: 'var(--bg)', color: 'var(--text-h)',
-  fontSize: 13, width: '100%', boxSizing: 'border-box',
-}
-
-const labelStyle: React.CSSProperties = {
-  fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-h)',
 }
 
 // ─── ChipInput ────────────────────────────────────────────────────────────────
@@ -121,35 +116,29 @@ function ChipInput({
   }, [input, chips, onChange, prefix, maxChips])
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <span style={labelStyle}>{label}</span>
+    <div className="pem-field">
+      <span className="pem-label">{label}</span>
+
       {chips.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+        <div className="pem-chips">
           {chips.map((chip) => (
-            <span
-              key={chip}
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: 4,
-                padding: '3px 8px', borderRadius: 999,
-                background: 'var(--brand-primary, #7c3aed)',
-                color: '#fff', fontSize: 12, fontWeight: 500,
-              }}
-            >
+            <span key={chip} className="pem-chip">
               {chip}
               <button
                 type="button"
+                className="pem-chip-remove"
                 onClick={() => onChange(chips.filter((c) => c !== chip))}
                 aria-label={`Remove ${chip}`}
-                style={{
-                  background: 'none', border: 'none', cursor: 'pointer',
-                  color: 'rgba(255,255,255,0.8)', padding: 0, fontSize: 14, lineHeight: 1,
-                }}
-              >×</button>
+              >
+                ×
+              </button>
             </span>
           ))}
         </div>
       )}
+
       <input
+        className="pem-input"
         value={input}
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={(e) => {
@@ -158,10 +147,10 @@ function ChipInput({
             onChange(chips.slice(0, -1))
           }
         }}
-        placeholder={placeholder ?? `Type and press Enter`}
-        style={inputStyle}
+        placeholder={placeholder ?? 'Type and press Enter'}
       />
-      <span style={{ fontSize: '0.72rem', color: 'var(--text)' }}>
+
+      <span className="pem-chip-hint">
         Press Enter or comma to add · Backspace to remove last · {chips.length}/{maxChips}
       </span>
     </div>
@@ -182,16 +171,18 @@ type Props = {
 // ─── PostEditModal ────────────────────────────────────────────────────────────
 
 export function PostEditModal({ post, dayKey, onClose, onSaved, onDeleted, apiConfig }: Props) {
-  const [body, setBody]       = useState(post.title)
-  const [network, setNetwork] = useState<PlannedPost['network']>(post.network)
+  const [body, setBody]         = useState(post.title)
+  const [network, setNetwork]   = useState<PlannedPost['network']>(post.network)
   const [videoOpts, setVideoOpts] = useState<VideoOptions>(
     () => loadVideoOptions(post.id, post.videoOptions as Record<string, unknown> | null)
   )
   const [meta, setMeta] = useState<PostMetadata>(
     () => loadMetadata(post.metadata as Record<string, unknown> | null)
   )
-  const [showVideoOpts, setShowVideoOpts] = useState(post.network === 'youtube' || post.network === 'tiktok')
-  const [saving, setSaving]   = useState(false)
+  const [showVideoOpts, setShowVideoOpts] = useState(
+    post.network === 'youtube' || post.network === 'tiktok'
+  )
+  const [saving, setSaving]     = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [statusMsg, setStatusMsg] = useState('')
   const backdropRef   = useRef<HTMLDivElement>(null)
@@ -231,11 +222,7 @@ export function PostEditModal({ post, dayKey, onClose, onSaved, onDeleted, apiCo
     setStatusMsg('')
     if (apiConfig) {
       const ok = await updateScheduleEntry(
-        apiConfig,
-        post.id,
-        body.trim(),
-        network ?? null,
-        null,
+        apiConfig, post.id, body.trim(), network ?? null, null,
         videoOpts as Record<string, unknown>,
         meta as Record<string, unknown>,
       )
@@ -262,76 +249,56 @@ export function PostEditModal({ post, dayKey, onClose, onSaved, onDeleted, apiCo
   }, [onClose])
 
   const isVideo    = network === 'youtube' || network === 'tiktok' || network === 'instagram'
-  const hasAltText = network === 'instagram' || network === 'facebook' || network === 'linkedin' || network === 'x' || network === 'youtube'
+  const hasAltText = ['instagram', 'facebook', 'linkedin', 'x', 'youtube'].includes(network ?? '')
 
   return (
     <div
       ref={backdropRef}
+      className="pem-backdrop"
       onClick={handleBackdropClick}
       role="dialog"
       aria-modal="true"
       aria-label="Edit post"
-      style={{
-        position: 'fixed', inset: 0, zIndex: 1000,
-        background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(3px)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: '16px',
-      }}
     >
-      <div style={{
-        background: 'var(--bg)',
-        border: '1px solid var(--border)',
-        borderRadius: 12,
-        padding: '24px',
-        width: '100%',
-        maxWidth: 680,
-        maxHeight: '90vh',
-        overflowY: 'auto',
-        boxShadow: 'var(--shadow)',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 18,
-      }}>
+      <div className="pem-dialog">
 
-        {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <h2 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text-h)' }}>Edit post</h2>
-          <button type="button" onClick={onClose} aria-label="Close"
-            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, color: 'var(--text)', lineHeight: 1, padding: 4 }}
-          >×</button>
+        {/* ── Header ── */}
+        <div className="pem-header">
+          <h2 className="pem-title">Edit post</h2>
+          <button
+            type="button"
+            className="pem-close-btn"
+            onClick={onClose}
+            aria-label="Close"
+          >
+            ×
+          </button>
         </div>
 
-        {/* Content body */}
-        <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-h)' }}>Content</span>
+        {/* ── Content body ── */}
+        <label className="pem-field">
+          <span className="pem-label">Content</span>
           <textarea
             ref={firstInputRef}
+            className="pem-textarea"
             value={body}
             onChange={(e) => setBody(e.target.value)}
             rows={6}
-            style={{
-              width: '100%', boxSizing: 'border-box',
-              fontFamily: 'var(--sans)', fontSize: 14,
-              padding: '10px 12px', borderRadius: 8,
-              border: '1px solid var(--border)',
-              background: 'var(--bg)', color: 'var(--text-h)',
-              resize: 'vertical',
-            }}
             placeholder="Write your post content here…"
           />
         </label>
 
-        {/* Platform */}
-        <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-h)' }}>Platform</span>
+        {/* ── Platform ── */}
+        <label className="pem-field">
+          <span className="pem-label">Platform</span>
           <select
+            className="pem-select"
             value={network ?? ''}
             onChange={(e) => {
               const n = e.target.value as PlannedPost['network']
               setNetwork(n)
               setShowVideoOpts(n === 'youtube' || n === 'tiktok')
             }}
-            style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text-h)', fontSize: 14 }}
           >
             <option value="">— no platform —</option>
             {NETWORKS.map((n) => <option key={n} value={n}>{n}</option>)}
@@ -360,55 +327,55 @@ export function PostEditModal({ post, dayKey, onClose, onSaved, onDeleted, apiCo
 
         {/* ── Alt text ── */}
         {hasAltText && (
-          <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <span style={labelStyle}>Alt text (image accessibility)</span>
+          <label className="pem-field">
+            <span className="pem-label">Alt text (image accessibility)</span>
             <input
+              className="pem-input"
               value={meta.altText}
               onChange={(e) => patchMeta({ altText: e.target.value })}
               placeholder="Describe the image for screen readers…"
               maxLength={1000}
-              style={inputStyle}
             />
           </label>
         )}
 
         {/* ── Instagram extras ── */}
         {network === 'instagram' && (
-          <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <span style={labelStyle}>Location tag</span>
+          <label className="pem-field">
+            <span className="pem-label">Location tag</span>
             <input
+              className="pem-input"
               value={meta.location}
               onChange={(e) => patchMeta({ location: e.target.value })}
               placeholder="New York, NY"
               maxLength={200}
-              style={inputStyle}
             />
           </label>
         )}
 
         {/* ── LinkedIn extras ── */}
         {network === 'linkedin' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, border: '1px solid var(--border)', borderRadius: 10, padding: 14 }}>
-            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-h)' }}>LinkedIn extras</span>
-            <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <span style={labelStyle}>Article / link title</span>
+          <div className="pem-section">
+            <p className="pem-section-title">LinkedIn extras</p>
+            <label className="pem-field">
+              <span className="pem-label">Article / link title</span>
               <input
+                className="pem-input"
                 value={meta.articleTitle}
                 onChange={(e) => patchMeta({ articleTitle: e.target.value })}
                 placeholder="Your article headline"
                 maxLength={300}
-                style={inputStyle}
               />
             </label>
-            <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <span style={labelStyle}>First comment (hashtag strategy)</span>
+            <label className="pem-field">
+              <span className="pem-label">First comment (hashtag strategy)</span>
               <textarea
+                className="pem-textarea"
                 value={meta.firstComment}
                 onChange={(e) => patchMeta({ firstComment: e.target.value })}
                 rows={3}
                 maxLength={2200}
                 placeholder="#b2b #saas #marketing — posted as first comment to keep the main post clean"
-                style={{ ...inputStyle, resize: 'vertical', fontFamily: 'var(--sans)' }}
               />
             </label>
           </div>
@@ -416,17 +383,17 @@ export function PostEditModal({ post, dayKey, onClose, onSaved, onDeleted, apiCo
 
         {/* ── YouTube extras ── */}
         {network === 'youtube' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, border: '1px solid var(--border)', borderRadius: 10, padding: 14 }}>
-            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-h)' }}>YouTube extras</span>
-            <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <span style={labelStyle}>Video description</span>
+          <div className="pem-section">
+            <p className="pem-section-title">YouTube extras</p>
+            <label className="pem-field">
+              <span className="pem-label">Video description</span>
               <textarea
+                className="pem-textarea"
                 value={meta.youtubeDescription}
                 onChange={(e) => patchMeta({ youtubeDescription: e.target.value })}
                 rows={4}
                 maxLength={5000}
                 placeholder="Full video description with timestamps, links, etc."
-                style={{ ...inputStyle, resize: 'vertical', fontFamily: 'var(--sans)' }}
               />
             </label>
             <ChipInput
@@ -436,12 +403,12 @@ export function PostEditModal({ post, dayKey, onClose, onSaved, onDeleted, apiCo
               placeholder="ai marketing — press Enter to add"
               maxChips={500}
             />
-            <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <span style={labelStyle}>Category</span>
+            <label className="pem-field">
+              <span className="pem-label">Category</span>
               <select
+                className="pem-select"
                 value={meta.youtubeCategory}
                 onChange={(e) => patchMeta({ youtubeCategory: e.target.value })}
-                style={{ ...inputStyle, cursor: 'pointer' }}
               >
                 <option value="">— select category —</option>
                 {YOUTUBE_CATEGORIES.map((c) => (
@@ -454,63 +421,84 @@ export function PostEditModal({ post, dayKey, onClose, onSaved, onDeleted, apiCo
 
         {/* ── Video build options ── */}
         {isVideo && (
-          <div style={{ border: '1px solid var(--border)', borderRadius: 10, padding: 16 }}>
+          <div className="pem-section">
             <button
               type="button"
+              className="pem-toggle-btn"
               onClick={() => setShowVideoOpts((v) => !v)}
-              style={{
-                background: 'none', border: 'none', cursor: 'pointer',
-                padding: 0, fontSize: '0.9rem', fontWeight: 600,
-                color: 'var(--brand-primary, #7c3aed)',
-                display: 'flex', alignItems: 'center', gap: 6,
-              }}
             >
               <span>{showVideoOpts ? '▾' : '▸'}</span>
               Video options (filters, overlays, effects)
             </button>
 
             {showVideoOpts && (
-              <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
-                <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <span style={labelStyle}>Color filter</span>
+              <div className="pem-video-body">
+                <label className="pem-field">
+                  <span className="pem-label">Color filter</span>
                   <select
+                    className="pem-select"
                     value={videoOpts.filterPreset}
                     onChange={(e) => patchVideo({ filterPreset: e.target.value })}
-                    style={inputStyle}
                   >
-                    {VIDEO_FILTER_PRESETS.map((p) => <option key={p} value={p}>{p}</option>)}
+                    {VIDEO_FILTER_PRESETS.map((p) => (
+                      <option key={p} value={p}>{p}</option>
+                    ))}
                   </select>
                 </label>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                  <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <span style={labelStyle}>Title overlay</span>
-                    <input value={videoOpts.textTitle} onChange={(e) => patchVideo({ textTitle: e.target.value })}
-                      placeholder="Hook text (upper third)" maxLength={80} style={inputStyle} />
+                <div className="pem-video-grid">
+                  <label className="pem-field">
+                    <span className="pem-label">Title overlay</span>
+                    <input
+                      className="pem-input"
+                      value={videoOpts.textTitle}
+                      onChange={(e) => patchVideo({ textTitle: e.target.value })}
+                      placeholder="Hook text (upper third)"
+                      maxLength={80}
+                    />
                   </label>
-                  <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <span style={labelStyle}>Hashtags overlay</span>
-                    <input value={videoOpts.textHashtags} onChange={(e) => patchVideo({ textHashtags: e.target.value })}
-                      placeholder="#marketing #ai" maxLength={120} style={inputStyle} />
+                  <label className="pem-field">
+                    <span className="pem-label">Hashtags overlay</span>
+                    <input
+                      className="pem-input"
+                      value={videoOpts.textHashtags}
+                      onChange={(e) => patchVideo({ textHashtags: e.target.value })}
+                      placeholder="#marketing #ai"
+                      maxLength={120}
+                    />
                   </label>
-                  <label style={{ display: 'flex', flexDirection: 'column', gap: 4, gridColumn: '1 / -1' }}>
-                    <span style={labelStyle}>Caption overlay</span>
-                    <input value={videoOpts.textCaption} onChange={(e) => patchVideo({ textCaption: e.target.value })}
-                      placeholder="Body text (lower third)" maxLength={200} style={inputStyle} />
+                  <label className="pem-field pem-field--full">
+                    <span className="pem-label">Caption overlay</span>
+                    <input
+                      className="pem-input"
+                      value={videoOpts.textCaption}
+                      onChange={(e) => patchVideo({ textCaption: e.target.value })}
+                      placeholder="Body text (lower third)"
+                      maxLength={200}
+                    />
                   </label>
-                  <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <span style={labelStyle}>Emoji overlay</span>
-                    <input value={videoOpts.textEmoji} onChange={(e) => patchVideo({ textEmoji: e.target.value })}
-                      placeholder="🔥✨" maxLength={8} style={inputStyle} />
+                  <label className="pem-field">
+                    <span className="pem-label">Emoji overlay</span>
+                    <input
+                      className="pem-input"
+                      value={videoOpts.textEmoji}
+                      onChange={(e) => patchVideo({ textEmoji: e.target.value })}
+                      placeholder="🔥✨"
+                      maxLength={8}
+                    />
                   </label>
                 </div>
 
-                <div>
-                  <span style={{ ...labelStyle, display: 'block', marginBottom: 8 }}>Effects</span>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                <div className="pem-field">
+                  <span className="pem-label">Effects</span>
+                  <div className="pem-effects-list">
                     {VIDEO_EFFECTS.map((eff) => (
-                      <label key={eff} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, cursor: 'pointer' }}>
-                        <input type="checkbox" checked={videoOpts.effects.includes(eff)} onChange={() => toggleEffect(eff)} />
+                      <label key={eff} className="pem-effect-label">
+                        <input
+                          type="checkbox"
+                          checked={videoOpts.effects.includes(eff)}
+                          onChange={() => toggleEffect(eff)}
+                        />
                         {eff.replace('_', ' ')}
                       </label>
                     ))}
@@ -521,22 +509,37 @@ export function PostEditModal({ post, dayKey, onClose, onSaved, onDeleted, apiCo
           </div>
         )}
 
+        {/* ── Status ── */}
         {statusMsg && (
-          <p role="alert" style={{ margin: 0, fontSize: '0.85rem', color: '#ef4444' }}>{statusMsg}</p>
+          <p role="alert" className="pem-status">{statusMsg}</p>
         )}
 
-        {/* Actions */}
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'space-between', marginTop: 4 }}>
-          <button type="button" onClick={handleDelete} disabled={deleting}
-            style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #ef4444', background: 'none', color: '#ef4444', cursor: deleting ? 'wait' : 'pointer', fontSize: 14, fontWeight: 500 }}
-          >{deleting ? 'Deleting…' : 'Delete'}</button>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button type="button" onClick={onClose}
-              style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid var(--border)', background: 'none', color: 'var(--text)', cursor: 'pointer', fontSize: 14 }}
-            >Cancel</button>
-            <button type="button" onClick={() => void handleSave()} disabled={saving}
-              style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: 'var(--brand-primary, #7c3aed)', color: '#fff', cursor: saving ? 'wait' : 'pointer', fontSize: 14, fontWeight: 600 }}
-            >{saving ? 'Saving…' : 'Save'}</button>
+        {/* ── Actions ── */}
+        <div className="pem-actions">
+          <button
+            type="button"
+            className="pem-btn pem-btn--delete"
+            onClick={handleDelete}
+            disabled={deleting}
+          >
+            {deleting ? 'Deleting…' : 'Delete'}
+          </button>
+          <div className="pem-actions-right">
+            <button
+              type="button"
+              className="pem-btn pem-btn--cancel"
+              onClick={onClose}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="pem-btn pem-btn--save"
+              onClick={() => void handleSave()}
+              disabled={saving}
+            >
+              {saving ? 'Saving…' : 'Save'}
+            </button>
           </div>
         </div>
 
