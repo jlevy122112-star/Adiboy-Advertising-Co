@@ -1,0 +1,362 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.wrap{padding:1rem 0 2rem}
+.header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem}
+.header-title{font-size:15px;font-weight:500;color:var(--color-text-primary)}
+.header-sub{font-size:12px;color:var(--color-text-secondary);margin-top:2px}
+.progress-wrap{margin-bottom:1.5rem}
+.prog-bg{background:var(--color-background-secondary);border-radius:99px;height:6px;overflow:hidden;margin-bottom:6px}
+.prog-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,#7c3aed,#a855f7);transition:width 0.4s ease}
+.prog-label{font-size:12px;color:var(--color-text-secondary)}
+.filter-row{display:flex;gap:8px;margin-bottom:1.25rem;flex-wrap:wrap}
+.filter-btn{font-size:11px;padding:4px 12px;border-radius:99px;border:0.5px solid var(--color-border-tertiary);background:transparent;color:var(--color-text-secondary);cursor:pointer;transition:all 0.15s;font-family:inherit}
+.filter-btn.active,.filter-btn:hover{background:var(--color-background-secondary);color:var(--color-text-primary)}
+.filter-btn.active{border-color:var(--color-border-secondary)}
+.task-card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);margin-bottom:8px;overflow:hidden;transition:all 0.2s}
+.task-card:hover{border-color:var(--color-border-secondary)}
+.task-card.done{opacity:0.5}
+.task-row{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;cursor:pointer}
+.task-check{width:18px;height:18px;border-radius:5px;border:1.5px solid var(--color-border-secondary);flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;transition:all 0.15s;cursor:pointer}
+.task-check.checked{background:#7c3aed;border-color:#7c3aed}
+.task-check.checked::after{content:'✓';font-size:11px;color:#fff;font-weight:700}
+.task-meta{flex:1;min-width:0}
+.task-title{font-size:13px;font-weight:500;color:var(--color-text-primary);line-height:1.4}
+.task-card.done .task-title{text-decoration:line-through;color:var(--color-text-secondary)}
+.task-sub{font-size:11px;color:var(--color-text-secondary);margin-top:3px;line-height:1.4}
+.task-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.tag{font-size:10px;font-weight:500;padding:2px 8px;border-radius:99px;white-space:nowrap}
+.tag-fix{background:#FEE2E2;color:#991B1B}
+.tag-build{background:#EDE9FE;color:#5B21B6}
+.tag-wire{background:#E0F2FE;color:#0369A1}
+.tag-ship{background:#D1FAE5;color:#065F46}
+.tag-design{background:#FEF3C7;color:#92400E}
+.effort{font-size:10px;color:var(--color-text-secondary);white-space:nowrap}
+.expand-btn{font-size:14px;color:var(--color-text-secondary);transition:transform 0.2s;flex-shrink:0}
+.expand-btn.open{transform:rotate(180deg)}
+.task-detail{display:none;padding:0 16px 14px 46px;border-top:0.5px solid var(--color-border-tertiary)}
+.task-detail.open{display:block}
+.detail-text{font-size:12px;color:var(--color-text-secondary);line-height:1.6;margin-bottom:10px;margin-top:10px}
+.code-hint{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:8px 12px;font-family:var(--font-mono);font-size:11px;color:var(--color-text-primary);margin:6px 0;line-height:1.5}
+.build-btn{display:inline-flex;align-items:center;gap:6px;font-size:11px;padding:5px 12px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:transparent;cursor:pointer;color:var(--color-text-primary);font-family:inherit;margin-top:6px;transition:all 0.15s}
+.build-btn:hover{background:var(--color-background-secondary)}
+.build-btn.primary{background:#7c3aed;color:#fff;border-color:#7c3aed}
+.build-btn.primary:hover{background:#6d28d9}
+.section-label{font-size:10px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--color-text-secondary);padding:12px 0 6px;display:flex;align-items:center;gap:8px}
+.section-label::after{content:'';flex:1;height:0.5px;background:var(--color-border-tertiary)}
+.impact-bar{display:flex;gap:3px;align-items:center}
+.impact-dot{width:5px;height:5px;border-radius:50%}
+.i-high{background:#7c3aed}
+.i-low{background:var(--color-border-secondary)}
+</style>
+
+<div class="wrap">
+<div class="header">
+  <div>
+    <div class="header-title">Marketer Pro — Today's Hit List</div>
+    <div class="header-sub">Click a task to expand · Click "Build it" to get the code</div>
+  </div>
+</div>
+
+<div class="progress-wrap">
+  <div class="prog-bg"><div class="prog-fill" id="progBar" style="width:0%"></div></div>
+  <div class="prog-label" id="progLabel">0 of 12 tasks done today</div>
+</div>
+
+<div class="filter-row">
+  <button class="filter-btn active" onclick="filter('all',this)">All (12)</button>
+  <button class="filter-btn" onclick="filter('fix',this)">🔴 Bug Fix (3)</button>
+  <button class="filter-btn" onclick="filter('build',this)">🟣 Build (5)</button>
+  <button class="filter-btn" onclick="filter('wire',this)">🔵 Wire Up (3)</button>
+  <button class="filter-btn" onclick="filter('ship',this)">🟢 Ship (1)</button>
+</div>
+
+<div class="section-label">🔴 Fix first — these are broken right now</div>
+
+<div class="task-card" data-tag="fix">
+  <div class="task-row" onclick="expand(this)">
+    <div class="task-check" onclick="check(event,this)"></div>
+    <div class="task-meta">
+      <div class="task-title">Calendar grid overflows horizontally on mobile</div>
+      <div class="task-sub">MarketerCalendar.css · mc-layout grid columns · identified and fix ready</div>
+    </div>
+    <div class="task-right">
+      <span class="tag tag-fix">Bug Fix</span>
+      <div class="impact-bar"><div class="impact-dot i-high"></div><div class="impact-dot i-high"></div><div class="impact-dot i-high"></div></div>
+      <span class="effort">5 min</span>
+      <span class="expand-btn">▾</span>
+    </div>
+  </div>
+  <div class="task-detail">
+    <div class="detail-text">The fix is already identified. In <strong>apps/web/src/calendar/MarketerCalendar.css</strong> find the <code>.mc-layout</code> block and replace it with the minmax version we discussed.</div>
+    <div class="code-hint">.mc-layout {
+  grid-template-columns: minmax(0,1fr) min(320px,40%);
+  min-width: 0;
+  width: 100%;
+}</div>
+    <button class="build-btn primary" onclick="sendPrompt('Build the calendar width fix for MarketerCalendar.css now')">Build it now →</button>
+  </div>
+</div>
+
+<div class="task-card" data-tag="fix">
+  <div class="task-row" onclick="expand(this)">
+    <div class="task-check" onclick="check(event,this)"></div>
+    <div class="task-meta">
+      <div class="task-title">index.html still branded as "Vite + React + TS"</div>
+      <div class="task-sub">apps/web/index.html · title, meta description, favicon all wrong</div>
+    </div>
+    <div class="task-right">
+      <span class="tag tag-fix">Bug Fix</span>
+      <div class="impact-bar"><div class="impact-dot i-high"></div><div class="impact-dot i-high"></div><div class="impact-dot i-low"></div></div>
+      <span class="effort">2 min</span>
+      <span class="expand-btn">▾</span>
+    </div>
+  </div>
+  <div class="task-detail">
+    <div class="detail-text">Quick win — update the page title, description meta tag, and theme color in <strong>apps/web/index.html</strong> to match Marketer Pro branding.</div>
+    <button class="build-btn primary" onclick="sendPrompt('Fix the index.html branding — update title, meta description, and theme-color for Marketer Pro')">Build it now →</button>
+  </div>
+</div>
+
+<div class="task-card" data-tag="fix">
+  <div class="task-row" onclick="expand(this)">
+    <div class="task-check" onclick="check(event,this)"></div>
+    <div class="task-meta">
+      <div class="task-title">Touch targets too small on studio panel action buttons</div>
+      <div class="task-sub">Multiple studio panel components · Apple requires 44×44pt minimum · Play Store best practice</div>
+    </div>
+    <div class="task-right">
+      <span class="tag tag-fix">Bug Fix</span>
+      <div class="impact-bar"><div class="impact-dot i-high"></div><div class="impact-dot i-high"></div><div class="impact-dot i-low"></div></div>
+      <span class="effort">20 min</span>
+      <span class="expand-btn">▾</span>
+    </div>
+  </div>
+  <div class="task-detail">
+    <div class="detail-text">Any button under 44×44px on mobile risks rejection from Apple. Add a global touch target rule and audit the studio panels. We add a utility class and apply it across all interactive elements.</div>
+    <button class="build-btn primary" onclick="sendPrompt('Audit and fix touch target sizes across all studio panel components — minimum 44x44pt for Apple compliance')">Build it now →</button>
+  </div>
+</div>
+
+<div class="section-label">🟣 Build — new features to add today</div>
+
+<div class="task-card" data-tag="build">
+  <div class="task-row" onclick="expand(this)">
+    <div class="task-check" onclick="check(event,this)"></div>
+    <div class="task-meta">
+      <div class="task-title">Wire up the weekly agenda view in the calendar</div>
+      <div class="task-sub">MarketerCalendar.tsx · CSS already written · just needs JSX and view mode toggle</div>
+    </div>
+    <div class="task-right">
+      <span class="tag tag-build">Build</span>
+      <div class="impact-bar"><div class="impact-dot i-high"></div><div class="impact-dot i-high"></div><div class="impact-dot i-high"></div></div>
+      <span class="effort">45 min</span>
+      <span class="expand-btn">▾</span>
+    </div>
+  </div>
+  <div class="task-detail">
+    <div class="detail-text">The agenda CSS is fully written — mc-agenda-list, mc-agenda-day, mc-agenda-chip all styled. We just need to add 'agenda' as a fourth view mode in the component and wire the JSX to the existing CSS. This is the feature the agents were hyped about.</div>
+    <button class="build-btn primary" onclick="sendPrompt('Build the weekly agenda view in MarketerCalendar.tsx — wire the existing agenda CSS to a new agenda view mode')">Build it now →</button>
+  </div>
+</div>
+
+<div class="task-card" data-tag="build">
+  <div class="task-row" onclick="expand(this)">
+    <div class="task-check" onclick="check(event,this)"></div>
+    <div class="task-meta">
+      <div class="task-title">Add pull-to-refresh on mobile</div>
+      <div class="task-sub">apps/web/src · Capacitor Motion plugin · users expect this on every mobile app</div>
+    </div>
+    <div class="task-right">
+      <span class="tag tag-build">Build</span>
+      <div class="impact-bar"><div class="impact-dot i-high"></div><div class="impact-dot i-high"></div><div class="impact-dot i-low"></div></div>
+      <span class="effort">30 min</span>
+      <span class="expand-btn">▾</span>
+    </div>
+  </div>
+  <div class="task-detail">
+    <div class="detail-text">Mobile users expect pull-to-refresh everywhere. We add a PullToRefresh component using Capacitor's native feel — subtle spinner, haptic feedback, refreshes the current tab's data.</div>
+    <button class="build-btn primary" onclick="sendPrompt('Build a pull-to-refresh component for the mobile app using Capacitor')">Build it now →</button>
+  </div>
+</div>
+
+<div class="task-card" data-tag="build">
+  <div class="task-row" onclick="expand(this)">
+    <div class="task-check" onclick="check(event,this)"></div>
+    <div class="task-meta">
+      <div class="task-title">Build the onboarding flow</div>
+      <div class="task-sub">New screen · brand setup → connect first account → generate first post · critical for retention</div>
+    </div>
+    <div class="task-right">
+      <span class="tag tag-build">Build</span>
+      <div class="impact-bar"><div class="impact-dot i-high"></div><div class="impact-dot i-high"></div><div class="impact-dot i-high"></div></div>
+      <span class="effort">2 hrs</span>
+      <span class="expand-btn">▾</span>
+    </div>
+  </div>
+  <div class="task-detail">
+    <div class="detail-text">First-time user experience is everything for retention. A 3-step onboarding flow: (1) Tell us about your brand, (2) Connect your first social account, (3) Generate your first post. Users who complete onboarding retain at 3× the rate of those who don't.</div>
+    <button class="build-btn primary" onclick="sendPrompt('Build a 3-step onboarding flow for Marketer Pro: brand setup, connect social account, generate first post')">Build it now →</button>
+  </div>
+</div>
+
+<div class="task-card" data-tag="build">
+  <div class="task-row" onclick="expand(this)">
+    <div class="task-check" onclick="check(event,this)"></div>
+    <div class="task-meta">
+      <div class="task-title">Add empty states to all dashboard panels</div>
+      <div class="task-sub">Analytics, Calendar, Campaigns · currently show nothing when no data exists</div>
+    </div>
+    <div class="task-right">
+      <span class="tag tag-build">Build</span>
+      <div class="impact-bar"><div class="impact-dot i-high"></div><div class="impact-dot i-low"></div><div class="impact-dot i-low"></div></div>
+      <span class="effort">45 min</span>
+      <span class="expand-btn">▾</span>
+    </div>
+  </div>
+  <div class="task-detail">
+    <div class="detail-text">Every panel needs a beautiful empty state for new users — an illustration, a clear message, and a CTA to take action. "No posts scheduled yet → Schedule your first post." This is what separates polished apps from half-built ones.</div>
+    <button class="build-btn primary" onclick="sendPrompt('Build beautiful empty state components for the Analytics, Calendar, and Campaigns panels in Marketer Pro')">Build it now →</button>
+  </div>
+</div>
+
+<div class="task-card" data-tag="build">
+  <div class="task-row" onclick="expand(this)">
+    <div class="task-check" onclick="check(event,this)"></div>
+    <div class="task-meta">
+      <div class="task-title">Add account deletion flow</div>
+      <div class="task-sub">Settings panel · required by Apple App Store guidelines · rejection without it</div>
+    </div>
+    <div class="task-right">
+      <span class="tag tag-build">Build</span>
+      <div class="impact-bar"><div class="impact-dot i-high"></div><div class="impact-dot i-high"></div><div class="impact-dot i-high"></div></div>
+      <span class="effort">30 min</span>
+      <span class="expand-btn">▾</span>
+    </div>
+  </div>
+  <div class="task-detail">
+    <div class="detail-text">Apple WILL reject your app without this. Users must be able to delete their account and all associated data from within the app. Needs a confirmation modal, clear warning about data deletion, and API endpoint to handle it.</div>
+    <button class="build-btn primary" onclick="sendPrompt('Build the account deletion flow for Marketer Pro — settings panel UI + confirmation modal + API endpoint')">Build it now →</button>
+  </div>
+</div>
+
+<div class="section-label">🔵 Wire up — connect things that exist but aren't connected</div>
+
+<div class="task-card" data-tag="wire">
+  <div class="task-row" onclick="expand(this)">
+    <div class="task-check" onclick="check(event,this)"></div>
+    <div class="task-meta">
+      <div class="task-title">Wire OpenAI key to AI content generation</div>
+      <div class="task-sub">apps/api · generate-draft-body.ts · needs MARKETER_OPENAI_API_KEY in .env</div>
+    </div>
+    <div class="task-right">
+      <span class="tag tag-wire">Wire Up</span>
+      <div class="impact-bar"><div class="impact-dot i-high"></div><div class="impact-dot i-high"></div><div class="impact-dot i-high"></div></div>
+      <span class="effort">15 min</span>
+      <span class="expand-btn">▾</span>
+    </div>
+  </div>
+  <div class="task-detail">
+    <div class="detail-text">The AI generation pipeline is built — it just needs your OpenAI API key in the .env file to actually run. Go to platform.openai.com, generate a key, add it to your .env as MARKETER_OPENAI_API_KEY and the whole AI studio comes alive.</div>
+    <div class="code-hint">MARKETER_OPENAI_API_KEY=sk-your-key-here</div>
+    <button class="build-btn" onclick="window.open('https://platform.openai.com/api-keys','_blank')">Get OpenAI key →</button>
+  </div>
+</div>
+
+<div class="task-card" data-tag="wire">
+  <div class="task-row" onclick="expand(this)">
+    <div class="task-check" onclick="check(event,this)"></div>
+    <div class="task-meta">
+      <div class="task-title">Connect Stripe to billing panel</div>
+      <div class="task-sub">billing-webhook contract already written · needs STRIPE_SECRET_KEY + webhook secret</div>
+    </div>
+    <div class="task-right">
+      <span class="tag tag-wire">Wire Up</span>
+      <div class="impact-bar"><div class="impact-dot i-high"></div><div class="impact-dot i-high"></div><div class="impact-dot i-high"></div></div>
+      <span class="effort">1 hr</span>
+      <span class="expand-btn">▾</span>
+    </div>
+  </div>
+  <div class="task-detail">
+    <div class="detail-text">The billing contract is already typed. You need a Stripe account, create your Free/Pro/Enterprise products in Stripe dashboard, grab the keys, and wire the checkout flow. This is what makes you money.</div>
+    <button class="build-btn" onclick="window.open('https://dashboard.stripe.com','_blank')">Open Stripe →</button>
+    <button class="build-btn primary" onclick="sendPrompt('Wire up Stripe billing to the Marketer Pro pricing panel — checkout flow, webhook handler, plan upgrade/downgrade')">Build it now →</button>
+  </div>
+</div>
+
+<div class="task-card" data-tag="wire">
+  <div class="task-row" onclick="expand(this)">
+    <div class="task-check" onclick="check(event,this)"></div>
+    <div class="task-meta">
+      <div class="task-title">Apply landing page to the repo</div>
+      <div class="task-sub">marketer-pro-landing.html · add to repo + deploy to Vercel · start capturing emails today</div>
+    </div>
+    <div class="task-right">
+      <span class="tag tag-wire">Wire Up</span>
+      <div class="impact-bar"><div class="impact-dot i-high"></div><div class="impact-dot i-high"></div><div class="impact-dot i-high"></div></div>
+      <span class="effort">10 min</span>
+      <span class="expand-btn">▾</span>
+    </div>
+  </div>
+  <div class="task-detail">
+    <div class="detail-text">The landing page is built and ready. Drop it into your repo and deploy to Vercel for free. You can start capturing founding member emails TODAY before the app is even fully launched. Every day without it is a day of lost signups.</div>
+    <button class="build-btn" onclick="window.open('https://vercel.com','_blank')">Deploy on Vercel →</button>
+  </div>
+</div>
+
+<div class="section-label">🟢 Ship — deploy and make it real</div>
+
+<div class="task-card" data-tag="ship">
+  <div class="task-row" onclick="expand(this)">
+    <div class="task-check" onclick="check(event,this)"></div>
+    <div class="task-meta">
+      <div class="task-title">Apply for TikTok developer partner access</div>
+      <div class="task-sub">developers.tiktok.com · takes 2-4 weeks · start TODAY or it delays everything</div>
+    </div>
+    <div class="task-right">
+      <span class="tag tag-ship">Ship</span>
+      <div class="impact-bar"><div class="impact-dot i-high"></div><div class="impact-dot i-high"></div><div class="impact-dot i-high"></div></div>
+      <span class="effort">30 min</span>
+      <span class="expand-btn">▾</span>
+    </div>
+  </div>
+  <div class="task-detail">
+    <div class="detail-text">TikTok's Content Posting API requires manual partner approval that takes 2-4 weeks minimum. This is your longest lead-time item. Every day you don't apply is a day added to your launch timeline. Go apply right now — you can finish building everything else while you wait.</div>
+    <button class="build-btn primary" onclick="window.open('https://developers.tiktok.com','_blank')">Apply for TikTok API →</button>
+  </div>
+</div>
+
+</div>
+
+<script>
+var total = 12;
+function check(e, el) {
+  e.stopPropagation();
+  el.classList.toggle('checked');
+  var card = el.closest('.task-card');
+  card.classList.toggle('done', el.classList.contains('checked'));
+  updateProgress();
+}
+function expand(row) {
+  var detail = row.nextElementSibling;
+  var chev = row.querySelector('.expand-btn');
+  detail.classList.toggle('open');
+  chev.classList.toggle('open');
+}
+function updateProgress() {
+  var done = document.querySelectorAll('.task-check.checked').length;
+  var pct = Math.round(done/total*100);
+  document.getElementById('progBar').style.width = pct+'%';
+  document.getElementById('progLabel').textContent = done+' of '+total+' tasks done today';
+}
+function filter(tag, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.task-card').forEach(card => {
+    card.style.display = (tag === 'all' || card.dataset.tag === tag) ? 'block' : 'none';
+  });
+}
+function sendPrompt(text) {
+  if(window.sendPrompt) window.sendPrompt(text);
+}
+</script>

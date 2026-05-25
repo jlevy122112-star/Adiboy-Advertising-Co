@@ -1,0 +1,1135 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
+
+  :root {
+    --brand: #7C3AED;
+    --brand-light: #EDE9FE;
+    --brand-mid: #A78BFA;
+    --accent: #10B981;
+    --accent-light: #D1FAE5;
+    --warn: #F59E0B;
+    --danger: #EF4444;
+    --surface: #F8F7FF;
+    --card: #FFFFFF;
+    --border: rgba(124,58,237,0.12);
+    --text-1: #1A1033;
+    --text-2: #6B5F88;
+    --text-3: #A69CBD;
+    --nav-h: 68px;
+    --top-h: 60px;
+    --r: 16px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  #app-shell {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--surface);
+    width: 390px;
+    height: 820px;
+    border-radius: 40px;
+    overflow: hidden;
+    position: relative;
+    border: 1px solid var(--border);
+    box-shadow: 0 32px 80px rgba(124,58,237,0.18), 0 0 0 8px rgba(124,58,237,0.05);
+    margin: 16px auto;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .status-bar {
+    height: 44px;
+    background: var(--card);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    flex-shrink: 0;
+    border-bottom: 0.5px solid var(--border);
+  }
+  .status-bar .time { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px; color: var(--text-1); }
+  .status-bar .icons { display: flex; gap: 6px; align-items: center; }
+  .status-bar .icons span { font-size: 12px; color: var(--text-1); }
+
+  .top-bar {
+    height: var(--top-h);
+    background: var(--card);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    flex-shrink: 0;
+    border-bottom: 0.5px solid var(--border);
+  }
+  .top-bar .logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 20px; color: var(--brand); letter-spacing: -0.5px; }
+  .top-bar .logo span { color: var(--text-1); }
+  .top-bar .avatar { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, var(--brand), var(--brand-mid)); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 600; font-family: 'Syne', sans-serif; cursor: pointer; }
+  .top-bar .notif { position: relative; cursor: pointer; }
+  .top-bar .notif-dot { position: absolute; top: -2px; right: -2px; width: 8px; height: 8px; background: var(--danger); border-radius: 50%; border: 1.5px solid white; }
+  .top-bar .right-actions { display: flex; gap: 12px; align-items: center; }
+
+  .screen-area {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background: var(--surface);
+    scrollbar-width: none;
+  }
+  .screen-area::-webkit-scrollbar { display: none; }
+
+  .screen { display: none; animation: fadeUp 0.25s ease; }
+  .screen.active { display: block; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+  .bottom-nav {
+    height: var(--nav-h);
+    background: var(--card);
+    border-top: 0.5px solid var(--border);
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    align-items: center;
+    flex-shrink: 0;
+    padding-bottom: 8px;
+  }
+  .nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    cursor: pointer;
+    padding: 8px 4px 4px;
+    transition: all 0.18s;
+  }
+  .nav-item i { font-size: 22px; color: var(--text-3); transition: all 0.18s; }
+  .nav-item span { font-size: 10px; color: var(--text-3); font-weight: 500; transition: all 0.18s; letter-spacing: 0.3px; }
+  .nav-item.active i { color: var(--brand); }
+  .nav-item.active span { color: var(--brand); font-weight: 700; }
+  .nav-item .nav-pip { width: 4px; height: 4px; border-radius: 50%; background: var(--brand); display: none; margin: 0 auto; }
+  .nav-item.active .nav-pip { display: block; }
+
+  .section-pad { padding: 16px 20px; }
+  .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .section-header h2 { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 18px; color: var(--text-1); }
+  .section-header a { font-size: 13px; color: var(--brand); font-weight: 500; cursor: pointer; }
+
+  .card {
+    background: var(--card);
+    border-radius: var(--r);
+    border: 0.5px solid var(--border);
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+  }
+  .pill.success { background: var(--accent-light); color: #047857; }
+  .pill.purple { background: var(--brand-light); color: var(--brand); }
+  .pill.warn { background: #FEF3C7; color: #92400E; }
+  .pill.gray { background: #F1F0F5; color: var(--text-2); }
+
+  /* CREATE SCREEN */
+  .hero-banner {
+    margin: 16px 20px 0;
+    background: var(--brand);
+    border-radius: 20px;
+    padding: 20px 20px 0;
+    overflow: hidden;
+    position: relative;
+  }
+  .hero-banner::before {
+    content: '';
+    position: absolute;
+    width: 180px; height: 180px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+    top: -60px; right: -40px;
+  }
+  .hero-banner::after {
+    content: '';
+    position: absolute;
+    width: 100px; height: 100px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.04);
+    bottom: 20px; left: -20px;
+  }
+  .hero-banner h1 { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 22px; color: white; line-height: 1.2; margin-bottom: 6px; position: relative; z-index: 1; }
+  .hero-banner p { font-size: 13px; color: rgba(255,255,255,0.75); margin-bottom: 20px; position: relative; z-index: 1; }
+  .hero-gen-btn {
+    background: white;
+    color: var(--brand);
+    border: none;
+    border-radius: 12px 12px 0 0;
+    padding: 14px 20px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    transition: all 0.15s;
+    position: relative;
+    z-index: 1;
+  }
+  .hero-gen-btn:hover { background: #F5F3FF; }
+  .hero-gen-btn i { font-size: 20px; }
+  .hero-gen-btn .arrow { margin-left: auto; }
+
+  .platforms-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+  .plat-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border-radius: 12px;
+    border: 1.5px solid transparent;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-2);
+    background: var(--card);
+  }
+  .plat-chip.sel { border-color: var(--brand); color: var(--brand); background: var(--brand-light); }
+  .plat-chip .dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  .gen-form { display: none; }
+  .gen-form.open { display: block; }
+  .form-field { margin-bottom: 12px; }
+  .form-field label { display: block; font-size: 12px; font-weight: 600; color: var(--text-2); margin-bottom: 5px; letter-spacing: 0.3px; text-transform: uppercase; }
+  .form-field textarea, .form-field select, .form-field input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 14px;
+    color: var(--text-1);
+    font-family: 'DM Sans', sans-serif;
+    outline: none;
+    transition: border 0.15s;
+  }
+  .form-field textarea:focus, .form-field select:focus, .form-field input:focus { border-color: var(--brand); }
+  .form-field textarea { resize: none; height: 72px; }
+
+  .gen-action-btn {
+    width: 100%;
+    background: var(--brand);
+    color: white;
+    border: none;
+    border-radius: 14px;
+    padding: 16px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 8px;
+    transition: all 0.15s;
+  }
+  .gen-action-btn:hover { background: #6D28D9; transform: translateY(-1px); }
+  .gen-action-btn:active { transform: scale(0.98); }
+
+  /* Posts preview */
+  .post-preview {
+    background: var(--card);
+    border-radius: 14px;
+    border: 0.5px solid var(--border);
+    margin-bottom: 10px;
+    overflow: hidden;
+  }
+  .post-preview-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    border-bottom: 0.5px solid var(--border);
+  }
+  .post-plat-icon { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+  .post-preview-header strong { font-size: 13px; color: var(--text-1); font-weight: 600; }
+  .post-preview-header .char-count { margin-left: auto; font-size: 11px; color: var(--text-3); }
+  .post-content { padding: 12px 14px; font-size: 13px; color: var(--text-1); line-height: 1.6; }
+  .post-content .hashtags { color: var(--brand); margin-top: 6px; font-size: 12px; }
+  .post-actions { display: flex; gap: 8px; padding: 10px 14px; background: #FAFAFA; }
+  .post-btn {
+    flex: 1;
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: white;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    transition: all 0.12s;
+  }
+  .post-btn.approve { background: var(--accent-light); border-color: #A7F3D0; color: #047857; }
+  .post-btn.approve:hover { background: #A7F3D0; }
+  .post-btn.edit { color: var(--brand); border-color: var(--brand-light); }
+  .post-btn.edit:hover { background: var(--brand-light); }
+  .post-btn.reject { color: var(--danger); border-color: #FEE2E2; }
+
+  /* PLAN SCREEN */
+  .cal-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px 8px; }
+  .cal-header h2 { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 18px; color: var(--text-1); }
+  .cal-nav { display: flex; gap: 8px; align-items: center; }
+  .cal-nav button { width: 30px; height: 30px; border-radius: 8px; border: 0.5px solid var(--border); background: var(--card); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-2); font-size: 16px; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; padding: 0 20px; margin-bottom: 12px; }
+  .cal-day-label { text-align: center; font-size: 10px; font-weight: 700; color: var(--text-3); padding: 4px 0; text-transform: uppercase; letter-spacing: 0.5px; }
+  .cal-cell { aspect-ratio: 1; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.12s; position: relative; }
+  .cal-cell .day-num { font-size: 13px; font-weight: 500; color: var(--text-2); }
+  .cal-cell.today { background: var(--brand); }
+  .cal-cell.today .day-num { color: white; font-weight: 700; }
+  .cal-cell.has-post::after { content: ''; position: absolute; bottom: 4px; width: 4px; height: 4px; border-radius: 50%; background: var(--accent); }
+  .cal-cell.has-post2::after { background: var(--brand-mid); }
+  .cal-cell:hover:not(.today) { background: var(--brand-light); }
+
+  .sched-item { display: flex; gap: 12px; align-items: flex-start; padding: 12px 0; border-bottom: 0.5px solid var(--border); }
+  .sched-item:last-child { border-bottom: none; }
+  .sched-time { font-size: 11px; font-weight: 700; color: var(--text-3); width: 44px; flex-shrink: 0; padding-top: 2px; }
+  .sched-plat { width: 32px; height: 32px; border-radius: 10px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 15px; }
+  .sched-info .title { font-size: 13px; font-weight: 600; color: var(--text-1); }
+  .sched-info .sub { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+
+  /* ANALYZE SCREEN */
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+  .stat-card { background: var(--card); border-radius: 14px; border: 0.5px solid var(--border); padding: 14px; }
+  .stat-card .label { font-size: 11px; font-weight: 700; color: var(--text-3); letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 4px; }
+  .stat-card .value { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 26px; color: var(--text-1); line-height: 1; }
+  .stat-card .change { font-size: 11px; margin-top: 4px; font-weight: 600; }
+  .stat-card .change.up { color: var(--accent); }
+  .stat-card .change.dn { color: var(--danger); }
+
+  .chart-bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .chart-bar-row .plat-name { font-size: 12px; color: var(--text-2); width: 70px; flex-shrink: 0; font-weight: 500; }
+  .chart-bar-wrap { flex: 1; background: var(--surface); border-radius: 100px; height: 8px; overflow: hidden; }
+  .chart-bar-fill { height: 100%; border-radius: 100px; transition: width 0.6s cubic-bezier(0.34,1.56,0.64,1); }
+  .chart-bar-row .bar-val { font-size: 11px; font-weight: 700; color: var(--text-2); width: 28px; text-align: right; }
+
+  .insight-card { background: var(--brand-light); border-radius: 14px; padding: 14px 16px; display: flex; gap: 12px; align-items: flex-start; margin-bottom: 10px; }
+  .insight-card i { color: var(--brand); font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+  .insight-card .ins-text { font-size: 13px; color: var(--text-1); line-height: 1.5; }
+  .insight-card .ins-action { display: inline-flex; align-items: center; gap: 4px; margin-top: 6px; font-size: 12px; font-weight: 700; color: var(--brand); cursor: pointer; }
+
+  /* SETTINGS SCREEN */
+  .profile-hero { background: var(--brand); border-radius: 20px; margin: 16px 20px 0; padding: 20px; display: flex; align-items: center; gap: 16px; }
+  .profile-hero .big-avatar { width: 56px; height: 56px; border-radius: 16px; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-family: 'Syne', sans-serif; font-weight: 800; font-size: 22px; color: white; flex-shrink: 0; }
+  .profile-hero .brand-name { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 18px; color: white; }
+  .profile-hero .brand-plan { font-size: 12px; color: rgba(255,255,255,0.7); margin-top: 2px; }
+  .profile-hero .edit-btn { margin-left: auto; background: rgba(255,255,255,0.15); border: none; border-radius: 10px; padding: 8px 12px; color: white; font-size: 12px; font-weight: 600; cursor: pointer; }
+
+  .settings-group { margin: 0 20px 16px; }
+  .settings-group-label { font-size: 11px; font-weight: 700; color: var(--text-3); letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 8px; padding-left: 4px; }
+  .settings-row { display: flex; align-items: center; gap: 12px; padding: 13px 14px; background: var(--card); border-radius: 12px; margin-bottom: 2px; cursor: pointer; border: 0.5px solid var(--border); transition: all 0.12s; }
+  .settings-row:hover { background: var(--brand-light); }
+  .settings-row i { font-size: 20px; color: var(--brand); width: 24px; }
+  .settings-row .sr-label { font-size: 14px; color: var(--text-1); font-weight: 500; flex: 1; }
+  .settings-row .sr-sub { font-size: 11px; color: var(--text-3); }
+  .settings-row .sr-right { display: flex; align-items: center; gap: 6px; }
+  .settings-row .sr-chevron { color: var(--text-3); font-size: 16px; }
+
+  /* ONBOARD OVERLAY */
+  #onboard-overlay {
+    position: absolute;
+    inset: 0;
+    background: white;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    border-radius: 40px;
+    overflow: hidden;
+  }
+  .ob-progress { height: 4px; background: var(--brand-light); flex-shrink: 0; }
+  .ob-progress-fill { height: 100%; background: var(--brand); border-radius: 100px; transition: width 0.4s ease; }
+  .ob-body { flex: 1; overflow-y: auto; padding: 28px 24px 20px; scrollbar-width: none; }
+  .ob-body::-webkit-scrollbar { display: none; }
+  .ob-step { display: none; }
+  .ob-step.active { display: block; animation: fadeUp 0.3s ease; }
+  .ob-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--brand); margin-bottom: 8px; }
+  .ob-title { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 24px; color: var(--text-1); line-height: 1.2; margin-bottom: 8px; }
+  .ob-sub { font-size: 14px; color: var(--text-2); line-height: 1.6; margin-bottom: 24px; }
+  .ob-option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    border: 1.5px solid var(--border);
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+    background: white;
+  }
+  .ob-option.sel { border-color: var(--brand); background: var(--brand-light); }
+  .ob-option .ob-check { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.15s; }
+  .ob-option.sel .ob-check { background: var(--brand); border-color: var(--brand); }
+  .ob-option.sel .ob-check::after { content: '✓'; color: white; font-size: 11px; font-weight: 700; }
+  .ob-option .ob-opt-label { font-size: 15px; font-weight: 500; color: var(--text-1); }
+  .ob-option .ob-opt-sub { font-size: 12px; color: var(--text-3); margin-top: 1px; }
+  .ob-input {
+    width: 100%;
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 13px 14px;
+    font-size: 15px;
+    color: var(--text-1);
+    font-family: 'DM Sans', sans-serif;
+    outline: none;
+    margin-bottom: 10px;
+    transition: border 0.15s;
+    background: var(--surface);
+  }
+  .ob-input:focus { border-color: var(--brand); background: white; }
+  .ob-footer { padding: 16px 24px 24px; background: white; flex-shrink: 0; border-top: 0.5px solid var(--border); }
+  .ob-next-btn {
+    width: 100%;
+    background: var(--brand);
+    color: white;
+    border: none;
+    border-radius: 16px;
+    padding: 18px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 17px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.15s;
+  }
+  .ob-next-btn:hover { background: #6D28D9; }
+  .ob-step-counter { text-align: center; font-size: 12px; color: var(--text-3); margin-top: 10px; }
+
+  /* GENERATING STATE */
+  .gen-loading { text-align: center; padding: 40px 20px; display: none; }
+  .gen-loading.show { display: block; }
+  .spinner { width: 48px; height: 48px; border: 3px solid var(--brand-light); border-top-color: var(--brand); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .gen-loading p { font-family: 'Syne', sans-serif; font-weight: 600; font-size: 16px; color: var(--text-1); }
+  .gen-loading small { font-size: 13px; color: var(--text-3); display: block; margin-top: 4px; }
+
+  /* SCHEDULE MODAL */
+  .sched-sheet {
+    position: absolute;
+    bottom: 0;
+    left: 0; right: 0;
+    background: white;
+    border-radius: 24px 24px 0 0;
+    padding: 20px;
+    z-index: 50;
+    display: none;
+    border-top: 0.5px solid var(--border);
+  }
+  .sched-sheet.open { display: block; animation: slideUp 0.3s ease; }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .sheet-handle { width: 40px; height: 4px; background: var(--border); border-radius: 100px; margin: 0 auto 16px; }
+  .sched-sheet h3 { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 18px; color: var(--text-1); margin-bottom: 16px; }
+  .time-options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+  .time-opt { padding: 12px; border: 1.5px solid var(--border); border-radius: 12px; text-align: center; cursor: pointer; transition: all 0.12s; }
+  .time-opt.sel { border-color: var(--brand); background: var(--brand-light); }
+  .time-opt .t-time { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 16px; color: var(--text-1); }
+  .time-opt .t-label { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+  .time-opt.sel .t-time, .time-opt.sel .t-label { color: var(--brand); }
+  .publish-btn { width: 100%; background: var(--brand); color: white; border: none; border-radius: 14px; padding: 16px; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 16px; cursor: pointer; transition: all 0.15s; }
+  .publish-btn:hover { background: #6D28D9; }
+
+  /* SUCCESS TOAST */
+  .toast {
+    position: absolute;
+    top: 120px;
+    left: 20px; right: 20px;
+    background: var(--accent);
+    color: white;
+    border-radius: 14px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    font-size: 14px;
+    z-index: 200;
+    display: none;
+    box-shadow: 0 8px 24px rgba(16,185,129,0.3);
+  }
+  .toast.show { display: flex; animation: fadeUp 0.3s ease; }
+
+  .brand-color-swatch { width: 20px; height: 20px; border-radius: 5px; background: var(--brand); display: inline-block; vertical-align: middle; margin-right: 4px; }
+</style>
+
+<div id="app-shell">
+  <div class="status-bar">
+    <span class="time">9:41</span>
+    <div class="icons">
+      <i class="ti ti-wifi" style="font-size:14px;color:var(--text-1)" aria-hidden="true"></i>
+      <i class="ti ti-signal-4g" style="font-size:14px;color:var(--text-1)" aria-hidden="true"></i>
+      <i class="ti ti-battery-2" style="font-size:14px;color:var(--text-1)" aria-hidden="true"></i>
+    </div>
+  </div>
+
+  <div class="top-bar">
+    <div class="logo">Marketer<span>Pro</span></div>
+    <div class="right-actions">
+      <div class="notif" id="notif-btn" style="cursor:pointer">
+        <i class="ti ti-bell" style="font-size:22px;color:var(--text-2)" aria-hidden="true"></i>
+        <div class="notif-dot"></div>
+      </div>
+      <div class="avatar">JD</div>
+    </div>
+  </div>
+
+  <div class="screen-area" id="screen-area">
+
+    <!-- CREATE SCREEN -->
+    <div class="screen active" id="screen-create">
+      <div class="hero-banner">
+        <div class="ob-eyebrow" style="color:rgba(255,255,255,0.7);font-size:10px">AI STUDIO</div>
+        <h1>What will you<br>create today?</h1>
+        <p>Your brand voice, 8 platforms, one tap.</p>
+        <button class="hero-gen-btn" id="open-gen-btn">
+          <i class="ti ti-sparkles" aria-hidden="true"></i>
+          Generate your first post
+          <i class="ti ti-arrow-right arrow" aria-hidden="true"></i>
+        </button>
+      </div>
+
+      <div class="section-pad" id="gen-section" style="display:none">
+        <div class="section-header">
+          <h2>Choose platforms</h2>
+        </div>
+        <div class="platforms-row" id="plat-row">
+          <div class="plat-chip sel" data-plat="Instagram"><div class="dot" style="background:#E1306C"></div>Instagram</div>
+          <div class="plat-chip" data-plat="LinkedIn"><div class="dot" style="background:#0A66C2"></div>LinkedIn</div>
+          <div class="plat-chip" data-plat="X / Twitter"><div class="dot" style="background:#1DA1F2"></div>X</div>
+          <div class="plat-chip" data-plat="Facebook"><div class="dot" style="background:#1877F2"></div>Facebook</div>
+          <div class="plat-chip" data-plat="TikTok"><div class="dot" style="background:#000000"></div>TikTok</div>
+          <div class="plat-chip" data-plat="YouTube"><div class="dot" style="background:#FF0000"></div>YouTube</div>
+        </div>
+
+        <div class="gen-form open" style="margin-top:16px">
+          <div class="form-field">
+            <label>Topic / Tagline</label>
+            <input type="text" placeholder="e.g. Summer sale — 30% off all plans" id="topic-input" value="" />
+          </div>
+          <div class="form-field">
+            <label>Content Goal</label>
+            <select>
+              <option>Drive website traffic</option>
+              <option>Generate leads</option>
+              <option>Build brand awareness</option>
+              <option>Announce a promotion</option>
+              <option>Educate my audience</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label>Call to Action</label>
+            <input type="text" placeholder="e.g. Visit our website, DM us, Book now" value="Visit our website" />
+          </div>
+          <div class="form-field">
+            <label>Hashtag strategy</label>
+            <select>
+              <option>Broad reach (10–15 hashtags)</option>
+              <option>Niche focused (5–8 hashtags)</option>
+              <option>Trending only</option>
+              <option>No hashtags</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label>Post urgency</label>
+            <select>
+              <option>Normal</option>
+              <option>Urgent — time sensitive!</option>
+              <option>Low key / soft sell</option>
+            </select>
+          </div>
+          <button class="gen-action-btn" id="gen-btn">
+            <i class="ti ti-sparkles" aria-hidden="true"></i>
+            Generate Posts
+          </button>
+        </div>
+      </div>
+
+      <div class="gen-loading" id="gen-loading">
+        <div class="spinner"></div>
+        <p>Crafting your posts...</p>
+        <small>Applying your brand voice across all platforms</small>
+      </div>
+
+      <div id="posts-output" style="display:none;padding:16px 20px">
+        <div class="section-header">
+          <h2>Review & Approve</h2>
+          <span class="pill success"><i class="ti ti-sparkles" style="font-size:11px" aria-hidden="true"></i> AI Generated</span>
+        </div>
+
+        <div class="post-preview" id="post-ig">
+          <div class="post-preview-header">
+            <div class="plat-icon" style="width:28px;height:28px;border-radius:8px;background:#fce4ec;display:flex;align-items:center;justify-content:center;font-size:15px">📸</div>
+            <strong>Instagram</strong>
+            <span class="char-count">847 / 2,200 chars</span>
+          </div>
+          <div class="post-content">
+            🌟 Big news! Our summer sale is HERE — and yes, it's as good as it sounds.<br><br>
+            <strong>30% off all plans</strong> for a limited time only. Whether you're a solo creator or scaling a full team — this is your moment.<br><br>
+            Don't let this one slide. Tap the link in bio to lock in your discount before it's gone. ⏳
+            <div class="hashtags">#MarketingTools #SocialMediaMarketing #SmallBusiness #SummerSale #ContentCreator #DigitalMarketing</div>
+          </div>
+          <div class="post-actions">
+            <button class="post-btn approve" onclick="approvePost('ig')"><i class="ti ti-check" style="font-size:12px" aria-hidden="true"></i> Approve</button>
+            <button class="post-btn edit" onclick="editPost('ig')"><i class="ti ti-edit" style="font-size:12px" aria-hidden="true"></i> Edit</button>
+            <button class="post-btn reject" onclick="rejectPost('ig')"><i class="ti ti-refresh" style="font-size:12px" aria-hidden="true"></i> Redo</button>
+          </div>
+        </div>
+
+        <div class="post-preview" id="post-li">
+          <div class="post-preview-header">
+            <div class="plat-icon" style="width:28px;height:28px;border-radius:8px;background:#e3f2fd;display:flex;align-items:center;justify-content:center;font-size:15px">💼</div>
+            <strong>LinkedIn</strong>
+            <span class="char-count">312 / 3,000 chars</span>
+          </div>
+          <div class="post-content">
+            We're running our biggest sale of the year — <strong>30% off all plans</strong>.<br><br>
+            If you've been thinking about leveling up your content marketing, now is the time. Our platform helps teams produce on-brand content 10x faster.<br><br>
+            Comment "SUMMER" and I'll send you the link directly. 👇
+          </div>
+          <div class="post-actions">
+            <button class="post-btn approve" onclick="approvePost('li')"><i class="ti ti-check" style="font-size:12px" aria-hidden="true"></i> Approve</button>
+            <button class="post-btn edit" onclick="editPost('li')"><i class="ti ti-edit" style="font-size:12px" aria-hidden="true"></i> Edit</button>
+            <button class="post-btn reject" onclick="rejectPost('li')"><i class="ti ti-refresh" style="font-size:12px" aria-hidden="true"></i> Redo</button>
+          </div>
+        </div>
+
+        <button class="gen-action-btn" id="schedule-all-btn" style="background:var(--accent)">
+          <i class="ti ti-calendar-plus" aria-hidden="true"></i>
+          Schedule All Approved
+        </button>
+      </div>
+    </div>
+
+    <!-- PLAN SCREEN -->
+    <div class="screen" id="screen-plan">
+      <div class="cal-header">
+        <h2>May 2026</h2>
+        <div class="cal-nav">
+          <button><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
+          <button><i class="ti ti-chevron-right" aria-hidden="true"></i></button>
+        </div>
+      </div>
+      <div class="cal-grid" id="cal-grid"></div>
+
+      <div class="section-pad" style="padding-top:0">
+        <div class="section-header">
+          <h2>Upcoming Posts</h2>
+          <a>See all</a>
+        </div>
+
+        <div class="card" style="padding:4px 14px">
+          <div class="sched-item">
+            <div class="sched-time">9:00 AM</div>
+            <div class="sched-plat" style="background:#fce4ec">📸</div>
+            <div class="sched-info">
+              <div class="title">Summer Sale — Instagram Post</div>
+              <div class="sub">Today · 847 chars · 6 hashtags</div>
+            </div>
+            <span class="pill success" style="flex-shrink:0">Live</span>
+          </div>
+          <div class="sched-item">
+            <div class="sched-time">12:30 PM</div>
+            <div class="sched-plat" style="background:#e3f2fd">💼</div>
+            <div class="sched-info">
+              <div class="title">Summer Sale — LinkedIn Post</div>
+              <div class="sub">Today · 312 chars · Professional</div>
+            </div>
+            <span class="pill warn" style="flex-shrink:0">Pending</span>
+          </div>
+          <div class="sched-item">
+            <div class="sched-time">3:00 PM</div>
+            <div class="sched-plat" style="background:#e8f5e9">🐦</div>
+            <div class="sched-info">
+              <div class="title">Summer Sale — X Thread</div>
+              <div class="sub">Tomorrow · 280 chars/tweet</div>
+            </div>
+            <span class="pill gray" style="flex-shrink:0">Scheduled</span>
+          </div>
+          <div class="sched-item">
+            <div class="sched-time">6:00 PM</div>
+            <div class="sched-plat" style="background:#e8eaf6">🎬</div>
+            <div class="sched-info">
+              <div class="title">Product Demo — TikTok Caption</div>
+              <div class="sub">May 27 · 150 chars</div>
+            </div>
+            <span class="pill gray" style="flex-shrink:0">Draft</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ANALYZE SCREEN -->
+    <div class="screen" id="screen-analyze">
+      <div class="section-pad">
+        <div class="section-header">
+          <h2>Performance</h2>
+          <span class="pill purple">Last 7 days</span>
+        </div>
+
+        <div class="stat-grid">
+          <div class="stat-card">
+            <div class="label">Total Reach</div>
+            <div class="value">48.2K</div>
+            <div class="change up"><i class="ti ti-trending-up" style="font-size:11px" aria-hidden="true"></i> +22% vs last week</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">Engagement</div>
+            <div class="value">6.4%</div>
+            <div class="change up"><i class="ti ti-trending-up" style="font-size:11px" aria-hidden="true"></i> +8% vs last week</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">Posts Published</div>
+            <div class="value">12</div>
+            <div class="change up"><i class="ti ti-trending-up" style="font-size:11px" aria-hidden="true"></i> On track</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">Link Clicks</div>
+            <div class="value">1.8K</div>
+            <div class="change dn"><i class="ti ti-trending-down" style="font-size:11px" aria-hidden="true"></i> -4% vs last week</div>
+          </div>
+        </div>
+
+        <div class="section-header">
+          <h2>Platform Breakdown</h2>
+        </div>
+        <div class="card" style="padding:16px">
+          <div id="bar-chart"></div>
+        </div>
+
+        <div class="section-header" style="margin-top:16px">
+          <h2>AI Insights</h2>
+        </div>
+        <div class="insight-card">
+          <i class="ti ti-sparkles" aria-hidden="true"></i>
+          <div>
+            <div class="ins-text">Your Instagram posts are outperforming your average by <strong>40%</strong>. Posting between 8–10 AM is your sweet spot.</div>
+            <div class="ins-action"><i class="ti ti-plus" style="font-size:11px" aria-hidden="true"></i> Generate more Instagram content</div>
+          </div>
+        </div>
+        <div class="insight-card">
+          <i class="ti ti-chart-line" aria-hidden="true"></i>
+          <div>
+            <div class="ins-text">Link clicks are down 4% — try adding a stronger CTA to your next LinkedIn post.</div>
+            <div class="ins-action"><i class="ti ti-arrow-right" style="font-size:11px" aria-hidden="true"></i> Generate LinkedIn post now</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS SCREEN -->
+    <div class="screen" id="screen-settings">
+      <div class="profile-hero">
+        <div class="big-avatar">JD</div>
+        <div>
+          <div class="brand-name">Jane's Studio</div>
+          <div class="brand-plan">✦ Pro Plan · 50 posts/mo</div>
+        </div>
+        <button class="edit-btn">Edit</button>
+      </div>
+
+      <div class="section-pad">
+        <div class="settings-group">
+          <div class="settings-group-label">Brand</div>
+          <div class="settings-row">
+            <i class="ti ti-palette" aria-hidden="true"></i>
+            <div style="flex:1">
+              <div class="sr-label">Brand Profile</div>
+              <div class="sr-sub">Colors, voice, logo</div>
+            </div>
+            <div class="sr-right">
+              <div class="brand-color-swatch"></div>
+              <i class="ti ti-chevron-right sr-chevron" aria-hidden="true"></i>
+            </div>
+          </div>
+          <div class="settings-row">
+            <i class="ti ti-users" aria-hidden="true"></i>
+            <div style="flex:1">
+              <div class="sr-label">Team Members</div>
+              <div class="sr-sub">1 of 5 seats used</div>
+            </div>
+            <i class="ti ti-chevron-right sr-chevron" aria-hidden="true"></i>
+          </div>
+          <div class="settings-row">
+            <i class="ti ti-social" aria-hidden="true"></i>
+            <div style="flex:1">
+              <div class="sr-label">Connected Platforms</div>
+              <div class="sr-sub">3 of 8 connected</div>
+            </div>
+            <i class="ti ti-chevron-right sr-chevron" aria-hidden="true"></i>
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <div class="settings-group-label">Account</div>
+          <div class="settings-row">
+            <i class="ti ti-credit-card" aria-hidden="true"></i>
+            <div style="flex:1">
+              <div class="sr-label">Billing & Plan</div>
+              <div class="sr-sub">Pro · $29/mo · Renews Jun 1</div>
+            </div>
+            <i class="ti ti-chevron-right sr-chevron" aria-hidden="true"></i>
+          </div>
+          <div class="settings-row">
+            <i class="ti ti-robot" aria-hidden="true"></i>
+            <div style="flex:1">
+              <div class="sr-label">Autonomous Mode</div>
+              <div class="sr-sub">Auto-publish without review</div>
+            </div>
+            <div class="sr-right">
+              <div style="width:42px;height:24px;background:#E5E7EB;border-radius:100px;position:relative;cursor:pointer" id="auto-toggle">
+                <div style="width:20px;height:20px;background:white;border-radius:50%;position:absolute;top:2px;left:2px;transition:all 0.2s;box-shadow:0 1px 4px rgba(0,0,0,0.15)"></div>
+              </div>
+            </div>
+          </div>
+          <div class="settings-row">
+            <i class="ti ti-bell" aria-hidden="true"></i>
+            <div style="flex:1">
+              <div class="sr-label">Notifications</div>
+              <div class="sr-sub">Push, email, in-app</div>
+            </div>
+            <i class="ti ti-chevron-right sr-chevron" aria-hidden="true"></i>
+          </div>
+          <div class="settings-row">
+            <i class="ti ti-help" aria-hidden="true"></i>
+            <div style="flex:1">
+              <div class="sr-label">Help & Support</div>
+            </div>
+            <i class="ti ti-chevron-right sr-chevron" aria-hidden="true"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="bottom-nav" id="bottom-nav">
+    <div class="nav-item active" data-screen="create">
+      <i class="ti ti-sparkles" aria-hidden="true"></i>
+      <div class="nav-pip"></div>
+      <span>Create</span>
+    </div>
+    <div class="nav-item" data-screen="plan">
+      <i class="ti ti-calendar" aria-hidden="true"></i>
+      <div class="nav-pip"></div>
+      <span>Plan</span>
+    </div>
+    <div class="nav-item" data-screen="analyze">
+      <i class="ti ti-chart-bar" aria-hidden="true"></i>
+      <div class="nav-pip"></div>
+      <span>Analyze</span>
+    </div>
+    <div class="nav-item" data-screen="settings">
+      <i class="ti ti-settings" aria-hidden="true"></i>
+      <div class="nav-pip"></div>
+      <span>Settings</span>
+    </div>
+  </div>
+
+  <!-- ONBOARDING OVERLAY -->
+  <div id="onboard-overlay">
+    <div class="status-bar" style="background:white;border-bottom:none">
+      <span class="time">9:41</span>
+      <div class="icons">
+        <i class="ti ti-wifi" style="font-size:14px;color:var(--text-1)" aria-hidden="true"></i>
+        <i class="ti ti-battery-2" style="font-size:14px;color:var(--text-1)" aria-hidden="true"></i>
+      </div>
+    </div>
+    <div class="ob-progress"><div class="ob-progress-fill" id="ob-progress" style="width:20%"></div></div>
+    <div class="ob-body">
+      <!-- Step 1 -->
+      <div class="ob-step active" id="ob-step-1">
+        <div class="ob-eyebrow">Step 1 of 5</div>
+        <div class="ob-title">What are you promoting?</div>
+        <div class="ob-sub">Help us understand your business so every post sounds exactly like you.</div>
+        <div class="ob-option sel" data-ob="type" data-val="product">
+          <div class="ob-check"></div>
+          <div><div class="ob-opt-label">Product</div><div class="ob-opt-sub">Physical or digital products you sell</div></div>
+        </div>
+        <div class="ob-option" data-ob="type" data-val="service">
+          <div class="ob-check"></div>
+          <div><div class="ob-opt-label">Service</div><div class="ob-opt-sub">Consulting, coaching, or professional services</div></div>
+        </div>
+        <div class="ob-option" data-ob="type" data-val="both">
+          <div class="ob-check"></div>
+          <div><div class="ob-opt-label">Both</div><div class="ob-opt-sub">Products and services combined</div></div>
+        </div>
+      </div>
+      <!-- Step 2 -->
+      <div class="ob-step" id="ob-step-2">
+        <div class="ob-eyebrow">Step 2 of 5</div>
+        <div class="ob-title">Who are you?</div>
+        <div class="ob-sub">Your brand identity shapes every post the AI creates for you.</div>
+        <input class="ob-input" placeholder="Brand / Business name" />
+        <input class="ob-input" placeholder="Primary brand color (e.g. #7C3AED)" />
+        <input class="ob-input" placeholder="3 words that describe your brand" />
+        <div style="border:1.5px dashed var(--border);border-radius:12px;padding:20px;text-align:center;cursor:pointer;margin-top:4px">
+          <i class="ti ti-upload" style="font-size:28px;color:var(--text-3)" aria-hidden="true"></i>
+          <p style="font-size:13px;color:var(--text-3);margin-top:8px">Upload your logo</p>
+          <p style="font-size:11px;color:var(--text-3)">PNG, JPG, or SVG</p>
+        </div>
+      </div>
+      <!-- Step 3 -->
+      <div class="ob-step" id="ob-step-3">
+        <div class="ob-eyebrow">Step 3 of 5</div>
+        <div class="ob-title">What problem do you solve?</div>
+        <div class="ob-sub">The AI uses this to write content that speaks directly to your customer's pain.</div>
+        <div style="margin-bottom:10px">
+          <label style="font-size:12px;font-weight:700;color:var(--text-3);letter-spacing:0.3px;text-transform:uppercase;display:block;margin-bottom:6px">Their problem before finding you</label>
+          <textarea class="ob-input" style="height:72px;resize:none" placeholder="e.g. Spending hours writing social posts with no real strategy..."></textarea>
+        </div>
+        <div style="margin-bottom:10px">
+          <label style="font-size:12px;font-weight:700;color:var(--text-3);letter-spacing:0.3px;text-transform:uppercase;display:block;margin-bottom:6px">Your solution</label>
+          <textarea class="ob-input" style="height:72px;resize:none" placeholder="e.g. AI-powered content that sounds like you, posted in seconds..."></textarea>
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:700;color:var(--text-3);letter-spacing:0.3px;text-transform:uppercase;display:block;margin-bottom:6px">The outcome they get</label>
+          <textarea class="ob-input" style="height:72px;resize:none" placeholder="e.g. More followers, more leads, less time on content..."></textarea>
+        </div>
+      </div>
+      <!-- Step 4 -->
+      <div class="ob-step" id="ob-step-4">
+        <div class="ob-eyebrow">Step 4 of 5</div>
+        <div class="ob-title">How do people reach you?</div>
+        <div class="ob-sub">We'll include these in your posts so customers can always find you.</div>
+        <input class="ob-input" placeholder="Website URL" />
+        <input class="ob-input" placeholder="Phone number" />
+        <input class="ob-input" placeholder="Email address" />
+        <input class="ob-input" placeholder="Instagram handle" />
+        <input class="ob-input" placeholder="Physical address (optional)" />
+      </div>
+      <!-- Step 5 -->
+      <div class="ob-step" id="ob-step-5">
+        <div class="ob-eyebrow">Step 5 of 5</div>
+        <div class="ob-title">What industry are you in?</div>
+        <div class="ob-sub">Almost done! This shapes your content style and hashtag strategy.</div>
+        <div class="ob-option sel" data-ob="industry" data-val="tech">
+          <div class="ob-check"></div>
+          <div><div class="ob-opt-label">Tech & SaaS</div><div class="ob-opt-sub">Software, apps, platforms</div></div>
+        </div>
+        <div class="ob-option" data-ob="industry" data-val="retail">
+          <div class="ob-check"></div>
+          <div><div class="ob-opt-label">Retail & E-commerce</div><div class="ob-opt-sub">Products, shops, brands</div></div>
+        </div>
+        <div class="ob-option" data-ob="industry" data-val="health">
+          <div class="ob-check"></div>
+          <div><div class="ob-opt-label">Health & Wellness</div><div class="ob-opt-sub">Fitness, coaching, lifestyle</div></div>
+        </div>
+        <div class="ob-option" data-ob="industry" data-val="creative">
+          <div class="ob-check"></div>
+          <div><div class="ob-opt-label">Creative & Agency</div><div class="ob-opt-sub">Design, marketing, media</div></div>
+        </div>
+        <div class="ob-option" data-ob="industry" data-val="other">
+          <div class="ob-check"></div>
+          <div><div class="ob-opt-label">Other</div><div class="ob-opt-sub">Tell us more</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="ob-footer">
+      <button class="ob-next-btn" id="ob-next">
+        Continue <i class="ti ti-arrow-right" aria-hidden="true"></i>
+      </button>
+      <div class="ob-step-counter" id="ob-step-counter">Step 1 of 5</div>
+    </div>
+  </div>
+
+  <!-- SCHEDULE SHEET -->
+  <div class="sched-sheet" id="sched-sheet">
+    <div class="sheet-handle"></div>
+    <h3>Schedule your posts</h3>
+    <p style="font-size:13px;color:var(--text-2);margin-bottom:14px">AI recommends posting at these times for maximum reach:</p>
+    <div class="time-options">
+      <div class="time-opt sel" data-time="now"><div class="t-time">Now</div><div class="t-label">Post immediately</div></div>
+      <div class="time-opt" data-time="9am"><div class="t-time">9:00 AM</div><div class="t-label">Best for engagement</div></div>
+      <div class="time-opt" data-time="12pm"><div class="t-time">12:30 PM</div><div class="t-label">Lunch scroll peak</div></div>
+      <div class="time-opt" data-time="6pm"><div class="t-time">6:00 PM</div><div class="t-label">Evening peak hour</div></div>
+    </div>
+    <button class="publish-btn" id="publish-btn">
+      <i class="ti ti-rocket" aria-hidden="true"></i> Publish Posts
+    </button>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast">
+    <i class="ti ti-circle-check" style="font-size:20px" aria-hidden="true"></i>
+    Posts published successfully! 🎉
+  </div>
+</div>
+
+<script>
+  var obStep = 1;
+  var obTotal = 5;
+  var genShown = false;
+  var autoOn = false;
+
+  function goToObStep(n) {
+    document.querySelectorAll('.ob-step').forEach(function(s){ s.classList.remove('active'); });
+    var el = document.getElementById('ob-step-' + n);
+    if(el) el.classList.add('active');
+    document.getElementById('ob-progress').style.width = (n / obTotal * 100) + '%';
+    document.getElementById('ob-step-counter').textContent = 'Step ' + n + ' of ' + obTotal;
+    var btn = document.getElementById('ob-next');
+    if(n === obTotal) {
+      btn.innerHTML = '<i class="ti ti-sparkles" aria-hidden="true"></i> Let\'s Go!';
+    } else {
+      btn.innerHTML = 'Continue <i class="ti ti-arrow-right" aria-hidden="true"></i>';
+    }
+  }
+
+  document.getElementById('ob-next').addEventListener('click', function() {
+    if(obStep < obTotal) {
+      obStep++;
+      goToObStep(obStep);
+    } else {
+      document.getElementById('onboard-overlay').style.display = 'none';
+    }
+  });
+
+  document.querySelectorAll('[data-ob]').forEach(function(opt) {
+    opt.addEventListener('click', function() {
+      var group = opt.getAttribute('data-ob');
+      document.querySelectorAll('[data-ob="' + group + '"]').forEach(function(o){ o.classList.remove('sel'); });
+      opt.classList.add('sel');
+    });
+  });
+
+  document.querySelectorAll('.nav-item').forEach(function(item) {
+    item.addEventListener('click', function() {
+      document.querySelectorAll('.nav-item').forEach(function(i){ i.classList.remove('active'); });
+      item.classList.add('active');
+      var scr = item.getAttribute('data-screen');
+      document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active'); });
+      document.getElementById('screen-' + scr).classList.add('active');
+      document.getElementById('screen-area').scrollTop = 0;
+    });
+  });
+
+  document.getElementById('open-gen-btn').addEventListener('click', function() {
+    document.getElementById('gen-section').style.display = 'block';
+    this.closest('.hero-banner').style.marginBottom = '0';
+    document.getElementById('screen-area').scrollTop = 300;
+  });
+
+  document.querySelectorAll('.plat-chip').forEach(function(chip) {
+    chip.addEventListener('click', function() { chip.classList.toggle('sel'); });
+  });
+
+  document.getElementById('gen-btn').addEventListener('click', function() {
+    document.getElementById('gen-section').style.display = 'none';
+    var loading = document.getElementById('gen-loading');
+    loading.classList.add('show');
+    document.getElementById('screen-area').scrollTop = 0;
+    setTimeout(function() {
+      loading.classList.remove('show');
+      document.getElementById('posts-output').style.display = 'block';
+      document.getElementById('screen-area').scrollTop = 0;
+    }, 2200);
+  });
+
+  var approvedPosts = {};
+  function approvePost(id) {
+    approvedPosts[id] = true;
+    var post = document.getElementById('post-' + id);
+    post.style.borderColor = 'var(--accent)';
+    var actions = post.querySelector('.post-actions');
+    actions.innerHTML = '<div style="display:flex;align-items:center;gap:6px;padding:4px 0;font-size:13px;font-weight:600;color:var(--accent)"><i class="ti ti-check-circle" aria-hidden="true"></i> Approved — ready to schedule</div>';
+  }
+  function editPost(id) {
+    var content = document.querySelector('#post-' + id + ' .post-content');
+    content.setAttribute('contenteditable', 'true');
+    content.style.outline = '1.5px solid var(--brand)';
+    content.style.borderRadius = '8px';
+    content.style.padding = '8px';
+    content.focus();
+  }
+  function rejectPost(id) {
+    var post = document.getElementById('post-' + id);
+    post.style.opacity = '0.5';
+    setTimeout(function(){ post.style.opacity = '1'; }, 300);
+  }
+
+  document.getElementById('schedule-all-btn').addEventListener('click', function() {
+    document.getElementById('sched-sheet').classList.add('open');
+  });
+
+  document.querySelectorAll('.time-opt').forEach(function(opt) {
+    opt.addEventListener('click', function() {
+      document.querySelectorAll('.time-opt').forEach(function(o){ o.classList.remove('sel'); });
+      opt.classList.add('sel');
+    });
+  });
+
+  document.getElementById('publish-btn').addEventListener('click', function() {
+    document.getElementById('sched-sheet').classList.remove('open');
+    var toast = document.getElementById('toast');
+    toast.classList.add('show');
+    setTimeout(function() {
+      toast.classList.remove('show');
+      document.querySelectorAll('.nav-item').forEach(function(i){ i.classList.remove('active'); });
+      document.querySelector('[data-screen="plan"]').classList.add('active');
+      document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active'); });
+      document.getElementById('screen-plan').classList.add('active');
+    }, 2500);
+  });
+
+  var autoToggle = document.getElementById('auto-toggle');
+  autoToggle.addEventListener('click', function() {
+    autoOn = !autoOn;
+    var thumb = autoToggle.querySelector('div');
+    autoToggle.style.background = autoOn ? 'var(--accent)' : '#E5E7EB';
+    thumb.style.left = autoOn ? '20px' : '2px';
+  });
+
+  var calGrid = document.getElementById('cal-grid');
+  var days = ['S','M','T','W','T','F','S'];
+  days.forEach(function(d) {
+    var el = document.createElement('div');
+    el.className = 'cal-day-label';
+    el.textContent = d;
+    calGrid.appendChild(el);
+  });
+  var hasPosts = [3,7,9,12,14,18,22,24,25,26,28];
+  var hasPosts2 = [5,11,17,21];
+  for(var i = 1; i <= 31; i++) {
+    var cell = document.createElement('div');
+    cell.className = 'cal-cell';
+    if(i === 24) cell.classList.add('today');
+    if(hasPosts.indexOf(i) > -1) cell.classList.add('has-post');
+    if(hasPosts2.indexOf(i) > -1) cell.classList.add('has-post2');
+    cell.innerHTML = '<span class="day-num">' + i + '</span>';
+    calGrid.appendChild(cell);
+  }
+
+  var barData = [
+    { name: 'Instagram', val: 92, color: '#E1306C' },
+    { name: 'LinkedIn',  val: 74, color: '#0A66C2' },
+    { name: 'Facebook',  val: 61, color: '#1877F2' },
+    { name: 'X / Twitter', val: 48, color: '#1DA1F2' },
+    { name: 'TikTok',   val: 38, color: '#000000' },
+    { name: 'YouTube',  val: 22, color: '#FF0000' },
+  ];
+  var barChart = document.getElementById('bar-chart');
+  barData.forEach(function(d) {
+    barChart.innerHTML += '<div class="chart-bar-row"><div class="plat-name">' + d.name + '</div><div class="chart-bar-wrap"><div class="chart-bar-fill" style="width:' + d.val + '%;background:' + d.color + '"></div></div><div class="bar-val">' + d.val + '%</div></div>';
+  });
+</script>

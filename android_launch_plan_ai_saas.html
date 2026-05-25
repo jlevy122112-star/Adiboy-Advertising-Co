@@ -1,0 +1,286 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.wrap{padding:1rem 0 2rem}
+.phase-row{display:flex;gap:0;margin-bottom:0}
+.phase-line{width:2px;background:var(--color-border-tertiary);margin-left:19px;min-height:16px}
+.step-card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);overflow:hidden;margin-bottom:0}
+.step-header{display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;user-select:none}
+.step-header:hover{background:var(--color-background-secondary)}
+.step-num{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;flex-shrink:0}
+.num-pending{background:var(--color-background-secondary);color:var(--color-text-secondary);border:0.5px solid var(--color-border-secondary)}
+.num-active{background:#E8F5E9;color:#2E7D32;border:0.5px solid #A5D6A7}
+.num-done{background:#E8F5E9;color:#2E7D32}
+.step-meta{flex:1;min-width:0}
+.step-title{font-size:14px;font-weight:500;color:var(--color-text-primary)}
+.step-sub{font-size:11px;color:var(--color-text-secondary);margin-top:2px}
+.step-status{font-size:11px;padding:3px 9px;border-radius:99px;font-weight:500;white-space:nowrap}
+.status-now{background:#E8F5E9;color:#2E7D32}
+.status-next{background:var(--color-background-warning);color:var(--color-text-warning)}
+.status-later{background:var(--color-background-secondary);color:var(--color-text-secondary)}
+.status-done{background:#E8F5E9;color:#1B5E20}
+.chev{font-size:15px;color:var(--color-text-secondary);transition:transform 0.2s;flex-shrink:0}
+.chev.open{transform:rotate(180deg)}
+.step-body{display:none;padding:0 16px 16px 66px}
+.step-body.open{display:block}
+.sub-item{display:flex;align-items:flex-start;gap:10px;padding:7px 0;border-bottom:0.5px solid var(--color-border-tertiary)}
+.sub-item:last-child{border-bottom:none}
+.sub-item input[type=checkbox]{margin-top:2px;width:15px;height:15px;accent-color:#3DDC84;flex-shrink:0;cursor:pointer}
+.sub-label{font-size:12px;color:var(--color-text-primary);line-height:1.5;cursor:pointer}
+.sub-note{display:block;font-size:11px;color:var(--color-text-secondary);margin-top:2px;line-height:1.4}
+.code-block{background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:10px 14px;font-family:var(--font-mono);font-size:11px;color:var(--color-text-primary);margin:8px 0;line-height:1.6;white-space:pre-wrap;word-break:break-all}
+.warn-box{background:var(--color-background-warning);border-left:3px solid var(--color-border-warning);border-radius:0 var(--border-radius-md) var(--border-radius-md) 0;padding:9px 12px;margin:8px 0;font-size:11px;color:var(--color-text-warning);line-height:1.5}
+.info-box{background:var(--color-background-info);border-left:3px solid var(--color-border-info);border-radius:0 var(--border-radius-md) var(--border-radius-md) 0;padding:9px 12px;margin:8px 0;font-size:11px;color:var(--color-text-info);line-height:1.5}
+.success-box{background:#E8F5E9;border-left:3px solid #66BB6A;border-radius:0 var(--border-radius-md) var(--border-radius-md) 0;padding:9px 12px;margin:8px 0;font-size:11px;color:#1B5E20;line-height:1.5}
+.badge{font-size:10px;font-weight:500;padding:1px 6px;border-radius:99px;margin-left:5px;vertical-align:middle}
+.b-red{background:#FFEBEE;color:#B71C1C}
+.b-amber{background:#FFF8E1;color:#E65100}
+.b-green{background:#E8F5E9;color:#1B5E20}
+.b-blue{background:#E3F2FD;color:#0D47A1}
+.progress-wrap{margin-bottom:1.5rem}
+.prog-bar-bg{background:var(--color-background-secondary);border-radius:99px;height:6px;overflow:hidden;margin-bottom:6px}
+.prog-bar-fill{height:100%;border-radius:99px;background:#3DDC84;transition:width 0.3s}
+.prog-label{font-size:12px;color:var(--color-text-secondary)}
+.action-btn{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:6px 14px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:transparent;cursor:pointer;color:var(--color-text-primary);margin-top:10px}
+.action-btn:hover{background:var(--color-background-secondary)}
+.phase-label{font-size:10px;font-weight:500;letter-spacing:0.05em;color:var(--color-text-secondary);text-transform:uppercase;padding:12px 0 6px;display:flex;align-items:center;gap:8px}
+.phase-label::after{content:'';flex:1;height:0.5px;background:var(--color-border-tertiary)}
+</style>
+
+<div class="wrap">
+<h2 class="sr-only">Android launch plan for AI SaaS app</h2>
+
+<div class="progress-wrap">
+<div class="prog-bar-bg"><div class="prog-bar-fill" id="mainBar" style="width:0%"></div></div>
+<div class="prog-label" id="mainLabel">0 of 32 tasks complete — estimated 5–8 days to submission</div>
+</div>
+
+<div class="phase-label">Phase 1 — account & verification</div>
+
+<div class="step-card" style="margin-bottom:8px">
+<div class="step-header" onclick="toggle(this)">
+<div class="step-num num-active" id="num-0"><i class="ti ti-user-check" style="font-size:16px" aria-hidden="true"></i></div>
+<div class="step-meta">
+<div class="step-title">Finish Google Play account verification</div>
+<div class="step-sub">Your account exists but identity isn't confirmed yet</div>
+</div>
+<span class="step-status status-now">Do this now</span>
+<i class="ti ti-chevron-down chev open"></i>
+</div>
+<div class="step-body open">
+<div class="info-box">Go to play.google.com/console → you'll see a verification banner. Have your government-issued photo ID ready — Google now requires identity verification for all accounts.</div>
+<div class="sub-item"><input type="checkbox" onchange="tick(this)"><label class="sub-label">Government ID uploaded in Play Console verification flow<span class="sub-note">Passport, driver's license, or national ID — must match your legal name exactly</span></label></div>
+<div class="sub-item"><input type="checkbox" onchange="tick(this)"><label class="sub-label">Legal name confirmed and matches payment profile</label></div>
+<div class="sub-item"><input type="checkbox" onchange="tick(this)"><label class="sub-label">Developer Program Policies accepted in Play Console</label></div>
+<div class="sub-item"><input type="checkbox" onchange="tick(this)"><label class="sub-label">Contact email confirmed and accessible (Google sends review decisions here) <span class="badge b-red">Critical</span></label></div>
+<div class="warn-box">Verification can take up to 48 hrs. Start this first so you're not blocked later when the build is ready.</div>
+</div>
+</div>
+
+<div class="phase-line"></div>
+<div class="phase-label">Phase 2 — Capacitor Android build</div>
+
+<div class="step-card" style="margin-bottom:8px">
+<div class="step-header" onclick="toggle(this)">
+<div class="step-num num-pending" id="num-1">2</div>
+<div class="step-meta">
+<div class="step-title">Add Android platform & configure Capacitor</div>
+<div class="step-sub">Run these commands in your project root</div>
+</div>
+<span class="step-status status-next">Up next</span>
+<i class="ti ti-chevron-down chev"></i>
+</div>
+<div class="step-body">
+<div class="sub-item"><input type="checkbox" onchange="tick(this)"><label class="sub-label">Web app built for production first<span class="sub-note">e.g. npm run build — your dist/ folder must be current before adding Android</span></label></div>
+<div class="sub-item"><input type="checkbox" onchange="tick(this)"><label class="sub-label">Android platform added to Capacitor<div class="code-block">npx cap add android</div></label></div>
+<div class="sub-item"><input type="checkbox" onchange="tick(this)"><label class="sub-label">capacitor.config.ts / .json verified — appId, appName, webDir correct <span class="badge b-red">Critical</span><span class="sub-note">appId becomes your permanent package name — choose wisely e.g. com.yourcompany.appname</span></label></div>
+<div class="sub-item"><input type="checkbox" onchange="tick(this)"><label class="sub-label">Web assets synced to Android project<div class="code-block">npx cap sync android</div></label></div>
+<div class="sub-item"><input type="checkbox" onchange="tick(this)"><label class="sub-label">Android project opens and runs in Android Studio without errors<div class="code-block">npx cap open android</div></label></div>
+</div>
+</div>
+
+<div class="phase-line"></div>
+
+<div class="step-card" style="margin-bottom:8px">
+<div class="step-header" onclick="toggle(this)">
+<div class="step-num num-pending" id="num-2">3</div>
+<div class="step-meta">
+<div class="step-title">Set target SDK to API level 35 (Android 15)</div>
+<div class="step-sub">Mandatory for 2026 — will be rejected without this</div>
+</div>
+<span class="step-status status-next">Up next</span>
+<i class="ti ti-chevron-down chev"></i>
+</div>
+<div class="step-body">
+<div class="warn-box">Google Play blocks submission for any new app not targeting API 35 minimum in 2026. Check every plugin too.</div>
+<div class="sub-item"><input type="checkbox" onchange="tick(this)"><label class="sub-label">android/variables.gradle updated <span class="badge b-red">Critical</span><div class="code-block">compileSdkVersion = 35
+targetSdkVersion = 35
+minSdkVersion = 24</div></label></div>
+<div class="sub-item"><input type="checkbox" onchange="tick(this)"><label class="sub-label">All Capacitor plugins updated to latest versions (they must also support SDK 35)<div class="code-block">npm update @capacitor/core @capacitor/android
+npm update @capacitor/camera @capacitor/push-notifications
+npx cap sync android</div></label></div>
+<div class="sub-item"><input type="checkbox" onchange="tick(this)"><label class="sub-label">Gradle build succeeds with no SDK-level errors in Android Studio</label></div>
+<div class="sub-item"><input type="checkbox" onchange="tick(this)"><label class="sub-label">App runs correctly on Android 15 emulator or physical device</label></div>
+</div>
+</div>
+
+<div class="phase-line"></div>
+
+<div class="step-card" style="margin-bottom:8px">
+<div class="step-header" onclick="toggle(this)">
+<div class="step-num num-pending" id="num-3">4</div>
+<div class="step-meta">
+<div class="step-title">Configure permissions for AI SaaS app</div>
+<div class="step-sub">Declare only what you actually use — over-requesting = rejection</div>
+</div>
+<span class="step-status status-next">Up next</span>
+<i class="ti ti-chevron-down chev"></i>
+</div>
+<div class="step-body">
+<div class="info-box">For an AI content generation + social media ad manager, you likely need INTERNET, camera (for image upload), storage, and possibly notifications. Review AndroidManifest.xml carefully.</div>
+<div class="sub-item"><input type="checkbox" onchange="tick(this)"><label class="sub-label">android/app/src/main/AndroidManifest.xml permissions reviewed — only necessary permissions declared <span class="badge b-red">Critical</span></label></div>
+<div class="sub-item"><input type="checkbox" onchange="tick(this)"><label class="sub-label">Runtime permission dialogs have clear purpose strings explaining WHY each permission is needed</label></div>
+<div class="sub-item"><input type="checkbox" onchange="tick(this)"><label class="sub-label">Social platform OAuth tokens handled securely (no client secrets in app code) <span class="badge b-red">Critical</span><span class="sub-note">Facebook, Instagram, TikTok, LinkedIn API keys must be server-side only</span></label></div>
+<div class="sub-item"><input type="checkbox" onchange="tick(this)"><label class="sub-label">All API calls use HTTPS — no plain HTTP endpoints anywhere</label></div>
+</div>
+</div>
+
+<div class="phase-line"></div>
+
+<div class="step-card" style="margin-bottom:8px">
+<div class="step-header" onclick="toggle(this)">
+<div class="step-num num-pending" id="num-4">5</div>
+<div class="step-meta">
+<div class="step-title">Generate signed release AAB</div>
+<div class="step-sub">The actual file you upload to Google Play</div>
+</div>
+<span class="step-status status-next">Up next</span>
+<i class="ti ti-chevron-down chev"></i>
+</div>
+<div class="step-body">
+<div class="warn-box">AAB only — APK is no longer accepted for new apps on Google Play. Never lose your keystore file — it cannot be recovered.</div>
+<div class="sub-item"><input type="checkbox" onchange="tick(this)"><label class="sub-label">Release keystore generated and stored safely (NOT in version control) <span class="badge b-red">Critical</span><div class="code-block">keytool -genkey -v -keystore release-key.jks \
+  -keyalg RSA -keysize 2048 -validity 10000 \
+  -alias your-key-alias</div></label></div>
+<div class="sub-item"><input type="checkbox" onchange="tick(this)"><label class="sub-label">android/app/build.gradle signing config added with keystore details<span class="sub-note">Use environment variables or local.properties — never hardcode passwords in build.gradle</span></label></div>
+<div class="sub-item"><input type="checkbox" onchange="tick(this)"><label class="sub-label">Release AAB built via Android Studio: Build → Generate Signed Bundle/APK → Android App Bundle<div class="code-block">./gradlew bundleRelease</div></label></div>
+<div class="sub-item"><input type="checkbox" onchange="tick(this)"><label class="sub-label">AAB file verified — located at android/app/build/outputs/bundle/release/</label></div>
+<div class="sub-item"><input type="checkbox" onchange="tick(this)"><label class="sub-label">Keystore file + passwords backed up securely (cloud storage, password manager) <span class="badge b-red">Critical</span></label></div>
+</div>
+</div>
+
+<div class="phase-line"></div>
+<div class="phase-label">Phase 3 — Play Console setup</div>
+
+<div class="step-card" style="margin-bottom:8px">
+<div class="step-header" onclick="toggle(this)">
+<div class="step-num num-pending" id="num-5">6</div>
+<div class="step-meta">
+<div class="step-title">Create app & store listing in Play Console</div>
+<div class="step-sub">What users see — optimized for AI SaaS discoverability</div>
+</div>
+<span class="step-status status-later">Phase 3</span>
+<i class="ti ti-chevron-down chev"></i>
+</div>
+<div class="step-body">
+<div class="sub-item"><input type="checkbox" onchange="tick(this)"><label class="sub-label">App created in Play Console — All apps → Create app<span class="sub-note">Set default language, confirm it's an app (not game), set free/paid — FREE cannot be changed later</span></label></div>
+<div class="sub-item"><input type="checkbox" onchange="tick(this)"><label class="sub-label">App title: max 30 chars — e.g. "AdFlow AI" or your brand name <span class="badge b-red">Critical</span></label></div>
+<div class="sub-item"><input type="checkbox" onchange="tick(this)"><label class="sub-label">Short description: 80 chars — lead with the core value e.g. "AI ad content + scheduler for all major social platforms"</label></div>
+<div class="sub-item"><input type="checkbox" onchange="tick(this)"><label class="sub-label">Full description: 4,000 chars — cover AI generation, supported platforms (Meta, TikTok, LinkedIn, X, etc.), scheduling, analytics</label></div>
+<div class="sub-item"><input type="checkbox" onchange="tick(this)"><label class="sub-label">Category set to "Business" or "Productivity" — most appropriate for a SaaS ad manager</label></div>
+<div class="sub-item"><input type="checkbox" onchange="tick(this)"><label class="sub-label">App icon uploaded: 512×512px PNG with alpha, max 1 MB <span class="badge b-red">Critical</span></label></div>
+<div class="sub-item"><input type="checkbox" onchange="tick(this)"><label class="sub-label">Feature graphic uploaded: 1024×500px, no text near edges</label></div>
+<div class="sub-item"><input type="checkbox" onchange="tick(this)"><label class="sub-label">Phone screenshots uploaded: 2–8, showcase AI generation UI, campaign dashboard, scheduling calendar</label></div>
+</div>
+</div>
+
+<div class="phase-line"></div>
+
+<div class="step-card" style="margin-bottom:8px">
+<div class="step-header" onclick="toggle(this)">
+<div class="step-num num-pending" id="num-6">7</div>
+<div class="step-meta">
+<div class="step-title">Privacy policy, data safety & content rating</div>
+<div class="sub-title">The section most AI SaaS apps get wrong</div>
+</div>
+<span class="step-status status-later">Phase 3</span>
+<i class="ti ti-chevron-down chev"></i>
+</div>
+<div class="step-body">
+<div class="warn-box">AI apps that process user content or connect to social platforms have a heavy data footprint. Your Data Safety form must list every data type you touch — including what your AI model receives.</div>
+<div class="sub-item"><input type="checkbox" onchange="tick(this)"><label class="sub-label">Privacy policy URL live and publicly accessible <span class="badge b-red">Critical</span><span class="sub-note">Must cover: data collected, AI processing, social platform data, GDPR, CCPA, data retention</span></label></div>
+<div class="sub-item"><input type="checkbox" onchange="tick(this)"><label class="sub-label">Data Safety form completed — declare: account info, user-generated content (ad copy), usage data, device info <span class="badge b-red">Critical</span></label></div>
+<div class="sub-item"><input type="checkbox" onchange="tick(this)"><label class="sub-label">Third-party data sharing declared: social platform APIs (Meta, TikTok, etc.), AI provider (OpenAI/Claude/etc.), analytics</label></div>
+<div class="sub-item"><input type="checkbox" onchange="tick(this)"><label class="sub-label">IARC content rating questionnaire completed — this app is Business/Productivity, rating should be "Everyone"</label></div>
+<div class="sub-item"><input type="checkbox" onchange="tick(this)"><label class="sub-label">Target audience declared — Business users / adults (18+)</label></div>
+</div>
+</div>
+
+<div class="phase-line"></div>
+<div class="phase-label">Phase 4 — testing & submission</div>
+
+<div class="step-card" style="margin-bottom:8px">
+<div class="step-header" onclick="toggle(this)">
+<div class="step-num num-pending" id="num-7">8</div>
+<div class="step-meta">
+<div class="step-title">Internal testing track (14-day minimum)</div>
+<div class="sub-title">Required for new apps before production</div>
+</div>
+<span class="step-status status-later">Phase 4</span>
+<i class="ti ti-chevron-down chev"></i>
+</div>
+<div class="step-body">
+<div class="info-box">New apps must complete a closed testing period with real users before Google will approve production. This is not optional — skip it and production gets blocked.</div>
+<div class="sub-item"><input type="checkbox" onchange="tick(this)"><label class="sub-label">AAB uploaded to Internal Testing track in Play Console</label></div>
+<div class="sub-item"><input type="checkbox" onchange="tick(this)"><label class="sub-label">At least 20 real testers added (email addresses) and opt-in link shared <span class="badge b-red">Critical</span></label></div>
+<div class="sub-item"><input type="checkbox" onchange="tick(this)"><label class="sub-label">All core flows tested: AI content generation, social platform connection, ad scheduling, campaign publishing</label></div>
+<div class="sub-item"><input type="checkbox" onchange="tick(this)"><label class="sub-label">Crash reports checked in Play Console — all crashes resolved</label></div>
+<div class="sub-item"><input type="checkbox" onchange="tick(this)"><label class="sub-label">14 days elapsed on closed testing track <span class="badge b-red">Critical</span></label></div>
+</div>
+</div>
+
+<div class="phase-line"></div>
+
+<div class="step-card" style="margin-bottom:8px">
+<div class="step-header" onclick="toggle(this)">
+<div class="step-num num-pending" id="num-8">9</div>
+<div class="step-meta">
+<div class="step-title">Submit to production</div>
+<div class="sub-title">Final review — 2 to 7 days</div>
+</div>
+<span class="step-status status-later">Final step</span>
+<i class="ti ti-chevron-down chev"></i>
+</div>
+<div class="step-body">
+<div class="success-box">Once all Play Console sections show green checkmarks and 14-day testing is done, you're clear to submit to production.</div>
+<div class="sub-item"><input type="checkbox" onchange="tick(this)"><label class="sub-label">All Play Console dashboard sections show green — no warnings or incomplete items <span class="badge b-red">Critical</span></label></div>
+<div class="sub-item"><input type="checkbox" onchange="tick(this)"><label class="sub-label">Release → Production → Create new release → upload final AAB</label></div>
+<div class="sub-item"><input type="checkbox" onchange="tick(this)"><label class="sub-label">Release notes written — describe what's in this version</label></div>
+<div class="sub-item"><input type="checkbox" onchange="tick(this)"><label class="sub-label">Countries / regions distribution confirmed</label></div>
+<div class="sub-item"><input type="checkbox" onchange="tick(this)"><label class="sub-label">Submitted for review — monitor Play Console for feedback (2–7 days)</label></div>
+</div>
+</div>
+
+</div>
+
+<script>
+var total = 32;
+function toggle(hdr){
+  var body = hdr.nextElementSibling;
+  var chev = hdr.querySelector('.chev');
+  body.classList.toggle('open');
+  chev.classList.toggle('open');
+}
+function tick(){
+  var done = document.querySelectorAll('input[type=checkbox]:checked').length;
+  var pct = Math.round(done/total*100);
+  document.getElementById('mainBar').style.width = pct+'%';
+  var days = done < 10 ? '5–8' : done < 20 ? '3–5' : done < 28 ? '1–2' : 'ready';
+  var suffix = done >= 28 ? ' to submission — almost there!' : ' days to submission';
+  document.getElementById('mainLabel').textContent = done+' of '+total+' tasks complete — estimated '+days+suffix;
+  document.querySelectorAll('input[type=checkbox]').forEach(function(cb){
+    var lbl = cb.parentElement.querySelector('.sub-label');
+    if(lbl) lbl.style.color = cb.checked ? 'var(--color-text-secondary)' : 'var(--color-text-primary)';
+  });
+}
+</script>
