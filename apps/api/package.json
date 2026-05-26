@@ -28,6 +28,7 @@
     "start:team": "node dist/team-server.js",
     "start:safety": "node dist/safety-server.js",
     "start:billing": "node dist/billing-server.js",
+    "start:mvp": "node dist/mvp-server.js",
     "db:migrate": "node scripts/migrate.mjs"
   },
   "dependencies": {

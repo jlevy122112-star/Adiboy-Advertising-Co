@@ -24,7 +24,9 @@
     "api:scheduler": "npm run build -w @home-link/marketer-api && npm run start:scheduler -w @home-link/marketer-api",
     "api:campaign": "npm run build -w @home-link/marketer-api && npm run start:campaign -w @home-link/marketer-api",
     "api:brand": "npm run build -w @home-link/marketer-api && npm run start:brand-profile -w @home-link/marketer-api",
-    "db:migrate": "npm run db:migrate -w @home-link/marketer-api"
+    "db:migrate": "npm run db:migrate -w @home-link/marketer-api",
+    "mvp": "npm run start:mvp -w @home-link/marketer-api",
+    "mvp:build": "node node_modules/typescript/bin/tsc -p apps/api/tsconfig.json --pretty false 2>&1 || true && npm run start:mvp -w @home-link/marketer-api"
   },
   "devDependencies": {
     "@eslint/js": "^9.16.0",
