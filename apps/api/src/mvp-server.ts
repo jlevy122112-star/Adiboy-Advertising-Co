@@ -13,6 +13,19 @@
  *   ANTHROPIC_API_KEY          optional — Claude generation
  *   MARKETER_OPENAI_API_KEY    optional — OpenAI generation (fallback)
  *   MVP_CORS                   optional CORS origin (* or csv)
+ *   STRIPE_SECRET_KEY          optional — Stripe billing
+ *   STRIPE_WEBHOOK_SECRET      optional — Stripe webhook verification
+ *   STRIPE_PRICE_PRO_MONTHLY   optional — Stripe price ID
+ *   STRIPE_PRICE_PRO_ANNUAL    optional — Stripe price ID
+ *   STRIPE_PRICE_ENT_MONTHLY   optional — Stripe price ID
+ *   STRIPE_PRICE_ENT_ANNUAL    optional — Stripe price ID
+ *   APP_URL                    optional — frontend URL for Stripe redirects (default http://localhost:8780)
+ *   X_CLIENT_ID / X_CLIENT_SECRET
+ *   META_APP_ID / META_APP_SECRET
+ *   LINKEDIN_CLIENT_ID / LINKEDIN_CLIENT_SECRET
+ *   YOUTUBE_CLIENT_ID / YOUTUBE_CLIENT_SECRET
+ *   TIKTOK_CLIENT_KEY / TIKTOK_CLIENT_SECRET
+ *   MARKETER_FRONTEND_URL      optional — OAuth callback redirect base (default http://localhost:8780)
  */
 
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
@@ -24,6 +37,8 @@ import { randomUUID } from "node:crypto";
 import { closePostgres } from "./db/postgres.js";
 import { requireAuth, securityHeaders } from "./marketer-pro/auth/middleware.js";
 import { handleAuthRequest } from "./marketer-pro/auth-route.js";
+import { handleBillingRequest } from "./marketer-pro/billing-route.js";
+import { handleSocialOAuthRequest } from "./marketer-pro/social-oauth-route.js";
 import {
   executeUpsertBrandProfileRequest,
   executeGetBrandProfileRequestFromSearchParams,
@@ -33,6 +48,8 @@ import {
   listScheduleEntriesByTenant,
 } from "./db/schedule-entry.js";
 import { getAnalyticsSummary } from "./db/analytics-snapshot.js";
+import { marketerEntitlementsForPlan } from "@home-link/marketer-pro-contract";
+import { getWorkspacePlan } from "./db/workspace-billing.js";
 import { generatePosts, type GeneratePostsInput } from "./marketer-pro/mvp-generate-posts.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -41,6 +58,10 @@ const MAX_BODY = 256 * 1024;
 
 const host = process.env.MVP_HOST ?? "0.0.0.0";
 const port = Number(process.env.MVP_PORT ?? 8780);
+
+// Default APP_URL and MARKETER_FRONTEND_URL to this server so OAuth + Stripe redirects work
+if (!process.env.APP_URL) process.env.APP_URL = `http://localhost:${port}`;
+if (!process.env.MARKETER_FRONTEND_URL) process.env.MARKETER_FRONTEND_URL = `http://localhost:${port}`;
 
 function corsHeaders(req: IncomingMessage): Record<string, string> {
   const raw = process.env.MVP_CORS?.trim() ?? "*";
@@ -141,6 +162,36 @@ const server = createServer(async (req, res) => {
     return;
   }
 
+  // ── Stripe webhook (no JWT — raw body needed, verified by Stripe signature) ─
+  if (req.method === "POST" && path === "/billing/webhook") {
+    await handleBillingRequest(req, res);
+    return;
+  }
+
+  // ── OAuth callback (no JWT — browser redirect from social platform) ─────────
+  if (req.method === "GET" && path.startsWith("/oauth/callback/")) {
+    await handleSocialOAuthRequest(req, res);
+    return;
+  }
+
+  // ── Billing routes (JWT required, handled by billing-route.ts) ──────────────
+  if (path.startsWith("/billing/")) {
+    await handleBillingRequest(req, res);
+    return;
+  }
+
+  // ── Social OAuth routes (JWT required) ──────────────────────────────────────
+  if (path.startsWith("/oauth/")) {
+    await handleSocialOAuthRequest(req, res);
+    return;
+  }
+
+  // ── SPA catch-all: serve frontend for any remaining GET (e.g. /connections after OAuth redirect) ─
+  if (req.method === "GET") {
+    serveFrontend(res);
+    return;
+  }
+
   // ── All /api/* routes require JWT ─────────────────────────────────────────
   if (!path.startsWith("/api/")) {
     json(req, res, 404, { error: "not_found" });
@@ -150,8 +201,22 @@ const server = createServer(async (req, res) => {
   const auth = await requireAuth(req, res);
   if (!auth) return;
 
+  // ── GET /api/plan ─────────────────────────────────────────────────────────
+  if (req.method === "GET" && path === "/api/plan") {
+    const plan = await getWorkspacePlan(auth.tenantId) ?? "free";
+    const entitlements = marketerEntitlementsForPlan(plan as "free" | "pro" | "enterprise");
+    json(req, res, 200, { plan, entitlements });
+    return;
+  }
+
   // ── POST /api/generate ────────────────────────────────────────────────────
   if (req.method === "POST" && path === "/api/generate") {
+    const plan = await getWorkspacePlan(auth.tenantId) ?? "free";
+    const ent = marketerEntitlementsForPlan(plan as "free" | "pro" | "enterprise");
+    if (!ent.canUseAiGenerate) {
+      json(req, res, 403, { error: "plan_required", plan, message: "Upgrade to Pro to use AI generation." });
+      return;
+    }
     let body: unknown;
     try {
       body = await readBody(req);
@@ -265,6 +330,12 @@ server.listen(port, host, () => {
     database: !!process.env.DATABASE_URL,
     anthropic: !!process.env.ANTHROPIC_API_KEY,
     openai: !!(process.env.MARKETER_OPENAI_API_KEY ?? process.env.OPENAI_API_KEY),
+    stripe: !!process.env.STRIPE_SECRET_KEY,
+    oauth_meta: !!process.env.META_APP_ID,
+    oauth_x: !!process.env.X_CLIENT_ID,
+    oauth_linkedin: !!process.env.LINKEDIN_CLIENT_ID,
+    oauth_youtube: !!process.env.YOUTUBE_CLIENT_ID,
+    oauth_tiktok: !!process.env.TIKTOK_CLIENT_KEY,
   }));
 });
 

@@ -19,8 +19,17 @@ export function securityHeaders(res: ServerResponse): void {
 
 export function extractBearerToken(req: IncomingMessage): string | null {
   const auth = req.headers.authorization?.trim();
-  if (!auth?.toLowerCase().startsWith("bearer ")) return null;
-  return auth.slice(7).trim() || null;
+  if (auth?.toLowerCase().startsWith("bearer ")) {
+    const t = auth.slice(7).trim();
+    if (t) return t;
+  }
+  // Allow ?t= query param for browser redirect flows (OAuth connect popup)
+  try {
+    const u = new URL(req.url ?? "/", "http://x");
+    const t = u.searchParams.get("t");
+    if (t) return t;
+  } catch { /* ignore */ }
+  return null;
 }
 
 export async function requireAuth(

@@ -218,6 +218,45 @@
 .toast.show{display:flex;animation:fadeUp 0.3s ease;}
 .toast.error{background:var(--danger);}
 .brand-color-swatch{width:20px;height:20px;border-radius:5px;background:var(--brand);display:inline-block;vertical-align:middle;margin-right:4px;}
+/* PRICING MODAL */
+.modal-overlay{position:absolute;inset:0;background:rgba(0,0,0,0.5);z-index:300;display:flex;align-items:flex-end;border-radius:40px;overflow:hidden;}
+.modal-sheet{background:white;border-radius:24px 24px 0 0;width:100%;max-height:90%;overflow-y:auto;scrollbar-width:none;padding-bottom:16px;}
+.modal-sheet::-webkit-scrollbar{display:none;}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:20px 20px 0;}
+.modal-header h2{font-family:'Syne',sans-serif;font-weight:800;font-size:20px;color:var(--text-1);}
+.modal-close-btn{width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:var(--surface);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-3);}
+.plan-toggle{display:flex;gap:0;background:var(--surface);border-radius:100px;padding:4px;margin:16px 20px;border:1px solid var(--border);}
+.plan-toggle button{flex:1;padding:8px;border:none;background:transparent;border-radius:100px;font-size:13px;font-weight:600;cursor:pointer;color:var(--text-2);transition:all 0.15s;}
+.plan-toggle button.active{background:white;color:var(--brand);box-shadow:0 2px 8px rgba(24,71,240,0.12);}
+.plan-card{margin:0 20px 12px;border-radius:16px;padding:18px;border:1.5px solid var(--border);position:relative;}
+.plan-card.featured{border-color:var(--brand);background:var(--brand-light);}
+.plan-card .plan-badge{position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:var(--brand);color:white;font-size:10px;font-weight:700;letter-spacing:0.5px;padding:3px 10px;border-radius:100px;white-space:nowrap;}
+.plan-card .plan-name{font-family:'Syne',sans-serif;font-weight:800;font-size:16px;color:var(--text-1);margin-bottom:4px;}
+.plan-card .plan-price{font-family:'Syne',sans-serif;font-weight:800;font-size:28px;color:var(--brand);line-height:1;}
+.plan-card .plan-price-sub{font-size:14px;font-weight:500;color:var(--text-2);}
+.plan-card .plan-features{margin-top:12px;display:flex;flex-direction:column;gap:6px;}
+.plan-card .plan-feat{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-2);}
+.plan-card .plan-feat i{font-size:14px;}
+.plan-cta-btn{width:calc(100% - 40px);margin:0 20px 12px;display:block;background:var(--brand);color:white;border:none;border-radius:14px;padding:14px;font-family:'Syne',sans-serif;font-weight:700;font-size:15px;cursor:pointer;transition:all 0.15s;text-align:center;}
+.plan-cta-btn:hover{background:#1138C8;}
+.plan-cta-btn:disabled{opacity:0.6;cursor:not-allowed;}
+.plan-cta-btn.outline{background:transparent;color:var(--brand);border:1.5px solid var(--brand);}
+.plan-cta-btn.outline:hover{background:var(--brand-light);}
+/* CONNECTIONS OVERLAY */
+#connections-overlay{position:absolute;inset:0;background:white;z-index:150;border-radius:40px;overflow:hidden;}
+.connections-header{display:flex;align-items:center;padding:16px 20px;border-bottom:0.5px solid var(--border);gap:12px;}
+.connections-header h2{font-family:'Syne',sans-serif;font-weight:700;font-size:18px;color:var(--text-1);flex:1;}
+.connections-body{overflow-y:auto;padding:16px 20px;scrollbar-width:none;}
+.connections-body::-webkit-scrollbar{display:none;}
+.net-item{display:flex;align-items:center;gap:14px;padding:14px 16px;background:var(--card);border-radius:14px;border:0.5px solid var(--border);margin-bottom:10px;}
+.net-icon{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.net-info{flex:1;min-width:0;}
+.net-info .net-name{font-size:14px;font-weight:600;color:var(--text-1);}
+.net-info .net-status{font-size:11px;color:var(--text-3);margin-top:2px;}
+.net-info .net-status.connected{color:var(--accent);font-weight:600;}
+.connect-btn{padding:8px 12px;border-radius:10px;border:1.5px solid var(--brand);background:var(--brand-light);color:var(--brand);font-size:12px;font-weight:700;cursor:pointer;transition:all 0.15s;white-space:nowrap;flex-shrink:0;}
+.connect-btn:hover{background:var(--brand);color:white;}
+.disconnect-btn{padding:8px 12px;border-radius:10px;border:1.5px solid var(--border);background:white;color:var(--text-2);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;}
 </style>
 </head>
 <body>
@@ -387,7 +426,7 @@
         <div class="big-avatar" id="settings-avatar">MP</div>
         <div>
           <div class="brand-name" id="settings-brand-name">Your Brand</div>
-          <div class="brand-plan">✦ Pro Plan · 50 posts/mo</div>
+          <div class="brand-plan" id="settings-plan-label">✦ Free Plan · Upgrade for AI</div>
         </div>
         <button class="edit-btn" onclick="openEditBrand()">Edit</button>
       </div>
@@ -404,17 +443,17 @@
             <div style="flex:1"><div class="sr-label">Team Members</div><div class="sr-sub">1 of 5 seats used</div></div>
             <i class="ti ti-chevron-right sr-chevron" aria-hidden="true"></i>
           </div>
-          <div class="settings-row">
+          <div class="settings-row" onclick="openConnections()">
             <i class="ti ti-social" aria-hidden="true"></i>
-            <div style="flex:1"><div class="sr-label">Connected Platforms</div><div class="sr-sub">Connect to publish live</div></div>
+            <div style="flex:1"><div class="sr-label">Connected Platforms</div><div class="sr-sub" id="connections-sub">Connect to publish live</div></div>
             <i class="ti ti-chevron-right sr-chevron" aria-hidden="true"></i>
           </div>
         </div>
         <div class="settings-group">
           <div class="settings-group-label">Account</div>
-          <div class="settings-row">
+          <div class="settings-row" onclick="openBillingOrPricing()">
             <i class="ti ti-credit-card" aria-hidden="true"></i>
-            <div style="flex:1"><div class="sr-label">Billing &amp; Plan</div><div class="sr-sub">Pro · $29/mo · Renews Jun 1</div></div>
+            <div style="flex:1"><div class="sr-label">Billing &amp; Plan</div><div class="sr-sub" id="billing-sub">Free · Upgrade for AI &amp; publishing</div></div>
             <i class="ti ti-chevron-right sr-chevron" aria-hidden="true"></i>
           </div>
           <div class="settings-row">
@@ -588,6 +627,117 @@
     <button class="publish-btn" id="publish-btn"><i class="ti ti-rocket" aria-hidden="true"></i> Publish Posts</button>
   </div>
 
+  <!-- PRICING MODAL -->
+  <div id="pricing-overlay" style="display:none" class="modal-overlay" onclick="if(event.target===this)closePricing()">
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <h2>Choose your plan</h2>
+        <button class="modal-close-btn" onclick="closePricing()"><i class="ti ti-x" style="font-size:16px" aria-hidden="true"></i></button>
+      </div>
+      <div class="plan-toggle">
+        <button class="active" id="toggle-monthly" onclick="setPlanToggle('monthly')">Monthly</button>
+        <button id="toggle-annual" onclick="setPlanToggle('annual')">Annual &nbsp;<span style="color:var(--accent);font-size:11px">Save 17%</span></button>
+      </div>
+      <div class="plan-card" style="margin-top:4px">
+        <div class="plan-name">Free</div>
+        <div class="plan-price">$0 <span class="plan-price-sub">/mo</span></div>
+        <div class="plan-features">
+          <div class="plan-feat"><i class="ti ti-check" style="color:var(--accent)"></i>7-day content calendar</div>
+          <div class="plan-feat"><i class="ti ti-check" style="color:var(--accent)"></i>Post scheduling</div>
+          <div class="plan-feat" style="color:var(--text-3)"><i class="ti ti-x" style="color:var(--danger)"></i>AI post generation</div>
+          <div class="plan-feat" style="color:var(--text-3)"><i class="ti ti-x" style="color:var(--danger)"></i>Live publishing</div>
+        </div>
+      </div>
+      <div class="plan-card featured" style="margin-top:20px">
+        <div class="plan-badge">MOST POPULAR</div>
+        <div class="plan-name">Pro</div>
+        <div class="plan-price" id="pro-price-display">$29 <span class="plan-price-sub">/mo</span></div>
+        <div class="plan-features">
+          <div class="plan-feat"><i class="ti ti-check" style="color:var(--accent)"></i>30-day content calendar</div>
+          <div class="plan-feat"><i class="ti ti-check" style="color:var(--accent)"></i>AI post generation</div>
+          <div class="plan-feat"><i class="ti ti-check" style="color:var(--accent)"></i>Live publishing to all platforms</div>
+          <div class="plan-feat"><i class="ti ti-check" style="color:var(--accent)"></i>Autonomous mode</div>
+          <div class="plan-feat"><i class="ti ti-check" style="color:var(--accent)"></i>5 accounts per network</div>
+        </div>
+      </div>
+      <button class="plan-cta-btn" id="upgrade-pro-btn" onclick="handleCheckout('pro')"><i class="ti ti-rocket" aria-hidden="true"></i> Upgrade to Pro</button>
+      <div class="plan-card">
+        <div class="plan-name">Enterprise</div>
+        <div class="plan-price" id="ent-price-display">$99 <span class="plan-price-sub">/mo</span></div>
+        <div class="plan-features">
+          <div class="plan-feat"><i class="ti ti-check" style="color:var(--accent)"></i>60-day content calendar</div>
+          <div class="plan-feat"><i class="ti ti-check" style="color:var(--accent)"></i>Everything in Pro</div>
+          <div class="plan-feat"><i class="ti ti-check" style="color:var(--accent)"></i>50 accounts per network</div>
+          <div class="plan-feat"><i class="ti ti-check" style="color:var(--accent)"></i>Advanced analytics</div>
+          <div class="plan-feat"><i class="ti ti-check" style="color:var(--accent)"></i>Priority support</div>
+        </div>
+      </div>
+      <button class="plan-cta-btn outline" id="upgrade-enterprise-btn" onclick="handleCheckout('enterprise')">Upgrade to Enterprise</button>
+      <div style="text-align:center;font-size:12px;color:var(--text-3);padding:4px 20px 8px">Secure payment via Stripe · Cancel anytime</div>
+    </div>
+  </div>
+
+  <!-- CONNECTED PLATFORMS OVERLAY -->
+  <div id="connections-overlay" style="display:none">
+    <div class="status-bar" style="border-bottom:none">
+      <span class="time">9:41</span>
+      <div class="icons">
+        <i class="ti ti-wifi" style="font-size:14px;color:var(--text-1)" aria-hidden="true"></i>
+        <i class="ti ti-battery-2" style="font-size:14px;color:var(--text-1)" aria-hidden="true"></i>
+      </div>
+    </div>
+    <div class="connections-header">
+      <button onclick="closeConnections()" style="background:none;border:none;cursor:pointer;color:var(--text-2);font-size:22px;padding:0;display:flex;align-items:center"><i class="ti ti-arrow-left" aria-hidden="true"></i></button>
+      <h2>Connected Platforms</h2>
+    </div>
+    <div class="connections-body">
+      <p style="font-size:13px;color:var(--text-2);margin-bottom:16px;line-height:1.5">Connect accounts to publish live and track analytics. You'll be redirected to each platform to authorize.</p>
+      <div class="net-item">
+        <div class="net-icon" style="background:#E8F0FF">📘</div>
+        <div class="net-info">
+          <div class="net-name">Meta (Facebook + Instagram)</div>
+          <div class="net-status" id="net-meta-status">Not connected</div>
+        </div>
+        <button class="connect-btn" id="net-meta-btn" onclick="connectPlatform('meta')">Connect</button>
+      </div>
+      <div class="net-item">
+        <div class="net-icon" style="background:#E8E8E8">🐦</div>
+        <div class="net-info">
+          <div class="net-name">X (Twitter)</div>
+          <div class="net-status" id="net-x-status">Not connected</div>
+        </div>
+        <button class="connect-btn" id="net-x-btn" onclick="connectPlatform('x')">Connect</button>
+      </div>
+      <div class="net-item">
+        <div class="net-icon" style="background:#E3F0FF">💼</div>
+        <div class="net-info">
+          <div class="net-name">LinkedIn</div>
+          <div class="net-status" id="net-linkedin-status">Not connected</div>
+        </div>
+        <button class="connect-btn" id="net-linkedin-btn" onclick="connectPlatform('linkedin')">Connect</button>
+      </div>
+      <div class="net-item">
+        <div class="net-icon" style="background:#FFE8E8">🎬</div>
+        <div class="net-info">
+          <div class="net-name">YouTube</div>
+          <div class="net-status" id="net-youtube-status">Not connected</div>
+        </div>
+        <button class="connect-btn" id="net-youtube-btn" onclick="connectPlatform('youtube')">Connect</button>
+      </div>
+      <div class="net-item">
+        <div class="net-icon" style="background:#F5F5F5">🎵</div>
+        <div class="net-info">
+          <div class="net-name">TikTok</div>
+          <div class="net-status" id="net-tiktok-status">Not connected</div>
+        </div>
+        <button class="connect-btn" id="net-tiktok-btn" onclick="connectPlatform('tiktok')">Connect</button>
+      </div>
+      <div style="background:var(--brand-light);border-radius:12px;padding:14px;margin-top:8px;font-size:12px;color:var(--text-2);line-height:1.6">
+        <strong style="color:var(--brand)">Privacy:</strong> MarketerPro only requests publish + read permissions. Tokens are encrypted and never shared.
+      </div>
+    </div>
+  </div>
+
   <!-- TOAST -->
   <div class="toast" id="toast">
     <i class="ti ti-circle-check" style="font-size:20px" aria-hidden="true"></i>
@@ -609,7 +759,11 @@ var brandProfile = {};
 var obStep = 1; var obTotal = 5; var autoOn = false;
 var generatedPosts = [];
 var approvedPosts = [];
-var calOffset = 0; // months offset from today
+var calOffset = 0;
+var currentPlan = 'free';
+var currentEntitlements = {};
+var connections = [];
+var planToggleMode = 'monthly';
 
 // ─────────────────────────────────────────────────
 // CLOCK
@@ -740,11 +894,21 @@ function handleLogout() { logout(); }
 
 function onAuthSuccess() {
   loadBrandProfile();
+  loadPlan();
+  var pendingNet = window._pendingConnected;
+  window._pendingConnected = null;
   if (!localStorage.getItem('mp_onboarded')) {
     showOnboarding();
   } else {
     refreshSchedule();
     loadAnalytics();
+    if (pendingNet) {
+      setTimeout(function() {
+        switchTo('settings');
+        openConnections();
+        showToast(pendingNet.charAt(0).toUpperCase() + pendingNet.slice(1) + ' connected!');
+      }, 400);
+    }
   }
 }
 
@@ -880,6 +1044,10 @@ document.querySelectorAll('.plat-chip').forEach(function(chip) {
 });
 
 document.getElementById('gen-btn').addEventListener('click', async function() {
+  if (!currentEntitlements.canUseAiGenerate) {
+    openPricing();
+    return;
+  }
   var selectedPlatforms = Array.from(document.querySelectorAll('.plat-chip.sel')).map(function(c) {
     return c.getAttribute('data-plat');
   });
@@ -905,6 +1073,12 @@ document.getElementById('gen-btn').addEventListener('click', async function() {
       brandVoice: brandProfile.brandWords || '',
     });
 
+    if (r.status === 403 && r.data.error === 'plan_required') {
+      loading.classList.remove('show');
+      document.getElementById('gen-section').style.display = 'block';
+      openPricing();
+      return;
+    }
     if (r.status !== 200 || !r.data.posts) {
       showToast('Generation failed. Try again.', true);
       document.getElementById('gen-section').style.display = 'block';
@@ -1238,9 +1412,203 @@ function showToast(msg, isError) {
 }
 
 // ─────────────────────────────────────────────────
+// PLAN & BILLING
+// ─────────────────────────────────────────────────
+async function loadPlan() {
+  try {
+    var r = await api('GET', '/api/plan');
+    if (r.status === 200) {
+      currentPlan = r.data.plan || 'free';
+      currentEntitlements = r.data.entitlements || {};
+      updatePlanUI();
+    }
+  } catch(e) {}
+}
+
+function updatePlanUI() {
+  var planLabels = { free: 'Free Plan', pro: 'Pro Plan', enterprise: 'Enterprise Plan' };
+  var planSubs = {
+    free: 'Upgrade for AI generation',
+    pro: '30-day calendar · AI · Publishing',
+    enterprise: '60-day calendar · Advanced analytics',
+  };
+  var planEl = document.getElementById('settings-plan-label');
+  if (planEl) planEl.textContent = '✦ ' + (planLabels[currentPlan] || 'Free Plan') + ' · ' + (planSubs[currentPlan] || '');
+
+  var billEl = document.getElementById('billing-sub');
+  if (billEl) {
+    if (currentPlan === 'free') billEl.textContent = 'Free · Upgrade for AI & publishing';
+    else if (currentPlan === 'pro') billEl.textContent = 'Pro · $29/mo · Manage subscription';
+    else billEl.textContent = 'Enterprise · Manage subscription';
+  }
+
+  var genBtn = document.getElementById('gen-btn');
+  if (genBtn) {
+    if (!currentEntitlements.canUseAiGenerate) {
+      genBtn.innerHTML = '<i class="ti ti-lock" aria-hidden="true"></i> Upgrade to Generate Posts';
+      genBtn.style.background = 'var(--text-3)';
+    } else {
+      genBtn.innerHTML = '<i class="ti ti-sparkles" aria-hidden="true"></i> Generate Posts';
+      genBtn.style.background = '';
+    }
+  }
+}
+
+function openPricing() {
+  document.getElementById('pricing-overlay').style.display = 'flex';
+}
+
+function closePricing() {
+  document.getElementById('pricing-overlay').style.display = 'none';
+}
+
+function setPlanToggle(mode) {
+  planToggleMode = mode;
+  document.getElementById('toggle-monthly').classList.toggle('active', mode === 'monthly');
+  document.getElementById('toggle-annual').classList.toggle('active', mode === 'annual');
+  var proEl = document.getElementById('pro-price-display');
+  var entEl = document.getElementById('ent-price-display');
+  if (proEl) proEl.innerHTML = (mode === 'annual' ? '$24' : '$29') + ' <span class="plan-price-sub">/mo</span>';
+  if (entEl) entEl.innerHTML = (mode === 'annual' ? '$82' : '$99') + ' <span class="plan-price-sub">/mo</span>';
+}
+
+async function handleCheckout(planKey) {
+  var btnId = 'upgrade-' + planKey + '-btn';
+  var btn = document.getElementById(btnId);
+  if (btn) { btn.disabled = true; btn.textContent = 'Redirecting...'; }
+  try {
+    var r = await api('POST', '/billing/checkout', { annual: planToggleMode === 'annual' });
+    if (r.status === 503) {
+      showToast('Billing not configured. Add Stripe keys to .env', true);
+      return;
+    }
+    if (r.data && r.data.url) {
+      window.location.href = r.data.url;
+    } else {
+      showToast('Checkout unavailable. Try again.', true);
+    }
+  } catch(e) {
+    showToast('Checkout error. Check connection.', true);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = planKey === 'pro' ? '🚀 Upgrade to Pro' : 'Upgrade to Enterprise';
+    }
+  }
+}
+
+async function openBillingOrPricing() {
+  if (currentPlan === 'free') { openPricing(); return; }
+  try {
+    var r = await api('POST', '/billing/portal', {});
+    if (r.status === 503 || !r.data || !r.data.url) { openPricing(); return; }
+    window.location.href = r.data.url;
+  } catch(e) { openPricing(); }
+}
+
+// ─────────────────────────────────────────────────
+// CONNECTED PLATFORMS
+// ─────────────────────────────────────────────────
+function openConnections() {
+  document.getElementById('connections-overlay').style.display = 'flex';
+  document.getElementById('connections-overlay').style.flexDirection = 'column';
+  loadConnections();
+}
+
+function closeConnections() {
+  document.getElementById('connections-overlay').style.display = 'none';
+}
+
+async function loadConnections() {
+  try {
+    var r = await api('GET', '/oauth/connections');
+    if (r.status === 200 && Array.isArray(r.data.connections)) {
+      connections = r.data.connections;
+    } else {
+      connections = [];
+    }
+  } catch(e) {
+    connections = [];
+  }
+  renderConnections();
+}
+
+function renderConnections() {
+  var netMap = {};
+  connections.forEach(function(c) { netMap[c.network] = c; });
+
+  var nets = ['meta', 'x', 'linkedin', 'youtube', 'tiktok'];
+  var connected = 0;
+  nets.forEach(function(n) {
+    var statusEl = document.getElementById('net-' + n + '-status');
+    var btnEl = document.getElementById('net-' + n + '-btn');
+    if (!statusEl || !btnEl) return;
+    var conn = netMap[n];
+    if (conn) {
+      connected++;
+      statusEl.textContent = 'Connected' + (conn.account_name ? ' · @' + conn.account_name : '');
+      statusEl.className = 'net-status connected';
+      btnEl.textContent = 'Disconnect';
+      btnEl.className = 'disconnect-btn';
+      btnEl.onclick = (function(net) { return function() { disconnectPlatform(net); }; })(n);
+    } else {
+      statusEl.textContent = 'Not connected';
+      statusEl.className = 'net-status';
+      btnEl.textContent = 'Connect';
+      btnEl.className = 'connect-btn';
+      btnEl.onclick = (function(net) { return function() { connectPlatform(net); }; })(n);
+    }
+  });
+
+  var connSub = document.getElementById('connections-sub');
+  if (connSub) connSub.textContent = connected ? connected + ' platform' + (connected > 1 ? 's' : '') + ' connected' : 'Connect to publish live';
+}
+
+function connectPlatform(network) {
+  if (!authToken) { showToast('Sign in first.', true); return; }
+  var url = '/oauth/connect/' + network + '?t=' + encodeURIComponent(authToken);
+  var popup = window.open(url, 'oauth_' + network, 'width=520,height=640,scrollbars=yes,resizable=yes');
+  if (!popup) {
+    showToast('Allow popups to connect platforms.', true);
+    return;
+  }
+  var poll = setInterval(function() {
+    try {
+      if (popup.closed) {
+        clearInterval(poll);
+        loadConnections();
+      }
+    } catch(e) { /* cross-origin during redirect */ }
+  }, 800);
+}
+
+async function disconnectPlatform(network) {
+  try {
+    var r = await api('DELETE', '/oauth/connections/' + network);
+    if (r.status === 204 || r.status === 200 || r.status === 404) {
+      connections = connections.filter(function(c) { return c.network !== network; });
+      renderConnections();
+      showToast(network.charAt(0).toUpperCase() + network.slice(1) + ' disconnected.');
+    } else {
+      showToast('Disconnect failed.', true);
+    }
+  } catch(e) {
+    showToast('Disconnect failed.', true);
+  }
+}
+
+// ─────────────────────────────────────────────────
 // INIT
 // ─────────────────────────────────────────────────
 (function init() {
+  // Handle OAuth redirect back from social platform (popup may have closed on /connections?connected=meta)
+  var urlParams = new URLSearchParams(window.location.search);
+  var connectedNet = urlParams.get('connected');
+  if (connectedNet) {
+    window._pendingConnected = connectedNet;
+    history.replaceState({}, '', '/');
+  }
+
   if (authToken) {
     document.getElementById('auth-overlay').style.display = 'none';
     onAuthSuccess();
