@@ -465,6 +465,9 @@
           <h2>Review &amp; Approve</h2>
           <span class="pill success"><i class="ti ti-sparkles" style="font-size:11px" aria-hidden="true"></i> AI Generated</span>
         </div>
+        <p style="font-size:12px;color:var(--text-2);margin:0 0 12px;line-height:1.5">
+          Review each post below. Tap <strong>Approve</strong> on the ones you want to keep, <strong>Edit</strong> to tweak, or <strong>Redo</strong> to regenerate. Then hit <strong>Schedule All Approved</strong> to add them to your calendar.
+        </p>
         <div id="posts-list"></div>
         <button class="gen-action-btn" id="schedule-all-btn" style="background:var(--accent)">
           <i class="ti ti-calendar-plus" aria-hidden="true"></i> Schedule All Approved
@@ -528,6 +531,12 @@
 
     <!-- SETTINGS -->
     <div class="screen" id="screen-settings">
+      <!-- Shown when no platforms are connected -->
+      <div id="connect-nudge" style="display:none;margin:16px 20px 0;background:var(--brand-light);border:1.5px solid var(--brand);border-radius:14px;padding:14px 16px">
+        <div style="font-weight:700;font-size:14px;color:var(--brand);margin-bottom:4px">🔗 Connect your social accounts</div>
+        <div style="font-size:13px;color:var(--text-2);margin-bottom:10px">Link Instagram, LinkedIn, X, TikTok, or Facebook to publish live directly from Marketer Pro.</div>
+        <button onclick="openConnections()" style="background:var(--brand);color:white;border:none;border-radius:10px;padding:10px 18px;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;cursor:pointer;width:100%">Connect Platforms →</button>
+      </div>
       <div class="profile-hero">
         <div class="big-avatar" id="settings-avatar">MP</div>
         <div>
@@ -1349,7 +1358,12 @@ document.getElementById('ob-next').addEventListener('click', async function() {
     btn.disabled = false;
     refreshSchedule();
     loadAnalytics();
-    showToast('Brand profile saved! You\'re all set.');
+    showToast('Brand profile saved! Generate your first post below.');
+    // Auto-open the generate panel so there is a clear next step
+    switchTo('create');
+    document.getElementById('gen-section').style.display = 'block';
+    document.getElementById('hero-banner') && (document.querySelector('.hero-banner').style.display = 'none');
+    document.getElementById('screen-area').scrollTop = 0;
   }
 });
 
@@ -1942,7 +1956,12 @@ async function refreshSchedule() {
 function renderScheduleList(entries) {
   var container = document.getElementById('schedule-list');
   if (!entries.length) {
-    container.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-3);font-size:13px">No posts scheduled yet. Generate &amp; approve some posts!</div>';
+    container.innerHTML = '<div style="text-align:center;padding:24px 16px">'
+      + '<div style="font-size:28px;margin-bottom:8px">📅</div>'
+      + '<div style="font-weight:600;font-size:15px;margin-bottom:6px">No posts scheduled yet</div>'
+      + '<div style="color:var(--text-2);font-size:13px;margin-bottom:16px">Generate content on the Create tab, approve it, and schedule — your posts will appear here.</div>'
+      + '<button onclick="switchTo(\'create\')" style="background:var(--brand);color:white;border:none;border-radius:12px;padding:12px 24px;font-family:\'Syne\',sans-serif;font-weight:700;font-size:14px;cursor:pointer">Create your first post →</button>'
+      + '</div>';
     return;
   }
   var upcoming = entries.slice(0, 10);
@@ -1956,7 +1975,7 @@ function renderScheduleList(entries) {
       + '<div class="sched-time">' + timeStr + '</div>'
       + '<div class="sched-plat" style="background:' + netMeta.bg + '">' + netMeta.emoji + '</div>'
       + '<div class="sched-info" style="flex:1">'
-      + '<div class="title">' + escapeHtml(e.content_summary || netMeta.label + ' Post') + '</div>'
+      + '<div class="title">' + escapeHtml((e.content_summary || netMeta.label + ' Post').slice(0, 120)) + ((e.content_summary || '').length > 120 ? '…' : '') + '</div>'
       + '<div class="sub">' + (e.scheduled_at ? new Date(e.scheduled_at).toLocaleDateString() : 'Unscheduled') + ' · ' + (e.network || 'post') + '</div>'
       + '</div>'
       + statusPill + '</div>';
@@ -1976,6 +1995,16 @@ document.getElementById('refresh-schedule-link').addEventListener('click', refre
 // ─────────────────────────────────────────────────
 // ANALYZE
 // ─────────────────────────────────────────────────
+var NETWORK_META = {
+  ig: { name: 'Instagram',   color: '#E1306C' },
+  li: { name: 'LinkedIn',    color: '#0A66C2' },
+  fb: { name: 'Facebook',    color: '#1877F2' },
+  x:  { name: 'X / Twitter', color: '#1DA1F2' },
+  tt: { name: 'TikTok',      color: '#010101' },
+  yt: { name: 'YouTube',     color: '#FF0000' },
+  pin:{ name: 'Pinterest',   color: '#E60023' },
+};
+
 async function loadAnalytics() {
   try {
     var r = await api('GET', '/api/analytics/summary');
@@ -1983,12 +2012,13 @@ async function loadAnalytics() {
     var s = r.data;
 
     var reach = s.totalReach || 0;
+    // avgEngagementRate is already a percentage (e.g. 5.25 = 5.25%)
     var eng = s.avgEngagementRate || 0;
     var posts = s.snapshotCount || 0;
     var clicks = s.totalClicks || 0;
 
     document.getElementById('stat-reach').textContent = reach > 999 ? (reach / 1000).toFixed(1) + 'K' : String(reach);
-    document.getElementById('stat-eng').textContent = eng ? (eng * 100).toFixed(1) + '%' : '—';
+    document.getElementById('stat-eng').textContent = eng ? eng.toFixed(1) + '%' : '—';
     document.getElementById('stat-posts').textContent = String(posts);
     document.getElementById('stat-clicks').textContent = clicks > 999 ? (clicks / 1000).toFixed(1) + 'K' : String(clicks);
 
@@ -2010,21 +2040,34 @@ async function loadAnalytics() {
   renderBarChart();
 }
 
-function renderBarChart() {
-  var barData = [
-    {name:'Instagram', val:92, color:'#E1306C'},
-    {name:'LinkedIn',  val:74, color:'#0A66C2'},
-    {name:'Facebook',  val:61, color:'#1877F2'},
-    {name:'X / Twitter', val:48, color:'#1DA1F2'},
-    {name:'TikTok',    val:38, color:'#000'},
-  ];
+async function renderBarChart() {
   var bc = document.getElementById('bar-chart');
-  bc.innerHTML = barData.map(function(d) {
-    return '<div class="chart-bar-row">'
-      + '<div class="plat-name">' + d.name + '</div>'
-      + '<div class="chart-bar-wrap"><div class="chart-bar-fill" style="width:' + d.val + '%;background:' + d.color + '"></div></div>'
-      + '<div class="bar-val">' + d.val + '%</div></div>';
-  }).join('');
+  try {
+    var r = await api('GET', '/api/analytics/by-network');
+    var networks = (r.status === 200 && r.data.networks && r.data.networks.length > 0)
+      ? r.data.networks : null;
+
+    if (!networks) {
+      // No real data yet — show placeholder message
+      bc.innerHTML = '<div style="color:var(--text-2);font-size:13px;padding:16px 0;text-align:center">No published posts yet. Engagement by platform will appear here once your first posts go live.</div>';
+      return;
+    }
+
+    // Scale so the top network = 100% bar width
+    var maxRate = Math.max.apply(null, networks.map(function(n) { return n.engagementRate || 0; }));
+    if (maxRate === 0) maxRate = 1;
+
+    bc.innerHTML = networks.map(function(n) {
+      var meta = NETWORK_META[n.network] || { name: n.network, color: '#888' };
+      var pct = Math.round((n.engagementRate / maxRate) * 100);
+      return '<div class="chart-bar-row">'
+        + '<div class="plat-name">' + meta.name + '</div>'
+        + '<div class="chart-bar-wrap"><div class="chart-bar-fill" style="width:' + pct + '%;background:' + meta.color + '"></div></div>'
+        + '<div class="bar-val">' + (n.engagementRate || 0).toFixed(1) + '%</div></div>';
+    }).join('');
+  } catch(e) {
+    bc.innerHTML = '<div style="color:var(--text-2);font-size:13px;padding:16px 0;text-align:center">Unable to load chart.</div>';
+  }
 }
 
 // ─────────────────────────────────────────────────
@@ -2280,9 +2323,15 @@ async function loadConnectionsSilent() {
 function updateConnectionsSubLabel() {
   var sub = document.getElementById('connections-sub');
   if (!sub) return;
-  if (!connections.length) { sub.textContent = 'Connect to publish live'; return; }
+  var nudge = document.getElementById('connect-nudge');
+  if (!connections.length) {
+    sub.textContent = 'Connect to publish live';
+    if (nudge) nudge.style.display = 'block';
+    return;
+  }
   var names = connections.slice(0, 3).map(function(c) { return c.network; }).join(', ');
   sub.textContent = connections.length + ' connected: ' + names;
+  if (nudge) nudge.style.display = 'none';
 }
 
 // ─────────────────────────────────────────────────

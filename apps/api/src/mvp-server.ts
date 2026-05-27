@@ -446,6 +446,20 @@ const server = createServer(async (req, res) => {
     return;
   }
 
+  // ── GET /api/analytics/by-network ─────────────────────────────────────────
+  // Returns per-network engagement rates for the bar chart.
+  if (req.method === "GET" && path === "/api/analytics/by-network") {
+    const networks = ["ig", "li", "fb", "x", "tt", "yt", "pin"] as const;
+    const results = await Promise.all(
+      networks.map(async (n) => {
+        const s = await getAnalyticsSummary(auth.tenantId, n as Parameters<typeof getAnalyticsSummary>[1]);
+        return { network: n, engagementRate: s.avgEngagementRate, snapshotCount: s.snapshotCount };
+      }),
+    );
+    json(req, res, 200, { networks: results.filter(r => r.snapshotCount > 0) });
+    return;
+  }
+
   // ── POST /api/autonomous/start ────────────────────────────────────────────
   if (req.method === "POST" && path === "/api/autonomous/start") {
     const plan = await getWorkspacePlan(auth.tenantId) ?? "free";
