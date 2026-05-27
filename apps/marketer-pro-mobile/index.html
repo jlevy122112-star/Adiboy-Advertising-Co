@@ -96,6 +96,49 @@
 .post-btn.edit{color:var(--brand);border-color:var(--brand-light);}
 .post-btn.edit:hover{background:var(--brand-light);}
 .post-btn.reject{color:var(--danger);border-color:#FEE2E2;}
+/* ── AUTONOMOUS CONTROL PANEL ───────────────────────────────────── */
+.acp{background:#060B14;border:1px solid #1B2D45;border-radius:14px;margin-bottom:18px;overflow:hidden;position:relative;box-shadow:0 4px 24px rgba(0,0,0,0.35);}
+.acp::after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(255,255,255,0.012) 3px,rgba(255,255,255,0.012) 4px);pointer-events:none;z-index:0;}
+.acp-header{display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid #12213A;position:relative;z-index:1;}
+.acp-lights{display:flex;gap:5px;align-items:center;}
+.acp-dot{width:7px;height:7px;border-radius:50%;transition:all 0.4s;}
+.acp-dot.r{background:#4A1515;box-shadow:none;}
+.acp-dot.a{background:#4A3010;box-shadow:none;}
+.acp-dot.g{background:#0D3320;box-shadow:none;}
+.acp.armed .acp-dot.r{background:#FF3B3B;box-shadow:0 0 6px #FF3B3B;}
+.acp.armed .acp-dot.a{background:#FF9F0A;box-shadow:0 0 6px #FF9F0A;}
+.acp.armed .acp-dot.g{background:#30D158;box-shadow:0 0 8px #30D158;animation:acp-blink 1.2s ease-in-out infinite;}
+@keyframes acp-blink{0%,100%{opacity:1}50%{opacity:.3}}
+.acp-badge{font-family:'Syne',sans-serif;font-weight:800;font-size:9.5px;letter-spacing:2.5px;color:#1E5A8A;text-transform:uppercase;}
+.acp.armed .acp-badge{color:#4AADFF;}
+.acp-mode{margin-left:auto;font-family:'Courier New',monospace;font-size:9px;font-weight:700;letter-spacing:2px;color:#4A3010;padding:2px 7px;border:1px solid #2A1A08;border-radius:3px;background:#0E0A04;}
+.acp.armed .acp-mode{color:#30D158;border-color:#0D3320;background:#04100A;animation:acp-blink 1.2s ease-in-out infinite;}
+.acp-body{display:flex;align-items:center;padding:16px 14px 18px;gap:16px;position:relative;z-index:1;}
+/* the big lever switch */
+.acp-switch-wrap{display:flex;flex-direction:column;align-items:center;gap:7px;flex-shrink:0;}
+.acp-switch-tag{font-family:'Courier New',monospace;font-size:8px;letter-spacing:2px;color:#1E3A5A;text-transform:uppercase;}
+.acp-switch-body{width:44px;height:76px;background:linear-gradient(180deg,#0E1520 0%,#080D14 100%);border:1.5px solid #1E3050;border-radius:8px;position:relative;cursor:pointer;box-shadow:inset 0 3px 10px rgba(0,0,0,0.6),0 2px 8px rgba(0,0,0,0.4);display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:8px 0;transition:border-color 0.3s,box-shadow 0.3s;}
+.acp-switch-body::before{content:'ON';font-family:'Courier New',monospace;font-size:7px;letter-spacing:1.5px;color:#0D2A1A;font-weight:700;}
+.acp-switch-body::after{content:'OFF';font-family:'Courier New',monospace;font-size:7px;letter-spacing:1.5px;color:#3A1A1A;font-weight:700;}
+.acp.armed .acp-switch-body{border-color:#30D158;box-shadow:inset 0 3px 10px rgba(0,0,0,0.6),0 0 16px rgba(48,209,88,0.25);}
+.acp.armed .acp-switch-body::before{color:#30D158;}
+.acp-lever{width:30px;height:34px;background:linear-gradient(160deg,#D8D8D0 0%,#B8B8B0 40%,#909088 100%);border-radius:5px;position:absolute;bottom:10px;left:50%;transform:translateX(-50%) translateY(0px);transition:transform 0.35s cubic-bezier(0.34,1.56,0.64,1);box-shadow:0 3px 8px rgba(0,0,0,0.5),inset 0 1px 2px rgba(255,255,255,0.2);z-index:2;}
+.acp-lever::after{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:16px;height:3px;background:rgba(0,0,0,0.2);border-radius:2px;}
+.acp.armed .acp-lever{transform:translateX(-50%) translateY(-28px);}
+.acp-readout{flex:1;min-width:0;}
+.acp-readout-title{font-family:'Courier New',monospace;font-size:12px;font-weight:700;color:#1E5A8A;letter-spacing:1px;margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.acp.armed .acp-readout-title{color:#4AADFF;}
+.acp-readout-row{display:flex;align-items:center;gap:6px;margin-bottom:4px;}
+.acp-readout-key{font-family:'Courier New',monospace;font-size:9px;color:#1E3A5A;letter-spacing:.5px;flex-shrink:0;width:52px;}
+.acp-readout-val{font-family:'Courier New',monospace;font-size:9px;color:#1E3A5A;letter-spacing:.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.acp.armed .acp-readout-key{color:#30D158;}
+.acp.armed .acp-readout-val{color:#30D158;}
+.acp-divider{width:100%;height:1px;background:linear-gradient(90deg,transparent,#12213A 30%,#12213A 70%,transparent);margin:6px 0;}
+.acp-cursor{display:inline-block;width:6px;height:11px;background:#30D158;margin-left:2px;animation:acp-cursor 1s step-end infinite;vertical-align:middle;}
+@keyframes acp-cursor{0%,100%{opacity:1}50%{opacity:0}}
+/* armed state: generate button transforms */
+.gen-action-btn.armed-launch{background:linear-gradient(135deg,#0A2040 0%,#0E3060 50%,#0A2040 100%);border:1px solid #4AADFF;color:#4AADFF;font-family:'Courier New',monospace;letter-spacing:2px;font-size:12px;text-transform:uppercase;box-shadow:0 0 20px rgba(74,173,255,0.2),inset 0 1px rgba(255,255,255,0.05);}
+.gen-action-btn.armed-launch:active{box-shadow:0 0 30px rgba(74,173,255,0.4);}
 /* POST IMAGE */
 .post-image-wrap{position:relative;overflow:hidden;border-top:0.5px solid var(--border);}
 .post-image-wrap img{width:100%;display:block;object-fit:cover;}
@@ -357,6 +400,49 @@
               <option>Low key / soft sell</option>
             </select>
           </div>
+
+          <!-- ── AUTONOMOUS CONTROL PANEL ── -->
+          <div class="acp" id="acp" onclick="toggleAutoMode()">
+            <div class="acp-header">
+              <div class="acp-lights">
+                <div class="acp-dot r"></div>
+                <div class="acp-dot a"></div>
+                <div class="acp-dot g"></div>
+              </div>
+              <div class="acp-badge">⬡ Autonomous Mode</div>
+              <div class="acp-mode" id="acp-mode-label">STANDBY</div>
+            </div>
+            <div class="acp-body">
+              <div class="acp-switch-wrap">
+                <div class="acp-switch-tag">ENGAGE</div>
+                <div class="acp-switch-body">
+                  <div class="acp-lever" id="acp-lever"></div>
+                </div>
+                <div class="acp-switch-tag">SYS</div>
+              </div>
+              <div class="acp-readout">
+                <div class="acp-readout-title" id="acp-title">AI CAMPAIGN ENGINE v1.0</div>
+                <div class="acp-divider"></div>
+                <div class="acp-readout-row">
+                  <span class="acp-readout-key">STATUS</span>
+                  <span class="acp-readout-val" id="acp-r1">AWAITING AUTHORIZATION</span>
+                </div>
+                <div class="acp-readout-row">
+                  <span class="acp-readout-key">ENGINE</span>
+                  <span class="acp-readout-val" id="acp-r2">CLAUDE SONNET 4.6</span>
+                </div>
+                <div class="acp-readout-row">
+                  <span class="acp-readout-key">SCOPE</span>
+                  <span class="acp-readout-val" id="acp-r3">SINGLE POST</span>
+                </div>
+                <div class="acp-readout-row">
+                  <span class="acp-readout-key">TARGET</span>
+                  <span class="acp-readout-val" id="acp-r4">5 PLATFORMS</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <button class="gen-action-btn" id="gen-btn">
             <i class="ti ti-sparkles" aria-hidden="true"></i> Generate Posts
           </button>
@@ -802,7 +888,7 @@ var API_BASE = '';  // same-origin by default; set to 'http://localhost:8780' fo
 // ─────────────────────────────────────────────────
 var authToken = localStorage.getItem('mp_token') || '';
 var brandProfile = {};
-var obStep = 1; var obTotal = 5; var autoOn = false;
+var obStep = 1; var obTotal = 5; var autoModeOn = false;
 var generatedPosts = [];
 var generatedVideoScripts = [];
 var lastGenerateInput = null;
@@ -1091,7 +1177,80 @@ document.querySelectorAll('.plat-chip').forEach(function(chip) {
   chip.addEventListener('click', function() { chip.classList.toggle('sel'); });
 });
 
+// ── Autonomous mode toggle ────────────────────────────────────────
+function toggleAutoMode() {
+  if (!currentEntitlements.canUseAutonomousMode) {
+    openPricing(); return;
+  }
+  autoModeOn = !autoModeOn;
+  var panel = document.getElementById('acp');
+  var btn   = document.getElementById('gen-btn');
+  var selectedPlatforms = Array.from(document.querySelectorAll('.plat-chip.sel')).map(function(c) { return c.getAttribute('data-plat'); });
+  var platCount = selectedPlatforms.length || 5;
+  var scope = 'SINGLE POST';
+
+  if (autoModeOn) {
+    panel.classList.add('armed');
+    document.getElementById('acp-mode-label').textContent = 'ARMED';
+    document.getElementById('acp-r1').textContent = 'ALL SYSTEMS GO ►';
+    document.getElementById('acp-r2').textContent = 'CLAUDE SONNET 4.6';
+    document.getElementById('acp-r3').textContent = scope;
+    document.getElementById('acp-r4').textContent = platCount + ' PLATFORM' + (platCount === 1 ? '' : 'S') + ' TARGETED';
+    btn.innerHTML = '&#9658; LAUNCH AUTONOMOUS RUN';
+    btn.classList.add('armed-launch');
+  } else {
+    panel.classList.remove('armed');
+    document.getElementById('acp-mode-label').textContent = 'STANDBY';
+    document.getElementById('acp-r1').textContent = 'AWAITING AUTHORIZATION';
+    document.getElementById('acp-r3').textContent = scope;
+    document.getElementById('acp-r4').textContent = platCount + ' PLATFORMS';
+    btn.innerHTML = '<i class="ti ti-sparkles" aria-hidden="true"></i> Generate Posts';
+    btn.classList.remove('armed-launch');
+  }
+}
+
+// Keep platform count in readout live
+document.querySelectorAll('.plat-chip').forEach(function(chip) {
+  chip.addEventListener('click', function() {
+    setTimeout(function() {
+      if (!autoModeOn) return;
+      var n = document.querySelectorAll('.plat-chip.sel').length;
+      document.getElementById('acp-r4').textContent = n + ' PLATFORM' + (n === 1 ? '' : 'S') + ' TARGETED';
+    }, 10);
+  });
+});
+
 document.getElementById('gen-btn').addEventListener('click', async function() {
+  // ── Autonomous launch path ──────────────────────────────────────
+  if (autoModeOn) {
+    if (!currentEntitlements.canUseAutonomousMode) { openPricing(); return; }
+    var selectedPlatforms = Array.from(document.querySelectorAll('.plat-chip.sel')).map(function(c) { return c.getAttribute('data-plat'); });
+    var topic = document.getElementById('f-topic').value.trim();
+    var btn = this;
+    btn.disabled = true;
+    btn.textContent = '⬡ INITIALIZING…';
+    try {
+      var r = await api('POST', '/api/autonomous/start', {
+        platforms: selectedPlatforms.length ? selectedPlatforms : ['ig','li','fb','x','tt'],
+        scope: 'single_post',
+        seedPrompt: topic || undefined,
+      });
+      if (r.status === 403) { openPricing(); }
+      else if (r.status === 201) {
+        showToast('🤖 Autonomous run launched — AI is working');
+        // Reset panel
+        autoModeOn = true; // keep armed, show it's running
+        document.getElementById('acp-r1').textContent = 'RUN ACTIVE · GENERATING…';
+        document.getElementById('acp-mode-label').textContent = 'ACTIVE';
+        setTimeout(function() { switchTo('plan'); }, 2000);
+      } else { showToast('Launch failed. Try again.', true); }
+    } catch(e) { showToast('Launch error.', true); }
+    btn.disabled = false;
+    btn.textContent = '▶ LAUNCH AUTONOMOUS RUN';
+    return;
+  }
+
+  // ── Manual generation path ──────────────────────────────────────
   if (!currentEntitlements.canUseAiGenerate) {
     openPricing();
     return;
