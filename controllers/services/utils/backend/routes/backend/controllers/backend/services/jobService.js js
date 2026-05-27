@@ -1,0 +1,30 @@
+import { v4 as uuid } from "uuid";
+
+const jobs = {};
+
+export function queueJob(payload) {
+  const id = uuid();
+
+  jobs[id] = {
+    status: "pending",
+    artifacts: null,
+    error: null,
+    payload,
+  };
+
+  return id;
+}
+
+export function completeJob(id, artifacts) {
+  jobs[id].status = "complete";
+  jobs[id].artifacts = artifacts;
+}
+
+export function failJob(id, error) {
+  jobs[id].status = "error";
+  jobs[id].error = error;
+}
+
+export function getJob(id) {
+  return jobs[id] || null;
+}
