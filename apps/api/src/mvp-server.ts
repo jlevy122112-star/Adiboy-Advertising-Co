@@ -63,6 +63,13 @@ import { DEFAULT_AUTONOMY_POLICY, runProgress } from "@home-link/marketer-pro-co
 import { publishAll, type MvpPublishInput } from "./marketer-pro/mvp-publisher.js";
 import { createDeletionRequest, getDeletionRequest, cancelDeletionRequest } from "./db/account-deletion.js";
 import { getPostgresClient } from "./db/postgres.js";
+import {
+  getTenantUsage,
+  incrementAiGenerations,
+  incrementPostsPublished,
+  incrementAssetsStored,
+  PLAN_USAGE_LIMITS,
+} from "./db/tenant-usage.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const FRONTEND_HTML_PATH = join(__dirname, "../../marketer-pro-mobile/index.html");
@@ -310,6 +317,8 @@ const server = createServer(async (req, res) => {
         generatePosts(brandedInput),
         generateVideoScripts(brandedInput),
       ]);
+      // Track AI usage (fire-and-forget)
+      incrementAiGenerations(auth.tenantId, posts.length || 1).catch(() => {});
       json(req, res, 200, { posts, videoScripts });
     } catch (err) {
       console.error(JSON.stringify(safeLogCtx({ level: "error", event: "mvp_generate_error", tenantId: auth.tenantId, requestId, message: String(err) })));
@@ -363,6 +372,9 @@ const server = createServer(async (req, res) => {
     };
     try {
       const images = await generateImages(brandedInput);
+      // Track AI image generation + asset count (fire-and-forget)
+      incrementAiGenerations(auth.tenantId, images.length || 1).catch(() => {});
+      incrementAssetsStored(auth.tenantId, images.length || 1).catch(() => {});
       json(req, res, 200, { images });
     } catch (err) {
       console.error(JSON.stringify(safeLogCtx({ level: "error", event: "mvp_generate_images_error", tenantId: auth.tenantId, requestId, message: String(err) })));
@@ -491,6 +503,27 @@ const server = createServer(async (req, res) => {
       return;
     }
     json(req, res, 200, { profile: { ...b, profileId: auth.tenantId } });
+    return;
+  }
+
+  // ── GET /api/usage — tenant usage vs plan limits ─────────────────────────
+  if (req.method === "GET" && path === "/api/usage") {
+    const plan = (await getWorkspacePlan(auth.tenantId)) ?? "free";
+    const [usage] = await Promise.all([getTenantUsage(auth.tenantId)]);
+    const limits = PLAN_USAGE_LIMITS[plan] ?? PLAN_USAGE_LIMITS["free"]!;
+    const aiUsed = usage ? Number(usage.ai_generations) : 0;
+    const postsUsed = usage ? Number(usage.posts_published) : 0;
+    const storageMb = usage ? Math.round(Number(usage.storage_bytes) / 1_048_576) : 0;
+    json(req, res, 200, {
+      plan,
+      periodStart: usage?.period_start ?? new Date().toISOString(),
+      metrics: {
+        aiGenerations:  { used: aiUsed,    limit: limits.aiGenerations,  unit: "generations" },
+        postsPublished: { used: postsUsed, limit: limits.postsPublished, unit: "posts" },
+        storageUsedMb:  { used: storageMb, limit: limits.storageMb,      unit: "MB" },
+        assetsStored:   { used: usage ? Number(usage.assets_stored) : 0, limit: null, unit: "assets" },
+      },
+    });
     return;
   }
 
@@ -662,6 +695,9 @@ const server = createServer(async (req, res) => {
     try {
       const results = await publishAll(auth.tenantId, posts);
       const allOk = results.every(r => r.ok);
+      // Track successful publishes (fire-and-forget)
+      const successCount = results.filter(r => r.ok).length;
+      if (successCount > 0) incrementPostsPublished(auth.tenantId, successCount).catch(() => {});
       const responseBody = { results };
 
       // Cache result under idempotency key for replay protection

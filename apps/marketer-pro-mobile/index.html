@@ -646,6 +646,70 @@ body{background:#0D1A3A;}
             <i class="ti ti-chevron-right sr-chevron" aria-hidden="true"></i>
           </div>
         </div>
+        <!-- ── USAGE MONITORING ─────────────────────────────────────────── -->
+        <div class="settings-group" id="usage-group">
+          <div class="settings-group-label">This Month's Usage</div>
+          <div id="usage-card" style="background:var(--surface);border-radius:16px;padding:16px 18px;display:flex;flex-direction:column;gap:14px">
+
+            <!-- AI Generations -->
+            <div class="usage-metric">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                <div style="display:flex;align-items:center;gap:7px">
+                  <i class="ti ti-sparkles" style="color:var(--brand);font-size:15px" aria-hidden="true"></i>
+                  <span style="font-size:13px;font-weight:600;color:var(--text-1)">AI Generations</span>
+                </div>
+                <span id="usage-ai-label" style="font-size:12px;font-weight:700;color:var(--text-2)">— / —</span>
+              </div>
+              <div style="height:6px;background:var(--bg);border-radius:100px;overflow:hidden">
+                <div id="usage-ai-bar" style="height:100%;width:0%;background:var(--brand);border-radius:100px;transition:width 0.6s ease"></div>
+              </div>
+            </div>
+
+            <!-- Posts Published -->
+            <div class="usage-metric">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                <div style="display:flex;align-items:center;gap:7px">
+                  <i class="ti ti-send" style="color:#10B981;font-size:15px" aria-hidden="true"></i>
+                  <span style="font-size:13px;font-weight:600;color:var(--text-1)">Posts Published</span>
+                </div>
+                <span id="usage-posts-label" style="font-size:12px;font-weight:700;color:var(--text-2)">— / —</span>
+              </div>
+              <div style="height:6px;background:var(--bg);border-radius:100px;overflow:hidden">
+                <div id="usage-posts-bar" style="height:100%;width:0%;background:#10B981;border-radius:100px;transition:width 0.6s ease"></div>
+              </div>
+            </div>
+
+            <!-- Storage -->
+            <div class="usage-metric">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                <div style="display:flex;align-items:center;gap:7px">
+                  <i class="ti ti-database" style="color:#F59E0B;font-size:15px" aria-hidden="true"></i>
+                  <span style="font-size:13px;font-weight:600;color:var(--text-1)">Storage Used</span>
+                </div>
+                <span id="usage-storage-label" style="font-size:12px;font-weight:700;color:var(--text-2)">— MB / —</span>
+              </div>
+              <div style="height:6px;background:var(--bg);border-radius:100px;overflow:hidden">
+                <div id="usage-storage-bar" style="height:100%;width:0%;background:#F59E0B;border-radius:100px;transition:width 0.6s ease"></div>
+              </div>
+            </div>
+
+            <!-- Assets stored (count, no bar needed) -->
+            <div style="display:flex;align-items:center;justify-content:space-between;padding-top:4px;border-top:1px solid var(--border)">
+              <div style="display:flex;align-items:center;gap:7px">
+                <i class="ti ti-photo" style="color:var(--text-3);font-size:14px" aria-hidden="true"></i>
+                <span style="font-size:12px;color:var(--text-2)">Assets stored</span>
+              </div>
+              <span id="usage-assets-label" style="font-size:12px;font-weight:700;color:var(--text-2)">—</span>
+            </div>
+
+            <!-- Period label + upgrade nudge -->
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <span id="usage-period-label" style="font-size:11px;color:var(--text-3)">Resets monthly</span>
+              <button id="usage-upgrade-btn" onclick="openBillingOrPricing()" style="display:none;font-size:11px;font-weight:700;color:var(--brand);background:var(--brand-light);border:none;border-radius:8px;padding:5px 12px;cursor:pointer">Upgrade ↑</button>
+            </div>
+          </div>
+        </div>
+
         <div class="settings-group">
           <div class="settings-group-label">Data &amp; Privacy</div>
           <div class="settings-row" onclick="exportAccountData()">
@@ -1324,6 +1388,7 @@ function handleLogout() { logout(); }
 function onAuthSuccess() {
   loadBrandProfile();
   loadPlan();
+  loadUsage();
   loadConnectionsSilent(); // restore connected-platform state on every load
   startNotifPolling();
   var pendingNet = window._pendingConnected;
@@ -1561,6 +1626,7 @@ function switchTo(screen) {
   document.getElementById('screen-area').scrollTop = 0;
   if (screen === 'plan') refreshSchedule();
   if (screen === 'analyze') loadAnalytics();
+  if (screen === 'settings') loadUsage();
 }
 
 document.querySelectorAll('.nav-item').forEach(function(item) {
@@ -2703,6 +2769,60 @@ async function loadPlan() {
       updatePlanUI();
     }
   } catch(e) {}
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// USAGE MONITORING
+// ─────────────────────────────────────────────────────────────────────
+async function loadUsage() {
+  try {
+    var r = await api('GET', '/api/usage');
+    if (r.status !== 200) return;
+    var d = r.data;
+    var m = d.metrics || {};
+
+    function renderBar(barId, labelId, used, limit, unit, color) {
+      var pct = limit && limit < 999999 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
+      var bar = document.getElementById(barId);
+      var lbl = document.getElementById(labelId);
+      if (!bar || !lbl) return;
+      bar.style.width = pct + '%';
+      // Turn bar red when >90% used
+      bar.style.background = pct >= 90 ? '#EF4444' : pct >= 70 ? '#F59E0B' : color;
+      if (limit && limit < 999999) {
+        lbl.textContent = used + ' / ' + limit + ' ' + unit;
+      } else {
+        lbl.textContent = used + ' ' + unit + ' (unlimited)';
+        lbl.style.color = 'var(--text-3)';
+      }
+      return pct;
+    }
+
+    var aiPct   = renderBar('usage-ai-bar',      'usage-ai-label',      (m.aiGenerations  || {}).used || 0, (m.aiGenerations  || {}).limit, 'gen',   'var(--brand)');
+    var postPct = renderBar('usage-posts-bar',   'usage-posts-label',   (m.postsPublished || {}).used || 0, (m.postsPublished || {}).limit, 'posts', '#10B981');
+    var stPct   = renderBar('usage-storage-bar', 'usage-storage-label', (m.storageUsedMb  || {}).used || 0, (m.storageUsedMb  || {}).limit, 'MB',    '#F59E0B');
+
+    var assetsLbl = document.getElementById('usage-assets-label');
+    if (assetsLbl) assetsLbl.textContent = ((m.assetsStored || {}).used || 0) + ' files';
+
+    // Period label — "Resets Jun 1"
+    var periodLbl = document.getElementById('usage-period-label');
+    if (periodLbl && d.periodStart) {
+      var pStart = new Date(d.periodStart);
+      var resetDate = new Date(pStart.getFullYear(), pStart.getMonth() + 1, 1);
+      var opts = { month: 'short', day: 'numeric' };
+      periodLbl.textContent = 'Resets ' + resetDate.toLocaleDateString(undefined, opts);
+    }
+
+    // Show upgrade button if any metric is >80%
+    var upgradeBtn = document.getElementById('usage-upgrade-btn');
+    if (upgradeBtn) {
+      var needsUpgrade = d.plan === 'free' && ((aiPct || 0) > 80 || (postPct || 0) > 80 || (stPct || 0) > 80);
+      upgradeBtn.style.display = needsUpgrade ? 'block' : 'none';
+    }
+  } catch(e) {
+    console.warn('loadUsage failed', e);
+  }
 }
 
 function updatePlanUI() {
