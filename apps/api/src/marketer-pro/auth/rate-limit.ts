@@ -37,3 +37,13 @@ export function authRateLimit(ip: string): RateLimitResult {
 export function globalRateLimit(ip: string): RateLimitResult {
   return checkRateLimit(`global:${ip}`, 300, 60_000);
 }
+
+/** 10 live-publish calls per tenant per 5 minutes — prevents accidental double-publish. */
+export function publishRateLimit(tenantId: string): RateLimitResult {
+  return checkRateLimit(`publish:${tenantId}`, 10, 300_000);
+}
+
+/** 60 AI generation calls per tenant per hour. */
+export function generateRateLimit(tenantId: string): RateLimitResult {
+  return checkRateLimit(`generate:${tenantId}`, 60, 3_600_000);
+}

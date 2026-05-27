@@ -35,9 +35,11 @@ import { fileURLToPath } from "node:url";
 import { randomUUID } from "node:crypto";
 
 import { closePostgres } from "./db/postgres.js";
-import { requireAuth, securityHeaders } from "./marketer-pro/auth/middleware.js";
+import { requireAuth, securityHeaders, getClientIp } from "./marketer-pro/auth/middleware.js";
 import { handleAuthRequest } from "./marketer-pro/auth-route.js";
 import { handleBillingRequest } from "./marketer-pro/billing-route.js";
+import { globalRateLimit, publishRateLimit, generateRateLimit } from "./marketer-pro/auth/rate-limit.js";
+import { applyRequestId, IdempotencyStore, assertTenantMatch, safeLogCtx, TenantMismatchError } from "./marketer-pro/security.js";
 import { handleSocialOAuthRequest } from "./marketer-pro/social-oauth-route.js";
 import {
   executeUpsertBrandProfileRequest,
@@ -61,6 +63,9 @@ import { publishAll, type MvpPublishInput } from "./marketer-pro/mvp-publisher.j
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const FRONTEND_HTML_PATH = join(__dirname, "../../marketer-pro-mobile/index.html");
 const MAX_BODY = 256 * 1024;
+
+// Publish idempotency: keyed by `tenantId:Idempotency-Key`, 24-hour TTL.
+const publishIdempotency = new IdempotencyStore<unknown>(86_400_000).startCleanup();
 
 const host = process.env.MVP_HOST ?? "0.0.0.0";
 const port = Number(process.env.MVP_PORT ?? 8780);
@@ -152,6 +157,7 @@ const GeneratePostsBodyShape = {
 
 const server = createServer(async (req, res) => {
   securityHeaders(res);
+  const requestId = applyRequestId(req, res);
 
   if (req.method === "OPTIONS") {
     const c = corsHeaders(req);
@@ -168,6 +174,17 @@ const server = createServer(async (req, res) => {
     return;
   }
   const path = url.pathname;
+
+  // ── Global IP rate limit (exempt: webhook, static assets, OPTIONS) ─────────
+  if (path !== "/billing/webhook" && req.method !== "OPTIONS") {
+    const ip = getClientIp(req);
+    const rl = globalRateLimit(ip);
+    if (!rl.allowed) {
+      res.setHeader("Retry-After", String(Math.ceil((rl.resetAt - Date.now()) / 1000)));
+      json(req, res, 429, { error: "too_many_requests", requestId });
+      return;
+    }
+  }
 
   // ── Serve frontend ────────────────────────────────────────────────────────
   if (req.method === "GET" && (path === "/" || path === "/index.html")) {
@@ -236,6 +253,12 @@ const server = createServer(async (req, res) => {
       json(req, res, 403, { error: "plan_required", plan, message: "Upgrade to Pro to use AI generation." });
       return;
     }
+    const genRl = generateRateLimit(auth.tenantId);
+    if (!genRl.allowed) {
+      res.setHeader("Retry-After", String(Math.ceil((genRl.resetAt - Date.now()) / 1000)));
+      json(req, res, 429, { error: "generation_rate_limit", message: "Too many generation requests. Try again later.", requestId });
+      return;
+    }
     let body: unknown;
     try {
       body = await readBody(req);
@@ -273,8 +296,8 @@ const server = createServer(async (req, res) => {
       ]);
       json(req, res, 200, { posts, videoScripts });
     } catch (err) {
-      console.error(JSON.stringify({ level: "error", event: "mvp_generate_error", message: String(err) }));
-      json(req, res, 500, { error: "generation_failed" });
+      console.error(JSON.stringify(safeLogCtx({ level: "error", event: "mvp_generate_error", tenantId: auth.tenantId, requestId, message: String(err) })));
+      json(req, res, 500, { error: "generation_failed", requestId });
     }
     return;
   }
@@ -285,6 +308,12 @@ const server = createServer(async (req, res) => {
     const ent = marketerEntitlementsForPlan(plan as "free" | "pro" | "enterprise");
     if (!ent.canUseAiGenerate) {
       json(req, res, 403, { error: "plan_required", plan, message: "Upgrade to Pro to generate images." });
+      return;
+    }
+    const imgGenRl = generateRateLimit(auth.tenantId);
+    if (!imgGenRl.allowed) {
+      res.setHeader("Retry-After", String(Math.ceil((imgGenRl.resetAt - Date.now()) / 1000)));
+      json(req, res, 429, { error: "generation_rate_limit", message: "Too many generation requests. Try again later.", requestId });
       return;
     }
     let body: unknown;
@@ -320,8 +349,8 @@ const server = createServer(async (req, res) => {
       const images = await generateImages(brandedInput);
       json(req, res, 200, { images });
     } catch (err) {
-      console.error(JSON.stringify({ level: "error", event: "mvp_generate_images_error", message: String(err) }));
-      json(req, res, 500, { error: "generation_failed" });
+      console.error(JSON.stringify(safeLogCtx({ level: "error", event: "mvp_generate_images_error", tenantId: auth.tenantId, requestId, message: String(err) })));
+      json(req, res, 500, { error: "generation_failed", requestId });
     }
     return;
   }
@@ -481,7 +510,9 @@ const server = createServer(async (req, res) => {
     const runId = path.split("/")[4];
     if (!runId) { json(req, res, 400, { error: "missing_run_id" }); return; }
     const run = await getAutonomousRun(runId);
-    if (!run || run.workspaceId !== auth.tenantId) {
+    if (!run) { json(req, res, 404, { error: "not_found" }); return; }
+    try { assertTenantMatch(run.workspaceId, auth.tenantId); } catch {
+      // Return 404 so callers can't probe for run IDs belonging to other tenants
       json(req, res, 404, { error: "not_found" }); return;
     }
     json(req, res, 200, { run: { ...run, progress: runProgress(run) } });
@@ -497,7 +528,8 @@ const server = createServer(async (req, res) => {
       json(req, res, 400, { error: "invalid_request" }); return;
     }
     const run = await getAutonomousRun(runId);
-    if (!run || run.workspaceId !== auth.tenantId) {
+    if (!run) { json(req, res, 404, { error: "not_found" }); return; }
+    try { assertTenantMatch(run.workspaceId, auth.tenantId); } catch {
       json(req, res, 404, { error: "not_found" }); return;
     }
     const updated = await applyUserAction(run, action, auth.tenantId);
@@ -513,6 +545,27 @@ const server = createServer(async (req, res) => {
       json(req, res, 403, { error: "plan_required", message: "Upgrade to Pro to publish." });
       return;
     }
+
+    // Per-tenant publish rate limit — prevent accidental double-publish storms
+    const pubRl = publishRateLimit(auth.tenantId);
+    if (!pubRl.allowed) {
+      res.setHeader("Retry-After", String(Math.ceil((pubRl.resetAt - Date.now()) / 1000)));
+      json(req, res, 429, { error: "publish_rate_limit", message: "Too many publish requests. Wait before retrying.", requestId });
+      return;
+    }
+
+    // Idempotency-Key: same key + same tenant returns cached result without re-publishing
+    const idempotencyKey = req.headers["idempotency-key"];
+    if (typeof idempotencyKey === "string" && idempotencyKey.trim()) {
+      const cacheKey = `${auth.tenantId}:${idempotencyKey.trim()}`;
+      const cached = publishIdempotency.get(cacheKey);
+      if (cached !== undefined) {
+        res.setHeader("Idempotent-Replayed", "true");
+        json(req, res, 200, cached);
+        return;
+      }
+    }
+
     let body: unknown;
     try { body = await readBody(req); } catch {
       json(req, res, 413, { error: "payload_too_large" }); return;
@@ -540,10 +593,18 @@ const server = createServer(async (req, res) => {
     try {
       const results = await publishAll(auth.tenantId, posts);
       const allOk = results.every(r => r.ok);
-      json(req, res, allOk ? 200 : 207, { results });
+      const responseBody = { results };
+
+      // Cache result under idempotency key for replay protection
+      if (typeof idempotencyKey === "string" && idempotencyKey.trim()) {
+        const cacheKey = `${auth.tenantId}:${idempotencyKey.trim()}`;
+        publishIdempotency.set(cacheKey, responseBody);
+      }
+
+      json(req, res, allOk ? 200 : 207, responseBody);
     } catch (e) {
-      console.error(JSON.stringify({ level: "error", event: "mvp_publish_error", message: String(e) }));
-      json(req, res, 500, { error: "publish_failed" });
+      console.error(JSON.stringify(safeLogCtx({ level: "error", event: "mvp_publish_error", tenantId: auth.tenantId, requestId, message: String(e) })));
+      json(req, res, 500, { error: "publish_failed", requestId });
     }
     return;
   }

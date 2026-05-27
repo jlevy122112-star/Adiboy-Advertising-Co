@@ -16,6 +16,11 @@ import {
   upsertWorkspaceBilling,
   type PlanTier,
 } from "../db/workspace-billing.js";
+import { IdempotencyStore } from "./security.js";
+
+// Idempotency guard for Stripe webhooks — Stripe may deliver the same event more than once.
+// 72-hour TTL matches the longest possible retry window Stripe documents.
+const processedWebhookEvents = new IdempotencyStore<true>(72 * 3_600_000).startCleanup();
 
 const STRIPE_SECRET = process.env.STRIPE_SECRET_KEY ?? "";
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET ?? "";
@@ -132,9 +137,18 @@ async function handleWebhook(req: IncomingMessage, res: ServerResponse): Promise
     return json(res, 400, { error: "invalid_signature" });
   }
 
+  // Idempotency guard — Stripe can re-deliver the same event ID
+  if (processedWebhookEvents.has(event.id)) {
+    json(res, 200, { received: true, replayed: true });
+    return;
+  }
+  processedWebhookEvents.set(event.id, true);
+
   try {
     await dispatchWebhookEvent(stripe, event);
   } catch (err) {
+    // Remove from idempotency cache so a retry can reprocess if this was a transient failure
+    processedWebhookEvents.set(event.id, true); // keep it — partial writes are worse than skipped events
     console.error("[billing-webhook] dispatch error", err);
   }
 
