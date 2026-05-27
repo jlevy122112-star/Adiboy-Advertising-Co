@@ -96,6 +96,22 @@
 .post-btn.edit{color:var(--brand);border-color:var(--brand-light);}
 .post-btn.edit:hover{background:var(--brand-light);}
 .post-btn.reject{color:var(--danger);border-color:#FEE2E2;}
+/* POST IMAGE */
+.post-image-wrap{position:relative;overflow:hidden;border-top:0.5px solid var(--border);}
+.post-image-wrap img{width:100%;display:block;object-fit:cover;}
+.post-image-skeleton{width:100%;background:linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.img-loading-label{position:absolute;bottom:8px;left:0;right:0;text-align:center;font-size:11px;color:#888;background:rgba(255,255,255,0.75);padding:3px;}
+/* VIDEO SCRIPT */
+.video-script-toggle{display:flex;align-items:center;gap:8px;padding:10px 14px;font-size:12px;font-weight:600;color:var(--brand);cursor:pointer;border-top:0.5px solid var(--border);background:#FAFBFF;user-select:none;}
+.video-script-body{display:none;padding:0 14px 12px;background:#FAFBFF;border-top:0.5px solid var(--border);}
+.video-script-body.open{display:block;}
+.script-title{font-size:12px;font-weight:700;color:var(--text-1);margin:10px 0 6px;}
+.scene-card{background:white;border-radius:8px;border:0.5px solid var(--border);padding:10px;margin-bottom:8px;}
+.scene-num{font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
+.scene-field{font-size:11.5px;color:var(--text-2);margin-bottom:3px;}
+.scene-field strong{color:var(--text-1);}
+.scene-caption{display:inline-block;margin-top:4px;background:var(--brand);color:white;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;}
 /* PLAN */
 .cal-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px 8px;}
 .cal-header h2{font-family:'Syne',sans-serif;font-weight:700;font-size:18px;color:var(--text-1);}
@@ -758,6 +774,8 @@ var authToken = localStorage.getItem('mp_token') || '';
 var brandProfile = {};
 var obStep = 1; var obTotal = 5; var autoOn = false;
 var generatedPosts = [];
+var generatedVideoScripts = [];
+var lastGenerateInput = null;
 var approvedPosts = [];
 var calOffset = 0;
 var currentPlan = 'free';
@@ -1062,14 +1080,13 @@ document.getElementById('gen-btn').addEventListener('click', async function() {
   document.getElementById('screen-area').scrollTop = 0;
 
   try {
-    var r = await api('POST', '/api/generate', {
+    lastGenerateInput = {
       platforms: selectedPlatforms,
       topic: topic,
       contentGoal: document.getElementById('f-goal').value,
       cta: document.getElementById('f-cta').value,
       hashtagStrategy: document.getElementById('f-hashtag').value,
       urgency: document.getElementById('f-urgency').value,
-      // Full brand context — server merges with DB; these are the client-side fallback
       brandName:       brandProfile.brandName    || '',
       brandVoice:      brandProfile.brandWords   || '',
       brandColor:      brandProfile.brandColor   || '',
@@ -1083,7 +1100,8 @@ document.getElementById('gen-btn').addEventListener('click', async function() {
       contactEmail:    brandProfile.email        || '',
       instagramHandle: brandProfile.instagram    || '',
       address:         brandProfile.address      || '',
-    });
+    };
+    var r = await api('POST', '/api/generate', lastGenerateInput);
 
     if (r.status === 403 && r.data.error === 'plan_required') {
       loading.classList.remove('show');
@@ -1099,11 +1117,14 @@ document.getElementById('gen-btn').addEventListener('click', async function() {
     }
 
     generatedPosts = r.data.posts;
+    generatedVideoScripts = r.data.videoScripts || [];
     approvedPosts = [];
-    renderPosts(generatedPosts);
+    renderPosts(generatedPosts, generatedVideoScripts);
     loading.classList.remove('show');
     document.getElementById('posts-output').style.display = 'block';
     document.getElementById('screen-area').scrollTop = 0;
+    // Kick off image generation in background (DALL-E 3, 30-60s)
+    loadImagesInBackground(lastGenerateInput);
   } catch(e) {
     loading.classList.remove('show');
     document.getElementById('gen-section').style.display = 'block';
@@ -1112,21 +1133,44 @@ document.getElementById('gen-btn').addEventListener('click', async function() {
 });
 
 var PLAT_META = {
-  ig: { label: 'Instagram', emoji: '📸', bg: '#fce4ec', max: 2200 },
-  li: { label: 'LinkedIn',  emoji: '💼', bg: '#e3f2fd', max: 3000 },
-  x:  { label: 'X / Twitter', emoji: '🐦', bg: '#e8f5e9', max: 280 },
-  fb: { label: 'Facebook', emoji: '👍', bg: '#e8eaf6', max: 63206 },
-  tt: { label: 'TikTok',  emoji: '🎵', bg: '#fff3e0', max: 150 },
-  yt: { label: 'YouTube', emoji: '🎬', bg: '#fce4ec', max: 5000 },
+  ig: { label: 'Instagram',   emoji: '📸', bg: '#fce4ec', max: 2200,  imgAr: '1:1',    imgH: 280 },
+  li: { label: 'LinkedIn',    emoji: '💼', bg: '#e3f2fd', max: 3000,  imgAr: '1.91:1', imgH: 147 },
+  x:  { label: 'X / Twitter', emoji: '🐦', bg: '#e8f5e9', max: 280,   imgAr: '16:9',   imgH: 158 },
+  fb: { label: 'Facebook',    emoji: '👍', bg: '#e8eaf6', max: 63206, imgAr: '1.91:1', imgH: 147 },
+  tt: { label: 'TikTok',      emoji: '🎵', bg: '#fff3e0', max: 150,   imgAr: '9:16',   imgH: 498 },
+  yt: { label: 'YouTube',     emoji: '🎬', bg: '#fce4ec', max: 5000,  imgAr: '16:9',   imgH: 158 },
 };
 
-function renderPosts(posts) {
+var VIDEO_PLATFORMS = { ig: true, tt: true, yt: true };
+
+function renderPosts(posts, videoScripts) {
   var container = document.getElementById('posts-list');
   container.innerHTML = '';
+  var scriptsByPlatform = {};
+  (videoScripts || []).forEach(function(s) { scriptsByPlatform[s.platform] = s; });
+
   posts.forEach(function(post) {
-    var meta = PLAT_META[post.platform] || { label: post.platform, emoji: '📢', bg: '#f5f7ff', max: 5000 };
+    var meta = PLAT_META[post.platform] || { label: post.platform, emoji: '📢', bg: '#f5f7ff', max: 5000, imgH: 200 };
     var hashtagHtml = post.hashtags && post.hashtags.length
       ? '<div class="hashtags">' + post.hashtags.join(' ') + '</div>' : '';
+
+    // Image placeholder (skeleton loader, replaced when DALL-E responds)
+    var imgH = meta.imgH || 200;
+    var imgSection = '<div class="post-image-wrap" id="img-wrap-' + post.platform + '" style="height:' + imgH + 'px">'
+      + '<div class="post-image-skeleton" style="height:' + imgH + 'px"></div>'
+      + '<div class="img-loading-label">✨ Generating ' + (meta.imgAr || '') + ' image…</div>'
+      + '</div>';
+
+    // Video script section (only for video platforms that have a script)
+    var videoSection = '';
+    var script = scriptsByPlatform[post.platform];
+    if (VIDEO_PLATFORMS[post.platform] && script) {
+      videoSection = renderVideoScriptToggle(post.platform, script);
+    } else if (VIDEO_PLATFORMS[post.platform]) {
+      videoSection = '<div class="video-script-toggle" style="color:var(--text-3);cursor:default">'
+        + '🎬 Video script generating…</div>';
+    }
+
     var div = document.createElement('div');
     div.className = 'post-preview';
     div.id = 'post-' + post.platform;
@@ -1135,9 +1179,11 @@ function renderPosts(posts) {
       + '<strong>' + meta.label + '</strong>'
       + '<span class="char-count">' + post.charCount + ' / ' + meta.max.toLocaleString() + ' chars</span>'
       + '</div>'
+      + imgSection
       + '<div class="post-content" id="post-content-' + post.platform + '">'
       + escapeHtml(post.content).replace(/\n/g, '<br>') + hashtagHtml
       + '</div>'
+      + videoSection
       + '<div class="post-actions">'
       + '<button class="post-btn approve" onclick="approvePost(\'' + post.platform + '\')"><i class="ti ti-check" style="font-size:12px"></i> Approve</button>'
       + '<button class="post-btn edit" onclick="editPost(\'' + post.platform + '\')"><i class="ti ti-edit" style="font-size:12px"></i> Edit</button>'
@@ -1145,6 +1191,61 @@ function renderPosts(posts) {
       + '</div>';
     container.appendChild(div);
   });
+}
+
+function renderVideoScriptToggle(platform, script) {
+  var id = 'vscript-' + platform;
+  var totalSec = script.totalDurationSeconds || 0;
+  var durLabel = totalSec ? ' · ' + totalSec + 's' : '';
+  var scenesHtml = (script.scenes || []).map(function(sc) {
+    return '<div class="scene-card">'
+      + '<div class="scene-num">Scene ' + sc.sceneNumber + ' — ' + (sc.durationSeconds || 0) + 's</div>'
+      + '<div class="scene-field"><strong>🎥 Visual:</strong> ' + escapeHtml(sc.imageDescription || '') + '</div>'
+      + '<div class="scene-field"><strong>🎙️ Voiceover:</strong> ' + escapeHtml(sc.voiceoverText || '') + '</div>'
+      + '<div class="scene-caption">' + escapeHtml(sc.captionText || '') + '</div>'
+      + '</div>';
+  }).join('');
+  var hashtagsHtml = script.hashtags && script.hashtags.length
+    ? '<div style="font-size:11px;color:var(--brand);margin-top:6px">' + script.hashtags.map(function(h){ return '#'+h; }).join(' ') + '</div>' : '';
+  return '<div class="video-script-toggle" onclick="toggleVideoScript(\'' + id + '\')">'
+    + '🎬 Video Script' + durLabel + ' <i class="ti ti-chevron-down" id="' + id + '-icon" style="margin-left:auto;font-size:12px"></i>'
+    + '</div>'
+    + '<div class="video-script-body" id="' + id + '">'
+    + '<div class="script-title">' + escapeHtml(script.title || '') + '</div>'
+    + scenesHtml
+    + hashtagsHtml
+    + '</div>';
+}
+
+function toggleVideoScript(id) {
+  var body = document.getElementById(id);
+  var icon = document.getElementById(id + '-icon');
+  if (!body) return;
+  body.classList.toggle('open');
+  if (icon) icon.style.transform = body.classList.contains('open') ? 'rotate(180deg)' : '';
+}
+
+async function loadImagesInBackground(input) {
+  if (!input || !currentEntitlements.canUseAiGenerate) return;
+  try {
+    var r = await api('POST', '/api/generate-images', input);
+    if (r.status === 200 && r.data.images) {
+      r.data.images.forEach(function(img) { populateImage(img); });
+    }
+  } catch(e) {
+    // Silently fail — images are a bonus, text posts are the main product
+    console.warn('Image generation failed:', e);
+  }
+}
+
+function populateImage(img) {
+  var wrap = document.getElementById('img-wrap-' + img.platform);
+  if (!wrap) return;
+  var label = img.aspectLabel || img.realDimensions || '';
+  wrap.innerHTML = '<img src="' + img.url + '" alt="AI-generated ' + img.platform + ' image" style="width:100%;display:block;object-fit:cover">'
+    + '<div style="position:absolute;bottom:0;left:0;right:0;padding:3px 8px;font-size:10px;color:white;background:rgba(0,0,0,0.45);text-align:right">' + escapeHtml(label) + '</div>';
+  wrap.style.height = 'auto';
+  wrap.style.position = 'relative';
 }
 
 function escapeHtml(s) {

@@ -52,6 +52,7 @@ import { getAnalyticsSummary } from "./db/analytics-snapshot.js";
 import { marketerEntitlementsForPlan } from "@home-link/marketer-pro-contract";
 import { getWorkspacePlan } from "./db/workspace-billing.js";
 import { generatePosts, type GeneratePostsInput } from "./marketer-pro/mvp-generate-posts.js";
+import { generateVideoScripts, generateImages } from "./marketer-pro/mvp-generate-assets.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const FRONTEND_HTML_PATH = join(__dirname, "../../marketer-pro-mobile/index.html");
@@ -262,10 +263,60 @@ const server = createServer(async (req, res) => {
       address:        dbBrand?.address        ?? input.address,
     };
     try {
-      const posts = await generatePosts(brandedInput);
-      json(req, res, 200, { posts });
+      const [posts, videoScripts] = await Promise.all([
+        generatePosts(brandedInput),
+        generateVideoScripts(brandedInput),
+      ]);
+      json(req, res, 200, { posts, videoScripts });
     } catch (err) {
       console.error(JSON.stringify({ level: "error", event: "mvp_generate_error", message: String(err) }));
+      json(req, res, 500, { error: "generation_failed" });
+    }
+    return;
+  }
+
+  // ── POST /api/generate-images ─────────────────────────────────────────────
+  if (req.method === "POST" && path === "/api/generate-images") {
+    const plan = await getWorkspacePlan(auth.tenantId) ?? "free";
+    const ent = marketerEntitlementsForPlan(plan as "free" | "pro" | "enterprise");
+    if (!ent.canUseAiGenerate) {
+      json(req, res, 403, { error: "plan_required", plan, message: "Upgrade to Pro to generate images." });
+      return;
+    }
+    let body: unknown;
+    try {
+      body = await readBody(req);
+    } catch {
+      json(req, res, 413, { error: "payload_too_large" });
+      return;
+    }
+    const input = GeneratePostsBodyShape.validate(body);
+    if (!input) {
+      json(req, res, 400, { error: "validation_error", message: "platforms[] and topic are required" });
+      return;
+    }
+    const dbBrand = await getMvpBrandConfig(auth.tenantId);
+    const brandedInput: GeneratePostsInput = {
+      ...input,
+      brandName:       dbBrand?.brandName      ?? input.brandName,
+      brandVoice:      dbBrand?.brandWords     ?? input.brandVoice,
+      brandColor:      dbBrand?.brandColor     ?? input.brandColor,
+      businessType:    dbBrand?.businessType   ?? input.businessType,
+      industry:        dbBrand?.industry       ?? input.industry,
+      problem:         dbBrand?.problem        ?? input.problem,
+      solution:        dbBrand?.solution       ?? input.solution,
+      outcome:         dbBrand?.outcome        ?? input.outcome,
+      website:         dbBrand?.website        ?? input.website,
+      phone:           dbBrand?.phone          ?? input.phone,
+      contactEmail:    dbBrand?.email          ?? input.contactEmail,
+      instagramHandle: dbBrand?.instagram      ?? input.instagramHandle,
+      address:         dbBrand?.address        ?? input.address,
+    };
+    try {
+      const images = await generateImages(brandedInput);
+      json(req, res, 200, { images });
+    } catch (err) {
+      console.error(JSON.stringify({ level: "error", event: "mvp_generate_images_error", message: String(err) }));
       json(req, res, 500, { error: "generation_failed" });
     }
     return;
