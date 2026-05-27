@@ -18,17 +18,27 @@ export function securityHeaders(res: ServerResponse): void {
 }
 
 export function extractBearerToken(req: IncomingMessage): string | null {
+  // 1. httpOnly cookie — preferred path for browser sessions (XSS-safe)
+  const cookieHeader = req.headers.cookie;
+  if (cookieHeader) {
+    const match = cookieHeader.match(/(?:^|;\s*)mp_session=([^;]+)/);
+    if (match?.[1]) return match[1];
+  }
+
+  // 2. Authorization: Bearer header — for API clients / mobile SDKs
   const auth = req.headers.authorization?.trim();
   if (auth?.toLowerCase().startsWith("bearer ")) {
     const t = auth.slice(7).trim();
     if (t) return t;
   }
-  // Allow ?t= query param for browser redirect flows (OAuth connect popup)
+
+  // 3. ?t= query param for browser redirect flows (OAuth connect popup)
   try {
     const u = new URL(req.url ?? "/", "http://x");
     const t = u.searchParams.get("t");
     if (t) return t;
   } catch { /* ignore */ }
+
   return null;
 }
 

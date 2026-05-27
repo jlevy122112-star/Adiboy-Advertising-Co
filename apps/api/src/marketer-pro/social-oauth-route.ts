@@ -8,15 +8,23 @@ import { startLinkedInOAuth, exchangeLinkedInCode } from "../social/oauth/linked
 import { startYouTubeOAuth, exchangeYouTubeCode } from "../social/oauth/youtube.js";
 import { startTikTokOAuth, exchangeTikTokCode } from "../social/oauth/tiktok.js";
 
-type PendingOAuth = { codeVerifier?: string; state: string; userId: string; tenantId: string; network: string };
+const OAUTH_STATE_TTL_MS = 10 * 60 * 1000; // 10 minutes — matches typical OAuth UX window
+
+type PendingOAuth = {
+  codeVerifier?: string;
+  state: string;
+  userId: string;
+  tenantId: string;
+  network: string;
+  expiresAt: number;
+};
 const pending = new Map<string, PendingOAuth>();
 
-// Cleanup stale state entries every 10 min
+// Purge expired state entries every 10 min
 setInterval(() => {
-  // states expire after 10 min — store expiry alongside entry
+  const now = Date.now();
   for (const [k, v] of pending) {
-    void v; // no expiry tracking yet — rely on small size in practice
-    if (pending.size > 10_000) pending.delete(k);
+    if (v.expiresAt < now) pending.delete(k);
   }
 }, 10 * 60 * 1000).unref();
 
@@ -73,7 +81,7 @@ export async function handleSocialOAuthRequest(req: IncomingMessage, res: Server
       codeVerifier = r.codeVerifier;
     }
 
-    pending.set(state, { codeVerifier, state, userId: auth.userId, tenantId: auth.tenantId, network });
+    pending.set(state, { codeVerifier, state, userId: auth.userId, tenantId: auth.tenantId, network, expiresAt: Date.now() + OAUTH_STATE_TTL_MS });
     res.writeHead(302, { Location: redirectUrl });
     res.end();
     return;
@@ -91,7 +99,11 @@ export async function handleSocialOAuthRequest(req: IncomingMessage, res: Server
     if (!code || !state) { json(res, 400, { error: "missing_code_or_state" }); return; }
 
     const pend = pending.get(state);
-    if (!pend || pend.network !== network) { json(res, 400, { error: "invalid_state" }); return; }
+    if (!pend || pend.network !== network || pend.expiresAt < Date.now()) {
+      pending.delete(state); // consume even on failure to prevent retry abuse
+      json(res, 400, { error: "invalid_state" });
+      return;
+    }
     pending.delete(state);
 
     try {

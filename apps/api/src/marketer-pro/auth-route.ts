@@ -20,7 +20,7 @@ import {
   REFRESH_TOKEN_TTL_S_EXPORT as REFRESH_TTL,
 } from "./auth/jwt.js";
 import { sendPasswordResetEmail } from "./auth/mailer.js";
-import { authRateLimit } from "./auth/rate-limit.js";
+import { authRateLimit, checkLoginLockout, recordLoginFailure, clearLoginFailures } from "./auth/rate-limit.js";
 import { requireAuth, securityHeaders } from "./auth/middleware.js";
 import { getUserByEmail, getUserById, insertUser, updateUserPassword } from "../db/users.js";
 import {
@@ -33,6 +33,17 @@ import {
 function json(res: ServerResponse, status: number, body: unknown): void {
   res.writeHead(status, { "Content-Type": "application/json" });
   res.end(JSON.stringify(body));
+}
+
+const IS_SECURE = (process.env.APP_URL ?? "").startsWith("https://");
+const COOKIE_FLAGS = `HttpOnly; SameSite=Strict; Path=/${IS_SECURE ? "; Secure" : ""}`;
+
+function setSessionCookie(res: ServerResponse, token: string): void {
+  res.setHeader("Set-Cookie", `mp_session=${token}; ${COOKIE_FLAGS}; Max-Age=${ACCESS_TTL}`);
+}
+
+function clearSessionCookie(res: ServerResponse): void {
+  res.setHeader("Set-Cookie", `mp_session=; ${COOKIE_FLAGS}; Max-Age=0`);
 }
 
 async function readBody(req: IncomingMessage): Promise<unknown> {
@@ -102,6 +113,7 @@ export async function handleAuthRequest(req: IncomingMessage, res: ServerRespons
     if (!user) { json(res, 500, { error: "db_error" }); return; }
 
     const tokens = await issueTokenPair(userId, tenantId, email, "member");
+    setSessionCookie(res, tokens.accessToken);
     json(res, 201, { user: { id: user.id, email: user.email, role: user.role, tenantId }, tokens });
     return;
   }
@@ -116,17 +128,34 @@ export async function handleAuthRequest(req: IncomingMessage, res: ServerRespons
     if (!parsed.success) { json(res, 400, { error: "invalid_body", issues: parsed.error.issues }); return; }
 
     const { tenantId, email, password } = parsed.data;
+    const lockKey = `${tenantId}:${email.toLowerCase()}`;
+
+    // Per-email lockout check (IP rate limit already applied above)
+    const lockout = checkLoginLockout(lockKey);
+    if (lockout.locked) {
+      res.setHeader("Retry-After", String(Math.ceil(lockout.retryAfterMs / 1000)));
+      json(res, 429, { error: AuthErrorCode.RATE_LIMITED });
+      return;
+    }
+
     const user = await getUserByEmail(tenantId, email);
     if (!user) {
       await new Promise(r => setTimeout(r, 200)); // constant-time response
+      recordLoginFailure(lockKey);
       json(res, 401, { error: AuthErrorCode.INVALID_CREDENTIALS });
       return;
     }
 
     const valid = await verifyPassword(user.password_hash, password);
-    if (!valid) { json(res, 401, { error: AuthErrorCode.INVALID_CREDENTIALS }); return; }
+    if (!valid) {
+      recordLoginFailure(lockKey);
+      json(res, 401, { error: AuthErrorCode.INVALID_CREDENTIALS });
+      return;
+    }
 
+    clearLoginFailures(lockKey); // reset on success
     const tokens = await issueTokenPair(user.id, tenantId, email, user.role);
+    setSessionCookie(res, tokens.accessToken);
     json(res, 200, { user: { id: user.id, email: user.email, role: user.role, tenantId }, tokens });
     return;
   }
@@ -165,6 +194,7 @@ export async function handleAuthRequest(req: IncomingMessage, res: ServerRespons
     } else if (parsed.success && parsed.data.refreshToken) {
       await revokeRefreshToken(parsed.data.refreshToken);
     }
+    clearSessionCookie(res);
     json(res, 200, { ok: true });
     return;
   }

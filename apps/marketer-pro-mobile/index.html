@@ -988,7 +988,7 @@ async function api(method, path, body, opts) {
   var controller = new AbortController();
   var timer = setTimeout(function() { controller.abort(); }, API_TIMEOUT_MS);
 
-  var fetchOpts = { method: method, headers: headers, signal: controller.signal };
+  var fetchOpts = { method: method, headers: headers, signal: controller.signal, credentials: 'include' };
   if (body !== undefined) fetchOpts.body = JSON.stringify(body);
 
   try {
@@ -1031,16 +1031,19 @@ window.addEventListener('unhandledrejection', function(e) {
 });
 
 function saveToken(token) {
+  // Keep token in memory only — the server also sets an httpOnly cookie
+  // which the browser sends automatically. Never write to localStorage.
   authToken = token;
-  localStorage.setItem('mp_token', token);
 }
 
 function logout() {
   authToken = '';
-  localStorage.removeItem('mp_token');
+  localStorage.removeItem('mp_token'); // clear any legacy stored token
   localStorage.removeItem('mp_onboarded');
   stopNotifPolling();
   clearNotifications();
+  // Tell server to clear the httpOnly cookie
+  fetch(API_BASE + '/auth/logout', { method: 'POST', credentials: 'include' }).catch(function(){});
   showAuthOverlay();
 }
 
@@ -2458,12 +2461,27 @@ async function disconnectPlatform(network) {
     window._billingSuccess = true;
   }
 
-  if (authToken) {
-    document.getElementById('auth-overlay').style.display = 'none';
-    onAuthSuccess();
-  } else {
-    showAuthOverlay();
+  // Restore session from httpOnly cookie via /auth/me (no localStorage token needed)
+  // Legacy: also accept token from localStorage for one-release migration window
+  var legacyToken = localStorage.getItem('mp_token');
+  if (legacyToken) {
+    authToken = legacyToken;
+    localStorage.removeItem('mp_token'); // migrate away immediately
   }
+
+  fetch(API_BASE + '/auth/me', { credentials: 'include', headers: authToken ? { 'Authorization': 'Bearer ' + authToken } : {} })
+    .then(function(res) { return res.json().then(function(d) { return { status: res.status, data: d }; }); })
+    .then(function(r) {
+      if (r.status === 200 && r.data.user) {
+        authToken = authToken || 'cookie'; // mark as authenticated; cookie does the real work
+        document.getElementById('auth-overlay').style.display = 'none';
+        onAuthSuccess();
+      } else {
+        authToken = '';
+        showAuthOverlay();
+      }
+    })
+    .catch(function() { showAuthOverlay(); });
 })();
 </script>
 </body>
