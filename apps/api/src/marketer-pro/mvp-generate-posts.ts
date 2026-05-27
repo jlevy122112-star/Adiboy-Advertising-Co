@@ -191,32 +191,6 @@ const PLATFORM_SPECS: Record<string, PlatformSpec> = {
     exampleHook: "POV: You just discovered [topic] and you can't unsee it",
   },
 
-  yt: {
-    name: "YouTube",
-    maxChars: 5000,
-    optimalChars: "Title: 60–70 chars (100 max). Description: 800–2,500 chars with front-loaded keywords in first 125 chars (shown in search snippets)",
-    maxHashtags: 15,
-    optimalHashtags: "3–5 hashtags above the title (add via description #tag syntax) — these appear above the video title in search",
-    hashtagPlacement: "At the very end of the description — YouTube auto-converts them to clickable links",
-    structure: "TITLE: [Primary Keyword] + [Benefit/Hook] — front-load the main keyword. Example: 'How to [do X] Without [common frustration]'. DESCRIPTION FIRST PARAGRAPH (125 chars — this is the search snippet): Restate the video's promise using the main keyword. This is what Google and YouTube show in search results. DESCRIPTION BODY: What the video covers (2–3 sentences), chapter markers (0:00 Intro format), key links (subscribe, related videos), social links. HASHTAGS: End of description.",
-    tone: "Educational, authoritative, helpful. YouTube audiences come to learn or be entertained — give them the answer they searched for. Strong SEO language in the first paragraph, conversational in the body. Always deliver on the title's promise.",
-    algorithmSignals: "YouTube algorithm rewards: watch time percentage (keep viewers watching), clicks on suggested videos, likes, comments, and subscribers. SEO is critical — title, first 2 lines of description, and tags must contain the exact phrase people search for. Chapter markers improve watch time by letting viewers navigate. End screens and cards extend watch time.",
-    mustInclude: [
-      "SEO-optimized title with primary keyword in the first 3–4 words",
-      "First 125 chars of description that repeat the video's main keyword and promise",
-      "Chapter markers in 0:00 Introduction format if video is over 5 minutes",
-      "Subscribe CTA in the description",
-      "3–5 relevant hashtags at the end of the description",
-    ],
-    neverDo: [
-      "Never bury the keyword — put it at the front of the title",
-      "Never write a weak description — the first 2 lines are your search snippet",
-      "Never skip chapter markers for educational content",
-      "Never use clickbait titles that don't match the content (affects retention signals)",
-      "Never put external links in the first paragraph — YouTube may limit distribution",
-    ],
-    exampleHook: "[Keyword] — The Complete [Year] Guide (No Fluff)",
-  },
 };
 
 // ─── Prompt builder ──────────────────────────────────────────────────────────
@@ -294,7 +268,7 @@ Rules:
 - Apply all MUST INCLUDE rules — do not skip any
 - Apply all NEVER DO rules — violating these is a failure
 - Write for real humans on that platform, not for a generic audience
-- If content has structure (like YouTube chapters or TikTok script brief), include it fully in "content"
+- If content has structure (like a TikTok script brief), include it fully in "content"
 
 Output ONLY the JSON object. No markdown fences. No preamble. No explanation.`;
 }
@@ -309,7 +283,6 @@ function stubPost(platform: string, input: GeneratePostsInput): PlatformPost {
     x: `${input.topic} is more powerful than most people realize.\n\n${input.cta}`,
     fb: `Hey everyone! 👋\n\nWe've been getting a lot of questions about ${input.topic} lately — and we want to share what we've learned.\n\n${input.cta}\n\nWhat questions do you have? Drop them in the comments and we'll answer every one!`,
     tt: `POV: You just found out about ${input.topic} and everything changes 🤯\n\nScript: Open with the #1 mistake people make → reveal the better way → show the result in under 30 seconds. End with: "${input.cta}"\n\n3-second hook: "[Shocking statement about topic]"`,
-    yt: `${input.topic} — Complete Guide [${new Date().getFullYear()}]\n\nEverything you need to know about ${input.topic} in one video. ${input.cta}.\n\n⏱️ TIMESTAMPS:\n0:00 Introduction\n1:00 What most people get wrong\n3:00 The right approach\n6:00 Step-by-step walkthrough\n9:00 Results and next steps\n\n🔔 Subscribe for more: [link]\n📌 Resources mentioned: [links]\n\n${input.contentGoal}`,
   };
   const content = stubs[platform] ?? `${input.topic} — ${input.cta}`;
   const tags = platform === "ig"

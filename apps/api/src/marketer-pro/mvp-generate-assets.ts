@@ -90,21 +90,6 @@ const PLATFORM_SPECS: Record<string, PlatformAssetSpec> = {
       "TikTok: Authentic over polished. Hook in 1.5 seconds. Trend-aware format. Fast-paced editing. " +
       "Relatable creator energy. Sound-on assumed. 15-45 seconds. Portrait 9:16.",
   },
-  yt: {
-    dalleSize: "1792x1024",
-    realDimensions: "1280×720px",
-    aspectRatio: "16:9 landscape",
-    formatGuidance:
-      "YouTube thumbnail: high contrast, bold, readable at 128px wide on mobile. " +
-      "Clear subject with strong focal point. Minimal clutter — one dominant element. " +
-      "Bright, punchy colors — slightly over-saturated vs reality. " +
-      "Conveys the video topic promise immediately. Expression or emotion if person is shown. " +
-      "Professional production quality.",
-    needsVideoScript: true,
-    videoStyle:
-      "YouTube Shorts: Educational hook ('Did you know…', 'Here's why…'). Value-dense. " +
-      "Subscribe mention feels natural, not forced. Professional production quality. 30-60 seconds. Portrait 9:16.",
-  },
 };
 
 // ─── Types ───────────────────────────────────────────────────────────────────

@@ -320,7 +320,6 @@
           <div class="plat-chip" data-plat="x"><div class="dot" style="background:#1DA1F2"></div>X</div>
           <div class="plat-chip" data-plat="fb"><div class="dot" style="background:#1877F2"></div>Facebook</div>
           <div class="plat-chip" data-plat="tt"><div class="dot" style="background:#000"></div>TikTok</div>
-          <div class="plat-chip" data-plat="yt"><div class="dot" style="background:#FF0000"></div>YouTube</div>
         </div>
         <div style="margin-top:16px">
           <div class="form-field">
@@ -733,14 +732,6 @@
         <button class="connect-btn" id="net-linkedin-btn" onclick="connectPlatform('linkedin')">Connect</button>
       </div>
       <div class="net-item">
-        <div class="net-icon" style="background:#FFE8E8">🎬</div>
-        <div class="net-info">
-          <div class="net-name">YouTube</div>
-          <div class="net-status" id="net-youtube-status">Not connected</div>
-        </div>
-        <button class="connect-btn" id="net-youtube-btn" onclick="connectPlatform('youtube')">Connect</button>
-      </div>
-      <div class="net-item">
         <div class="net-icon" style="background:#F5F5F5">🎵</div>
         <div class="net-info">
           <div class="net-name">TikTok</div>
@@ -1138,10 +1129,9 @@ var PLAT_META = {
   x:  { label: 'X / Twitter', emoji: '🐦', bg: '#e8f5e9', max: 280,   imgAr: '16:9',   imgH: 158 },
   fb: { label: 'Facebook',    emoji: '👍', bg: '#e8eaf6', max: 63206, imgAr: '1.91:1', imgH: 147 },
   tt: { label: 'TikTok',      emoji: '🎵', bg: '#fff3e0', max: 150,   imgAr: '9:16',   imgH: 498 },
-  yt: { label: 'YouTube',     emoji: '🎬', bg: '#fce4ec', max: 5000,  imgAr: '16:9',   imgH: 158 },
 };
 
-var VIDEO_PLATFORMS = { ig: true, tt: true, yt: true };
+var VIDEO_PLATFORMS = { ig: true, tt: true };
 
 function renderPosts(posts, videoScripts) {
   var container = document.getElementById('posts-list');
@@ -1489,7 +1479,6 @@ function renderBarChart() {
     {name:'Facebook',  val:61, color:'#1877F2'},
     {name:'X / Twitter', val:48, color:'#1DA1F2'},
     {name:'TikTok',    val:38, color:'#000'},
-    {name:'YouTube',   val:22, color:'#FF0000'},
   ];
   var bc = document.getElementById('bar-chart');
   bc.innerHTML = barData.map(function(d) {
@@ -1650,7 +1639,7 @@ function renderConnections() {
   var netMap = {};
   connections.forEach(function(c) { netMap[c.network] = c; });
 
-  var nets = ['meta', 'x', 'linkedin', 'youtube', 'tiktok'];
+  var nets = ['meta', 'x', 'linkedin', 'tiktok'];
   var connected = 0;
   nets.forEach(function(n) {
     var statusEl = document.getElementById('net-' + n + '-status');
