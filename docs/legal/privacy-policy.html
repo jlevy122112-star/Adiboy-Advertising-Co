@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Privacy Policy — MarketerPro by Adiboy Advertising Co.</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Syne:wght@700;800&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;color:#1a1a2e;background:#f8f9ff;line-height:1.7;}
+.wrap{max-width:780px;margin:0 auto;padding:40px 24px 80px;}
+h1{font-family:'Syne',sans-serif;font-size:32px;font-weight:800;margin-bottom:8px;color:#1847F0;}
+.effective{font-size:14px;color:#6b7280;margin-bottom:32px;}
+h2{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;margin:32px 0 12px;color:#0D1A3A;}
+h3{font-size:16px;font-weight:700;margin:20px 0 8px;color:#0D1A3A;}
+p,li{font-size:15px;color:#374151;margin-bottom:10px;}
+ul,ol{padding-left:24px;margin-bottom:16px;}
+a{color:#1847F0;}
+.back{display:inline-block;margin-bottom:24px;font-size:13px;color:#1847F0;text-decoration:none;font-weight:600;}
+table{width:100%;border-collapse:collapse;margin:16px 0;}
+th,td{text-align:left;padding:10px 14px;border:1px solid #e5e7eb;font-size:14px;}
+th{background:#f0f3ff;font-weight:700;color:#0D1A3A;}
+.callout{background:#f0f3ff;border-left:4px solid #1847F0;padding:16px 20px;border-radius:0 8px 8px 0;margin:20px 0;font-size:14px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+<a class="back" href="/">&larr; Back to MarketerPro</a>
+<h1>Privacy Policy</h1>
+<p class="effective">Effective Date: May 27, 2026 &middot; Last Updated: May 27, 2026</p>
+
+<p>Adiboy Advertising Co. ("we," "us," "our") operates MarketerPro (the "Service"), an AI-powered marketing content generator, planner, and social media scheduler. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our Service across all platforms — web, Android (Google Play Store), iOS (Apple App Store), Amazon Appstore, and Microsoft Store.</p>
+
+<div class="callout">
+<strong>Our commitment:</strong> You always have a say in every decision. MarketerPro operates on four control modes — you choose how much AI does and how much you do yourself. This extends to your data: you control what we store, what we access, and what we publish on your behalf.
+</div>
+
+<h2>1. Information We Collect</h2>
+
+<h3>1.1 Account Information</h3>
+<p>When you create an account, we collect:</p>
+<ul>
+<li>Name, email address, and password (hashed with bcrypt — never stored in plaintext)</li>
+<li>Business name, industry, and brand information you provide during our 5-step onboarding journey</li>
+<li>Brand personality (3 words), problem/solution/outcome statements, and competitor references</li>
+<li>Contact information: phone, email, website, social handles, physical address (all optional)</li>
+<li>Billing information (processed and stored exclusively by Stripe, Inc. — we never store full card numbers)</li>
+</ul>
+
+<h3>1.2 Social Media Credentials (Two-Token Model)</h3>
+<p>When you connect social accounts (Instagram, Facebook, X/Twitter, LinkedIn, TikTok), MarketerPro uses a <strong>two-token hybrid architecture</strong> (ADR-001) designed for maximum security and compliance across all app stores:</p>
+
+<table>
+<tr><th>Token Type</th><th>Storage</th><th>Purpose</th><th>Your Control</th></tr>
+<tr><td><strong>Device Token</strong></td><td>iOS Keychain / Android Keystore (on-device only)</td><td>Immediate, manual posting while app is open</td><td>Revoke any time in Settings &gt; Connected Platforms</td></tr>
+<tr><td><strong>Server Scheduling Token</strong></td><td>Encrypted at rest in our database (AES-256)</td><td>Scheduled posts and Autonomous Mode (background publishing)</td><td>Separate opt-in consent; disable independently without disconnecting the platform</td></tr>
+</table>
+
+<p><strong>Explicit consent flow:</strong> After each platform OAuth, a second screen asks whether to enable background posting. You can choose "Enable Background Posting" (server token created) or "Not Now" (device-only — manual posting only). This choice is reversible at any time.</p>
+
+<p><strong>What we request:</strong> MarketerPro requests only publish and read permissions. We never request access to your DMs, contacts, or private data beyond what's needed to post on your behalf.</p>
+
+<h3>1.3 Content You Create</h3>
+<p>We store the marketing content generated through the Service, including:</p>
+<ul>
+<li>Post copy, hashtags, and metadata for each of our supported platforms</li>
+<li>AI-generated images (uploaded to Amazon S3 with server-side encryption)</li>
+<li>AI-generated video scripts (text-only — no video files)</li>
+<li>Campaign plans and post schedules</li>
+<li>Brand profiles, voice settings, and brand memory context</li>
+<li>Approval/rejection decisions and edit history per post</li>
+</ul>
+
+<h3>1.4 Usage Data</h3>
+<p>We automatically collect:</p>
+<ul>
+<li>Device type, browser, operating system, and app version</li>
+<li>IP address and approximate location (city/region level — never precise GPS)</li>
+<li>Pages visited, features used, and session duration</li>
+<li>Error logs and performance metrics</li>
+<li>In-app search history and generation parameters</li>
+</ul>
+
+<h3>1.5 Data We Do NOT Collect</h3>
+<ul>
+<li>We do <strong>not</strong> collect your social media followers, following lists, or DMs</li>
+<li>We do <strong>not</strong> collect contacts or address book data</li>
+<li>We do <strong>not</strong> collect precise geolocation</li>
+<li>We do <strong>not</strong> use fingerprinting or cross-app tracking</li>
+</ul>
+
+<h2>2. How We Use Your Information</h2>
+<table>
+<tr><th>Purpose</th><th>Data Used</th><th>Legal Basis (GDPR)</th></tr>
+<tr><td>Provide and maintain the Service</td><td>Account info, usage data</td><td>Contract performance</td></tr>
+<tr><td>Generate AI marketing content</td><td>Brand context, topic, content goal, industry</td><td>Contract performance</td></tr>
+<tr><td>Generate AI images (DALL-E 3)</td><td>Brand context, topic, color palette (no personal data sent)</td><td>Contract performance</td></tr>
+<tr><td>Publish content to your connected social accounts</td><td>Approved post content, OAuth tokens</td><td>Contract performance</td></tr>
+<tr><td>Schedule future posts</td><td>Content, schedule time, server scheduling token</td><td>Contract performance</td></tr>
+<tr><td>Process payments via Stripe</td><td>Billing info (handled by Stripe)</td><td>Contract performance</td></tr>
+<tr><td>Send service-related notifications</td><td>Email, push token</td><td>Legitimate interest</td></tr>
+<tr><td>Display analytics on your published content</td><td>Platform engagement data</td><td>Contract performance</td></tr>
+<tr><td>Improve the Service and fix bugs</td><td>Anonymized usage data, error logs</td><td>Legitimate interest</td></tr>
+<tr><td>Comply with legal obligations</td><td>As required by law</td><td>Legal obligation</td></tr>
+</table>
+
+<h2>3. Third-Party Services</h2>
+<p>We share data with the following service providers, solely to operate the Service:</p>
+<table>
+<tr><th>Provider</th><th>Purpose</th><th>Data Shared</th></tr>
+<tr><td>Anthropic (Claude)</td><td>AI content generation</td><td>Brand context, topic, content goal — <strong>no personal data</strong></td></tr>
+<tr><td>OpenAI (GPT / DALL-E 3)</td><td>AI content + image generation</td><td>Brand context, image prompts — <strong>no personal data</strong></td></tr>
+<tr><td>Amazon Web Services (S3)</td><td>Generated image storage</td><td>AI-generated images only (encrypted at rest, AES-256)</td></tr>
+<tr><td>Stripe, Inc.</td><td>Payment processing</td><td>Name, email, payment method — <a href="https://stripe.com/privacy">Stripe Privacy Policy</a></td></tr>
+<tr><td>Meta Platforms (Facebook/Instagram)</td><td>Social publishing via Graph API</td><td>Content you approve + OAuth token</td></tr>
+<tr><td>X Corp (Twitter)</td><td>Social publishing via X API v2</td><td>Content you approve + OAuth token</td></tr>
+<tr><td>LinkedIn (Microsoft)</td><td>Social publishing via UGC API</td><td>Content you approve + OAuth token</td></tr>
+<tr><td>ByteDance (TikTok)</td><td>Social publishing via Content API</td><td>Content you approve + OAuth token</td></tr>
+</table>
+
+<div class="callout">
+<strong>AI data handling:</strong> We send only brand context (business name, industry, voice keywords, problem/solution/outcome) and content parameters to AI providers. We never send your name, email, phone number, payment info, or OAuth tokens to any AI provider. AI-generated content is owned by you.
+</div>
+
+<p><strong>We do not sell your personal information to anyone.</strong> We do not share your data with advertisers, data brokers, or analytics companies.</p>
+
+<h2>4. Data Storage &amp; Security</h2>
+<ul>
+<li>All data in transit encrypted via HTTPS/TLS 1.3</li>
+<li>Passwords hashed with bcrypt (never stored in plaintext)</li>
+<li>OAuth tokens: device tokens in OS keychain/keystore; server tokens encrypted at rest (AES-256)</li>
+<li>AI-generated images stored in S3 with server-side encryption and immutable cache headers</li>
+<li>Database access restricted by role-based permissions</li>
+<li>JWT-based authentication with short-lived tokens (HS256)</li>
+<li>All API keys and secrets stored in environment variables — never in frontend code (Build Guardrail Rule 7)</li>
+</ul>
+
+<h2>5. Data Retention</h2>
+<table>
+<tr><th>Data Type</th><th>Retention Period</th><th>Deletion Trigger</th></tr>
+<tr><td>Account data</td><td>While account is active</td><td>Deleted within 30 days of account deletion request</td></tr>
+<tr><td>Generated content &amp; campaigns</td><td>While account is active</td><td>Deleted within 30 days of account deletion</td></tr>
+<tr><td>AI-generated images (S3)</td><td>While account is active</td><td>Purged from S3 within 30 days of account deletion</td></tr>
+<tr><td>Device OAuth tokens</td><td>Until platform disconnected</td><td>Deleted immediately on disconnect</td></tr>
+<tr><td>Server scheduling tokens</td><td>Until disabled or account deleted</td><td>Deleted immediately on disable; within 30 days on account deletion</td></tr>
+<tr><td>Billing records</td><td>7 years (tax law)</td><td>Retained per legal requirement</td></tr>
+<tr><td>Server logs</td><td>90 days</td><td>Automatically purged</td></tr>
+<tr><td>Analytics snapshots</td><td>While account is active</td><td>Deleted within 30 days of account deletion</td></tr>
+</table>
+
+<h2>6. Your Rights</h2>
+
+<h3>6.1 All Users</h3>
+<ul>
+<li><strong>Access</strong> — Request a copy of all personal data we hold about you</li>
+<li><strong>Rectification</strong> — Correct inaccurate personal data</li>
+<li><strong>Erasure</strong> — Request deletion of your personal data ("right to be forgotten")</li>
+<li><strong>Portability</strong> — Receive your data in a structured, machine-readable format (JSON)</li>
+<li><strong>Disconnect</strong> — Revoke any connected social platform from Settings &gt; Connected Platforms at any time</li>
+<li><strong>Account deletion</strong> — Delete your entire account from Settings (required by Apple App Store Guidelines)</li>
+</ul>
+
+<h3>6.2 EU/EEA Residents (GDPR)</h3>
+<ul>
+<li><strong>Restriction</strong> — Limit how we process your data</li>
+<li><strong>Objection</strong> — Object to processing based on legitimate interest</li>
+<li><strong>Withdraw consent</strong> — Where processing is based on consent</li>
+<li><strong>Lodge a complaint</strong> — With your local supervisory authority</li>
+</ul>
+
+<h3>6.3 California Residents (CCPA/CPRA)</h3>
+<ul>
+<li><strong>Right to Know:</strong> What personal information we collect and how it's used</li>
+<li><strong>Right to Delete:</strong> Request deletion of personal information</li>
+<li><strong>Right to Opt-Out of Sale:</strong> We do <strong>not sell</strong> your personal information. Period.</li>
+<li><strong>Right to Non-Discrimination:</strong> We will not treat you differently for exercising your rights</li>
+<li><strong>Right to Correct:</strong> Request correction of inaccurate personal information</li>
+</ul>
+
+<h3>6.4 How to Exercise Your Rights</h3>
+<p>Email <strong><a href="mailto:privacy@adiboyads.com">privacy@adiboyads.com</a></strong> with your request. We verify your identity and respond within 30 days (45 days for complex requests, with notice). Account deletion is also available directly in-app via Settings.</p>
+
+<h2>7. Children's Privacy</h2>
+<p>MarketerPro is a business tool intended for users aged 18 and older. We do not knowingly collect personal data from anyone under 18. If we learn we have collected data from a minor, we will delete it within 72 hours of discovery. If you believe a minor has provided us personal data, contact <a href="mailto:privacy@adiboyads.com">privacy@adiboyads.com</a>.</p>
+
+<h2>8. International Data Transfers</h2>
+<p>Your data may be processed in the United States where our servers are located. For EU/EEA users, transfers are protected by Standard Contractual Clauses (SCCs) as approved by the European Commission. For UK users, we rely on the UK International Data Transfer Addendum.</p>
+
+<h2>9. Google Play Data Safety Declarations</h2>
+<p>As required by the Google Play Store Data Safety form, we declare:</p>
+<table>
+<tr><th>Data Category</th><th>Collected</th><th>Shared</th><th>Purpose</th></tr>
+<tr><td>Personal info (name, email)</td><td>Yes</td><td>With Stripe for billing</td><td>Account management, billing</td></tr>
+<tr><td>Financial info (purchase history)</td><td>Yes (via Stripe)</td><td>Stripe only</td><td>Subscription management</td></tr>
+<tr><td>App activity (in-app actions, content generated)</td><td>Yes</td><td>No</td><td>Service functionality</td></tr>
+<tr><td>Device ID</td><td>Yes (if analytics enabled)</td><td>No</td><td>Crash reporting, performance</td></tr>
+</table>
+<p>Data encrypted in transit (HTTPS). User data deletion mechanism implemented (Settings &gt; Delete Account).</p>
+
+<h2>10. Apple App Privacy Nutrition Labels</h2>
+<p>As required by the Apple App Store, we disclose:</p>
+<table>
+<tr><th>Data Type</th><th>Linked to Identity</th><th>Used for Tracking</th></tr>
+<tr><td>Name</td><td>Yes</td><td>No</td></tr>
+<tr><td>Email</td><td>Yes</td><td>No</td></tr>
+<tr><td>Purchases</td><td>Yes</td><td>No</td></tr>
+<tr><td>Usage data</td><td>Yes</td><td>No</td></tr>
+<tr><td>Diagnostics</td><td>No</td><td>No</td></tr>
+</table>
+<p>App Tracking Transparency (ATT): MarketerPro does <strong>not</strong> track users across other companies' apps or websites. If this changes in a future version, we will implement the ATT prompt before any tracking occurs.</p>
+
+<h2>11. Cookies &amp; Local Storage</h2>
+<p>The MarketerPro web application uses:</p>
+<ul>
+<li><strong>Authentication token</strong> (localStorage) — Required for login session. No opt-out (essential).</li>
+<li><strong>User preferences</strong> (localStorage) — Theme, last-viewed screen. No opt-out (essential).</li>
+</ul>
+<p>We do <strong>not</strong> use third-party tracking cookies, advertising cookies, or analytics cookies. No cookie consent banner is required because we only use essential storage.</p>
+
+<h2>12. Changes to This Policy</h2>
+<p>We may update this policy from time to time. Material changes will be communicated via email and in-app notification at least 30 days before they take effect. The "Last Updated" date at the top will always reflect the most recent revision. Continued use of the Service after the effective date constitutes acceptance of the updated policy.</p>
+
+<h2>13. Contact</h2>
+<p>
+<strong>Adiboy Advertising Co.</strong><br>
+Privacy inquiries: <a href="mailto:privacy@adiboyads.com">privacy@adiboyads.com</a><br>
+General inquiries: <a href="mailto:support@adiboyads.com">support@adiboyads.com</a><br>
+</p>
+</div>
+</body>
+</html>
