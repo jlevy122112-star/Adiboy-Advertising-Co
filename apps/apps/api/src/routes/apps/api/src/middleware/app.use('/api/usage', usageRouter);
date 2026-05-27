@@ -1,0 +1,24 @@
+app.use('/api/usage', usageRouter);
+ts
+import { requireUsageWithinLimit } from './middleware/usage';
+import { incrementAiGenerations, incrementPostsPublished } from './services/usage';
+
+app.post(
+  '/api/generate',
+  requireUsageWithinLimit('aiGenerations'),
+  async (req, res) => {
+    // ... your generation logic ...
+    await incrementAiGenerations(req.tenantId);
+    res.json(result);
+  }
+);
+
+app.post(
+  '/api/publish',
+  requireUsageWithinLimit('postsPublished'),
+  async (req, res) => {
+    // ... your publish logic ...
+    await incrementPostsPublished(req.tenantId);
+    res.json({ ok: true });
+  }
+);
