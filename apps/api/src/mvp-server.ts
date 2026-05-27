@@ -53,6 +53,9 @@ import { marketerEntitlementsForPlan } from "@home-link/marketer-pro-contract";
 import { getWorkspacePlan } from "./db/workspace-billing.js";
 import { generatePosts, type GeneratePostsInput } from "./marketer-pro/mvp-generate-posts.js";
 import { generateVideoScripts, generateImages } from "./marketer-pro/mvp-generate-assets.js";
+import { startAutonomousRun, applyUserAction } from "./marketer-pro/autonomous-orchestrator.js";
+import { getAutonomousRun, listAutonomousRuns } from "./db/autonomous-run.js";
+import { DEFAULT_AUTONOMY_POLICY, runProgress } from "@home-link/marketer-pro-contract";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const FRONTEND_HTML_PATH = join(__dirname, "../../marketer-pro-mobile/index.html");
@@ -410,6 +413,94 @@ const server = createServer(async (req, res) => {
   if (req.method === "GET" && path === "/api/analytics/summary") {
     const summary = await getAnalyticsSummary(auth.tenantId);
     json(req, res, 200, summary);
+    return;
+  }
+
+  // ── POST /api/autonomous/start ────────────────────────────────────────────
+  if (req.method === "POST" && path === "/api/autonomous/start") {
+    const plan = await getWorkspacePlan(auth.tenantId) ?? "free";
+    const ent = marketerEntitlementsForPlan(plan as "free" | "pro" | "enterprise");
+    if (!ent.canUseAutonomousMode) {
+      json(req, res, 403, { error: "plan_required", message: "Autonomous mode requires Pro or Enterprise." });
+      return;
+    }
+    let body: unknown;
+    try { body = await readBody(req); } catch {
+      json(req, res, 413, { error: "payload_too_large" }); return;
+    }
+    const b = typeof body === "object" && body !== null ? (body as Record<string, unknown>) : {};
+    const platforms = Array.isArray(b.platforms) && b.platforms.length
+      ? (b.platforms as unknown[]).filter((p): p is string => typeof p === "string")
+      : ["ig", "li", "fb", "x", "tt"];
+    const scope = b.scope === "full_campaign" ? "full_campaign" : "single_post";
+    const seedPrompt = typeof b.seedPrompt === "string" ? b.seedPrompt.slice(0, 8000) : undefined;
+    const targetPostCount = scope === "full_campaign"
+      ? Math.min(Math.max(1, Number(b.targetPostCount ?? 5)), 10)
+      : 1;
+
+    const brand = await getMvpBrandConfig(auth.tenantId);
+    const policy = { ...DEFAULT_AUTONOMY_POLICY, mode: "autonomous" as const };
+
+    const run = await startAutonomousRun({
+      tenantId: auth.tenantId,
+      request: {
+        workspaceId: auth.tenantId,
+        requestedByUserId: auth.tenantId,
+        platforms: platforms as "instagram"[],
+        scope,
+        seedPrompt,
+        targetPostCount,
+      },
+      policy,
+      brand,
+    });
+    if (!run) {
+      json(req, res, 503, { error: "database_required" }); return;
+    }
+    json(req, res, 201, { run: { runId: run.runId, state: run.state, progress: runProgress(run) } });
+    return;
+  }
+
+  // ── GET /api/autonomous/runs ──────────────────────────────────────────────
+  if (req.method === "GET" && path === "/api/autonomous/runs") {
+    const state = url.searchParams.get("state") ?? undefined;
+    const limit = Math.min(Number(url.searchParams.get("limit") ?? "20"), 50);
+    const runs = await listAutonomousRuns(auth.tenantId, state, limit);
+    json(req, res, 200, {
+      runs: runs.map(r => ({ runId: r.runId, state: r.state, progress: runProgress(r),
+        platforms: r.request.platforms, scope: r.request.scope,
+        createdAt: r.createdAt, updatedAt: r.updatedAt,
+        failureKind: r.failureKind ?? undefined })),
+    });
+    return;
+  }
+
+  // ── GET /api/autonomous/runs/:runId ───────────────────────────────────────
+  if (req.method === "GET" && path.startsWith("/api/autonomous/runs/") && path.split("/").length === 5) {
+    const runId = path.split("/")[4];
+    if (!runId) { json(req, res, 400, { error: "missing_run_id" }); return; }
+    const run = await getAutonomousRun(runId);
+    if (!run || run.workspaceId !== auth.tenantId) {
+      json(req, res, 404, { error: "not_found" }); return;
+    }
+    json(req, res, 200, { run: { ...run, progress: runProgress(run) } });
+    return;
+  }
+
+  // ── POST /api/autonomous/runs/:runId/:action ───────────────────────────────
+  if (req.method === "POST" && path.startsWith("/api/autonomous/runs/")) {
+    const parts = path.split("/");
+    const runId = parts[4];
+    const action = parts[5] as "cancel" | "pause" | "resume" | undefined;
+    if (!runId || !action || !["cancel", "pause", "resume"].includes(action)) {
+      json(req, res, 400, { error: "invalid_request" }); return;
+    }
+    const run = await getAutonomousRun(runId);
+    if (!run || run.workspaceId !== auth.tenantId) {
+      json(req, res, 404, { error: "not_found" }); return;
+    }
+    const updated = await applyUserAction(run, action, auth.tenantId);
+    json(req, res, 200, { run: { runId: updated.runId, state: updated.state, progress: runProgress(updated) } });
     return;
   }
 
