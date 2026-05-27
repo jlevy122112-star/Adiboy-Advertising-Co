@@ -1,3 +1,12 @@
+const [artifacts, setArtifacts] = useState<any[]>([]);
+
+useEffect(() => {
+  if (machine.state === "artifacts_ready" && machine.context.artifacts) {
+    setArtifacts(machine.context.artifacts);
+  }
+}, [machine.state]);
+
+
 const [requestId, setRequestId] = useState<string | null>(null);
 const [backendDone, setBackendDone] = useState(false);
 
