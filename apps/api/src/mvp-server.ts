@@ -56,6 +56,7 @@ import { generateVideoScripts, generateImages } from "./marketer-pro/mvp-generat
 import { startAutonomousRun, applyUserAction } from "./marketer-pro/autonomous-orchestrator.js";
 import { getAutonomousRun, listAutonomousRuns } from "./db/autonomous-run.js";
 import { DEFAULT_AUTONOMY_POLICY, runProgress } from "@home-link/marketer-pro-contract";
+import { publishAll, type MvpPublishInput } from "./marketer-pro/mvp-publisher.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const FRONTEND_HTML_PATH = join(__dirname, "../../marketer-pro-mobile/index.html");
@@ -501,6 +502,49 @@ const server = createServer(async (req, res) => {
     }
     const updated = await applyUserAction(run, action, auth.tenantId);
     json(req, res, 200, { run: { runId: updated.runId, state: updated.state, progress: runProgress(updated) } });
+    return;
+  }
+
+  // ── POST /api/publish ─────────────────────────────────────────────────────
+  if (req.method === "POST" && path === "/api/publish") {
+    const plan = await getWorkspacePlan(auth.tenantId) ?? "free";
+    const ent = marketerEntitlementsForPlan(plan as "free" | "pro" | "enterprise");
+    if (!ent.canUseAiGenerate) {
+      json(req, res, 403, { error: "plan_required", message: "Upgrade to Pro to publish." });
+      return;
+    }
+    let body: unknown;
+    try { body = await readBody(req); } catch {
+      json(req, res, 413, { error: "payload_too_large" }); return;
+    }
+    const b = typeof body === "object" && body !== null ? (body as Record<string, unknown>) : {};
+    const rawPosts = Array.isArray(b.posts) ? b.posts : [];
+    const posts: MvpPublishInput[] = rawPosts.flatMap((p): MvpPublishInput[] => {
+      if (typeof p !== "object" || p === null) return [];
+      const post = p as Record<string, unknown>;
+      const platform = String(post.platform ?? "");
+      if (!["ig", "fb", "x", "li", "tt"].includes(platform)) return [];
+      return [{
+        platform: platform as MvpPublishInput["platform"],
+        content: String(post.content ?? ""),
+        imageUrl: typeof post.imageUrl === "string" ? post.imageUrl : undefined,
+        hashtags: Array.isArray(post.hashtags) ? post.hashtags.map(String) : undefined,
+        topic: typeof post.topic === "string" ? post.topic : undefined,
+        altText: typeof post.altText === "string" ? post.altText : undefined,
+      }];
+    });
+    if (!posts.length) {
+      json(req, res, 400, { error: "validation_error", message: "posts[] is required with at least one valid entry" });
+      return;
+    }
+    try {
+      const results = await publishAll(auth.tenantId, posts);
+      const allOk = results.every(r => r.ok);
+      json(req, res, allOk ? 200 : 207, { results });
+    } catch (e) {
+      console.error(JSON.stringify({ level: "error", event: "mvp_publish_error", message: String(e) }));
+      json(req, res, 500, { error: "publish_failed" });
+    }
     return;
   }
 

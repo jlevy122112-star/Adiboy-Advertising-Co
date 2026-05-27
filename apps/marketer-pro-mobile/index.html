@@ -96,6 +96,11 @@
 .post-btn.edit{color:var(--brand);border-color:var(--brand-light);}
 .post-btn.edit:hover{background:var(--brand-light);}
 .post-btn.reject{color:var(--danger);border-color:#FEE2E2;}
+.post-btn.live{background:#0D1A3A;border-color:#1847F0;color:white;font-weight:700;}
+.post-btn.live:hover{background:#1847F0;}
+.post-btn.live:disabled{opacity:0.55;cursor:not-allowed;}
+.post-publish-result{font-size:11px;padding:4px 14px 8px;font-weight:600;}
+.post-publish-result.ok{color:#047857;}.post-publish-result.fail{color:var(--danger);}
 /* ── AUTONOMOUS CONTROL PANEL ───────────────────────────────────── */
 .acp{background:#060B14;border:1px solid #1B2D45;border-radius:14px;margin-bottom:18px;overflow:hidden;position:relative;box-shadow:0 4px 24px rgba(0,0,0,0.35);}
 .acp::after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(255,255,255,0.012) 3px,rgba(255,255,255,0.012) 4px);pointer-events:none;z-index:0;}
@@ -893,6 +898,7 @@ var generatedPosts = [];
 var generatedVideoScripts = [];
 var lastGenerateInput = null;
 var approvedPosts = [];
+var postImages = {}; // platform → DALL-E image URL
 var calOffset = 0;
 var currentPlan = 'free';
 var currentEntitlements = {};
@@ -1308,6 +1314,7 @@ document.getElementById('gen-btn').addEventListener('click', async function() {
     generatedPosts = r.data.posts;
     generatedVideoScripts = r.data.videoScripts || [];
     approvedPosts = [];
+    postImages = {};
     renderPosts(generatedPosts, generatedVideoScripts);
     loading.classList.remove('show');
     document.getElementById('posts-output').style.display = 'block';
@@ -1376,7 +1383,11 @@ function renderPosts(posts, videoScripts) {
       + '<button class="post-btn approve" onclick="approvePost(\'' + post.platform + '\')"><i class="ti ti-check" style="font-size:12px"></i> Approve</button>'
       + '<button class="post-btn edit" onclick="editPost(\'' + post.platform + '\')"><i class="ti ti-edit" style="font-size:12px"></i> Edit</button>'
       + '<button class="post-btn reject" onclick="rejectPost(\'' + post.platform + '\')"><i class="ti ti-refresh" style="font-size:12px"></i> Redo</button>'
-      + '</div>';
+      + '</div>'
+      + '<div class="post-actions" style="padding-top:0">'
+      + '<button class="post-btn live" id="publish-live-' + post.platform + '" onclick="publishPostLive(\'' + post.platform + '\')" style="flex:none;width:100%"><i class="ti ti-broadcast" style="font-size:12px"></i> Publish Live Now</button>'
+      + '</div>'
+      + '<div class="post-publish-result" id="publish-result-' + post.platform + '" style="display:none"></div>';
     container.appendChild(div);
   });
 }
@@ -1429,6 +1440,7 @@ async function loadImagesInBackground(input) {
 function populateImage(img) {
   var wrap = document.getElementById('img-wrap-' + img.platform);
   if (!wrap) return;
+  postImages[img.platform] = img.url; // track for publish
   var label = img.aspectLabel || img.realDimensions || '';
   wrap.innerHTML = '<img src="' + img.url + '" alt="AI-generated ' + img.platform + ' image" style="width:100%;display:block;object-fit:cover">'
     + '<div style="position:absolute;bottom:0;left:0;right:0;padding:3px 8px;font-size:10px;color:white;background:rgba(0,0,0,0.45);text-align:right">' + escapeHtml(label) + '</div>';
@@ -1466,6 +1478,59 @@ function rejectPost(plat) {
   setTimeout(function() { post.style.opacity = '1'; }, 300);
   var idx = approvedPosts.indexOf(plat);
   if (idx > -1) approvedPosts.splice(idx, 1);
+}
+
+// ─────────────────────────────────────────────────
+// LIVE PUBLISH
+// ─────────────────────────────────────────────────
+async function publishPostLive(plat) {
+  var btn = document.getElementById('publish-live-' + plat);
+  var resultEl = document.getElementById('publish-result-' + plat);
+  var contentEl = document.getElementById('post-content-' + plat);
+  if (!btn || !contentEl) return;
+
+  var content = contentEl.innerText || contentEl.textContent || '';
+  if (!content.trim()) { showToast('No content to publish.', true); return; }
+
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner" style="width:14px;height:14px;border-width:2px;margin:0 4px;display:inline-block;vertical-align:middle"></div> Publishing…';
+  if (resultEl) { resultEl.style.display = 'none'; resultEl.className = 'post-publish-result'; }
+
+  // Extract hashtags from content (lines starting with #word sequences)
+  var hashtags = (content.match(/#(\w+)/g) || []).map(function(h){ return h.replace('#',''); });
+  var imageUrl = postImages[plat] || undefined;
+
+  try {
+    var r = await api('POST', '/api/publish', {
+      posts: [{ platform: plat, content: content, imageUrl: imageUrl, hashtags: hashtags }]
+    });
+    var result = r.data && r.data.results && r.data.results[0];
+    if (result && result.ok) {
+      btn.innerHTML = '<i class="ti ti-check" style="font-size:12px"></i> Published!';
+      btn.style.background = 'var(--accent)';
+      btn.style.borderColor = 'var(--accent)';
+      if (resultEl) {
+        resultEl.textContent = '✓ Live on ' + plat.toUpperCase() + (result.externalId ? ' · ID: ' + result.externalId : '');
+        resultEl.className = 'post-publish-result ok';
+        resultEl.style.display = 'block';
+      }
+      showToast('Published to ' + plat.toUpperCase() + '! 🚀');
+    } else {
+      var detail = (result && result.detail) || (r.data && r.data.error) || 'Unknown error';
+      btn.disabled = false;
+      btn.innerHTML = '<i class="ti ti-broadcast" style="font-size:12px"></i> Publish Live Now';
+      if (resultEl) {
+        resultEl.textContent = '✗ ' + detail;
+        resultEl.className = 'post-publish-result fail';
+        resultEl.style.display = 'block';
+      }
+      showToast('Publish failed: ' + detail, true);
+    }
+  } catch(e) {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="ti ti-broadcast" style="font-size:12px"></i> Publish Live Now';
+    showToast('Publish error. Check connections.', true);
+  }
 }
 
 // ─────────────────────────────────────────────────
