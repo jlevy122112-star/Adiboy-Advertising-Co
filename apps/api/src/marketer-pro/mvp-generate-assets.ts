@@ -13,6 +13,7 @@
  */
 
 import type { GeneratePostsInput } from "./mvp-generate-posts.js";
+import { uploadImageToS3 } from "./s3-upload.js";
 
 const DALLE_URL = "https://api.openai.com/v1/images/generations";
 const CHAT_URL = "https://api.openai.com/v1/chat/completions";
@@ -304,8 +305,11 @@ export async function generateImages(
       .map(async (p): Promise<GeneratedImage | null> => {
         const spec = PLATFORM_SPECS[p]!;
         const prompt = buildImagePrompt(input, spec);
-        const url = await callDalle3(apiKey, prompt, spec.dalleSize);
-        if (!url) return null;
+        const dalleUrl = await callDalle3(apiKey, prompt, spec.dalleSize);
+        if (!dalleUrl) return null;
+        // Upload to S3 immediately — swap temporary DALL-E URL for permanent one
+        const s3Url = await uploadImageToS3(dalleUrl, p);
+        const url = s3Url ?? dalleUrl; // fall back to DALL-E URL if S3 not configured
         return {
           platform: p,
           url,
