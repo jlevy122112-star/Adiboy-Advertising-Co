@@ -62,6 +62,7 @@ import { getAutonomousRun, listAutonomousRuns } from "./db/autonomous-run.js";
 import { DEFAULT_AUTONOMY_POLICY, runProgress } from "@home-link/marketer-pro-contract";
 import { publishAll, type MvpPublishInput } from "./marketer-pro/mvp-publisher.js";
 import { createDeletionRequest, getDeletionRequest, cancelDeletionRequest } from "./db/account-deletion.js";
+import { handleSsoRequest } from "./marketer-pro/sso-route.js";
 import { getPostgresClient } from "./db/postgres.js";
 import {
   getTenantUsage,
@@ -213,6 +214,12 @@ const server = createServer(async (req, res) => {
     const status = dbOk ? 200 : 503;
     json(req, res, status, { ok: dbOk, ts: new Date().toISOString(), version: process.env.npm_package_version ?? "unknown" });
     return;
+  }
+
+  // ── SSO routes — Google/Apple (no JWT, handles own redirects) ───────────────
+  if (path.startsWith("/auth/sso/")) {
+    const handled = await handleSsoRequest(req, res);
+    if (handled) return;
   }
 
   // ── Auth routes (no JWT required) ─────────────────────────────────────────
