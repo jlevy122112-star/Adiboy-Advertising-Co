@@ -1,3 +1,57 @@
+import { preloadAssets } from "../utils/assetPreloader";
+
+export const CinematicEngine: React.FC = () => {
+  const [machine, setMachine] = useState<CinematicMachine>(initialMachine);
+  const [assetsReady, setAssetsReady] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    preloadAssets()
+      .then(() => {
+        if (mounted) setAssetsReady(true);
+      })
+      .catch((err) => {
+        console.error("[ASSETS] Preload failed", err);
+        if (mounted) setAssetsReady(true); // fail-open for now
+      });
+    return () => {
+      mounted = false;
+      timingEngine.clearAll();
+    };
+  }, []);
+
+  const dispatch = useCallback((event: CinematicEvent) => {
+    setMachine((prev) => transition(prev, event));
+  }, []);
+
+  const startGeneration = useCallback(() => {
+    if (!assetsReady) return;
+    dispatch({ type: "START_GENERATION" });
+  }, [dispatch, assetsReady]);
+
+  // ...rest unchanged...
+
+  if (!assetsReady) {
+    return (
+      <div style={{ background: "#000", minHeight: "100vh", color: "#fff" }}>
+        <p style={{ padding: 24 }}>[ASSETS] Loading…</p>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      style={{
+        background: "#000",
+        minHeight: "100vh",
+        fontFamily: "system-ui, sans-serif",
+      }}
+    >
+      {renderScene()}
+    </div>
+  );
+};
+
 import React, { useCallback, useEffect, useState } from "react";
 import {
   initialMachine,
