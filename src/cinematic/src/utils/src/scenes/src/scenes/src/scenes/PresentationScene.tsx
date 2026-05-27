@@ -1,3 +1,10 @@
+<PresentationScene
+  state={machine.state}
+  dispatch={dispatch}
+  onComplete={() => {}}
+  artifacts={artifacts}
+/>
+
 import React, { useState, useEffect } from "react";
 import { LottiePlayer } from "../components/animations/LottiePlayer";
 
