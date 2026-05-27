@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Cookie &amp; Storage Policy — MarketerPro by Adiboy Advertising Co.</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Syne:wght@700;800&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;color:#1a1a2e;background:#f8f9ff;line-height:1.7;}
+.wrap{max-width:780px;margin:0 auto;padding:40px 24px 80px;}
+h1{font-family:'Syne',sans-serif;font-size:32px;font-weight:800;margin-bottom:8px;color:#1847F0;}
+.effective{font-size:14px;color:#6b7280;margin-bottom:32px;}
+h2{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;margin:32px 0 12px;color:#0D1A3A;}
+h3{font-size:16px;font-weight:700;margin:20px 0 8px;color:#0D1A3A;}
+p,li{font-size:15px;color:#374151;margin-bottom:10px;}
+ul{padding-left:24px;margin-bottom:16px;}
+a{color:#1847F0;}
+.back{display:inline-block;margin-bottom:24px;font-size:13px;color:#1847F0;text-decoration:none;font-weight:600;}
+table{width:100%;border-collapse:collapse;margin:16px 0;}
+th,td{text-align:left;padding:10px 14px;border:1px solid #e5e7eb;font-size:14px;}
+th{background:#f0f3ff;font-weight:700;color:#0D1A3A;}
+.callout{background:#D1FAE5;border-left:4px solid #10B981;padding:16px 20px;border-radius:0 8px 8px 0;margin:20px 0;font-size:14px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+<a class="back" href="/">&larr; Back to MarketerPro</a>
+<h1>Cookie &amp; Storage Policy</h1>
+<p class="effective">Effective Date: May 27, 2026 &middot; Last Updated: May 27, 2026</p>
+
+<div class="callout">
+<strong>The short version:</strong> MarketerPro does not use tracking cookies, advertising cookies, or analytics cookies. We only use essential browser storage required for the app to function. No cookie consent banner is needed.
+</div>
+
+<h2>1. What We Use</h2>
+<p>MarketerPro uses browser <strong>localStorage</strong> (not cookies) for the following essential purposes:</p>
+
+<table>
+<tr><th>Storage Key</th><th>Type</th><th>Purpose</th><th>Duration</th><th>Essential?</th></tr>
+<tr><td>Authentication token (JWT)</td><td>localStorage</td><td>Keeps you logged in between sessions. Without this, you'd need to re-enter your password on every page load.</td><td>Until logout or token expiry</td><td>Yes</td></tr>
+<tr><td>User preferences</td><td>localStorage</td><td>Remembers your last-viewed screen, theme preference, and UI state.</td><td>Until cleared or account deleted</td><td>Yes</td></tr>
+<tr><td>Onboarding progress</td><td>localStorage</td><td>Tracks which onboarding steps you've completed so you don't have to repeat them.</td><td>Until onboarding complete</td><td>Yes</td></tr>
+</table>
+
+<h2>2. What We Do NOT Use</h2>
+<table>
+<tr><th>Technology</th><th>Used?</th><th>Explanation</th></tr>
+<tr><td>Third-party tracking cookies</td><td>No</td><td>We do not use Google Analytics, Facebook Pixel, or any third-party tracker.</td></tr>
+<tr><td>Advertising cookies</td><td>No</td><td>We do not serve ads and do not participate in ad networks.</td></tr>
+<tr><td>Cross-site tracking</td><td>No</td><td>We do not track you across other websites or apps.</td></tr>
+<tr><td>Fingerprinting</td><td>No</td><td>We do not use browser fingerprinting or device fingerprinting techniques.</td></tr>
+<tr><td>Session cookies</td><td>No</td><td>We use JWT in localStorage instead of server-side session cookies.</td></tr>
+</table>
+
+<h2>3. Mobile App Storage</h2>
+<p>On mobile platforms (iOS and Android), MarketerPro uses:</p>
+<table>
+<tr><th>Storage</th><th>Platform</th><th>Purpose</th></tr>
+<tr><td>iOS Keychain</td><td>iOS</td><td>Stores device-level OAuth tokens for connected social platforms. Encrypted by the OS. Never leaves the device.</td></tr>
+<tr><td>Android Keystore</td><td>Android</td><td>Stores device-level OAuth tokens for connected social platforms. Hardware-backed encryption. Never leaves the device.</td></tr>
+<tr><td>App preferences</td><td>Both</td><td>UI state, onboarding progress, user preferences. Standard platform storage.</td></tr>
+</table>
+
+<h2>4. Why No Cookie Banner?</h2>
+<p>Under GDPR (EU), ePrivacy Directive, CCPA (California), and LGPD (Brazil), cookie consent banners are only required for <strong>non-essential</strong> cookies — tracking, analytics, and advertising cookies. Since MarketerPro uses <strong>only essential storage</strong> required for the service to function, no consent banner is legally required.</p>
+
+<p>If we ever add non-essential cookies or third-party analytics in the future, we will:</p>
+<ol>
+<li>Update this policy at least 30 days before the change</li>
+<li>Implement a proper cookie consent mechanism with opt-in (not opt-out) for non-essential cookies</li>
+<li>Notify you via email and in-app notification</li>
+</ol>
+
+<h2>5. How to Clear Storage</h2>
+<ul>
+<li><strong>Web:</strong> Open browser Developer Tools &gt; Application tab &gt; Local Storage &gt; Clear. Or simply log out — the authentication token is removed.</li>
+<li><strong>iOS:</strong> Delete the app to clear all local data including Keychain entries for MarketerPro.</li>
+<li><strong>Android:</strong> Settings &gt; Apps &gt; MarketerPro &gt; Clear Data. Or delete the app.</li>
+</ul>
+<p>Clearing local storage will log you out but will not delete your account or server-side data. To delete all data, use Settings &gt; Delete Account within the app.</p>
+
+<h2>6. Contact</h2>
+<p>
+<strong>Adiboy Advertising Co.</strong><br>
+Privacy inquiries: <a href="mailto:privacy@adiboyads.com">privacy@adiboyads.com</a><br>
+</p>
+</div>
+</body>
+</html>
