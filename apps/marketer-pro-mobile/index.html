@@ -187,14 +187,20 @@ body{background:#0D1A3A;}
 .cal-nav button{width:30px;height:30px;border-radius:8px;border:0.5px solid var(--border);background:var(--card);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text-2);font-size:16px;}
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;padding:0 20px;margin-bottom:12px;}
 .cal-day-label{text-align:center;font-size:10px;font-weight:700;color:var(--text-3);padding:4px 0;text-transform:uppercase;letter-spacing:0.5px;}
-.cal-cell{aspect-ratio:1;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all 0.12s;position:relative;}
-.cal-cell .day-num{font-size:13px;font-weight:500;color:var(--text-2);}
+.cal-cell{aspect-ratio:1;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:background 0.12s;position:relative;user-select:none;-webkit-user-select:none;touch-action:none;}
+.cal-cell .day-num{font-size:13px;font-weight:500;color:var(--text-2);line-height:1;}
 .cal-cell.today{background:var(--brand);}
 .cal-cell.today .day-num{color:white;font-weight:700;}
-.cal-cell.has-post::after{content:'';position:absolute;bottom:4px;width:4px;height:4px;border-radius:50%;background:var(--accent);}
-.cal-cell:hover:not(.today){background:var(--brand-light);}
-.sched-item{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:0.5px solid var(--border);}
+.cal-cell.selected:not(.today){background:var(--brand-light);outline:1.5px solid var(--brand);}
+.cal-cell.drag-over{background:#D1FAE5!important;outline:2px solid var(--accent);}
+.cal-dots{display:flex;gap:2px;margin-top:2px;flex-wrap:wrap;justify-content:center;max-width:28px;}
+.cal-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;}
+.sched-item{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:0.5px solid var(--border);position:relative;}
 .sched-item:last-child{border-bottom:none;}
+.sched-item.dragging{opacity:0.3;}
+.sched-item-actions{display:flex;gap:6px;margin-top:8px;}
+.sched-action-btn{padding:6px 12px;min-height:36px;border-radius:8px;border:0.5px solid var(--border);background:white;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--text-2);display:flex;align-items:center;gap:4px;}
+.sched-action-btn.danger{color:var(--danger);border-color:#FEE2E2;}
 .sched-time{font-size:11px;font-weight:700;color:var(--text-3);width:44px;flex-shrink:0;padding-top:2px;}
 .sched-plat{width:32px;height:32px;border-radius:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:15px;}
 .sched-info .title{font-size:13px;font-weight:600;color:var(--text-1);}
@@ -499,22 +505,60 @@ body{background:#0D1A3A;}
     <div class="screen" id="screen-plan">
       <div class="cal-header">
         <h2 id="cal-month-label">May 2026</h2>
-        <div class="cal-nav">
-          <button id="cal-prev"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
-          <button id="cal-next"><i class="ti ti-chevron-right" aria-hidden="true"></i></button>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button id="cal-today-btn" style="font-size:11px;font-weight:700;font-family:'Syne',sans-serif;color:var(--brand);background:var(--brand-light);border:none;border-radius:8px;padding:5px 10px;cursor:pointer;min-height:30px">Today</button>
+          <div class="cal-nav">
+            <button id="cal-prev"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
+            <button id="cal-next"><i class="ti ti-chevron-right" aria-hidden="true"></i></button>
+          </div>
         </div>
       </div>
+      <!-- Day-of-week labels -->
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);padding:0 20px;margin-bottom:4px">
+        <div class="cal-day-label">Sun</div><div class="cal-day-label">Mon</div>
+        <div class="cal-day-label">Tue</div><div class="cal-day-label">Wed</div>
+        <div class="cal-day-label">Thu</div><div class="cal-day-label">Fri</div>
+        <div class="cal-day-label">Sat</div>
+      </div>
       <div class="cal-grid" id="cal-grid"></div>
+
+      <!-- Selected day label -->
+      <div id="cal-selected-label" style="padding:8px 20px 4px;font-size:12px;font-weight:700;color:var(--text-2);letter-spacing:0.3px;text-transform:uppercase;display:none"></div>
+
       <div class="section-pad" style="padding-top:0">
         <div class="section-header">
-          <h2>Upcoming Posts</h2>
-          <a id="refresh-schedule-link">Refresh</a>
+          <h2 id="schedule-list-heading">Upcoming Posts</h2>
+          <a id="refresh-schedule-link" style="cursor:pointer">Refresh</a>
         </div>
         <div class="card" style="padding:4px 14px" id="schedule-list">
           <div style="text-align:center;padding:20px;color:var(--text-3);font-size:13px">Loading schedule...</div>
         </div>
       </div>
     </div>
+
+  <!-- DAY DETAIL SHEET -->
+  <div id="day-sheet" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.5)" onclick="if(event.target===this)closeDaySheet()">
+    <div id="day-sheet-inner" style="position:absolute;bottom:0;left:0;right:0;background:var(--surface);border-radius:24px 24px 0 0;max-height:85vh;display:flex;flex-direction:column;padding-bottom:env(safe-area-inset-bottom)">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 20px 12px;border-bottom:0.5px solid var(--border);background:white;border-radius:24px 24px 0 0">
+        <div>
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:17px;color:var(--text-1)" id="day-sheet-title">Monday, May 27</div>
+          <div style="font-size:12px;color:var(--text-3);margin-top:2px" id="day-sheet-count">0 posts</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button onclick="openAddPostForDay()" style="background:var(--brand);color:white;border:none;border-radius:10px;padding:8px 14px;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;cursor:pointer;min-height:44px">
+            <i class="ti ti-plus" style="font-size:13px"></i> Add Post
+          </button>
+          <button onclick="closeDaySheet()" style="width:36px;height:36px;border-radius:10px;border:0.5px solid var(--border);background:white;cursor:pointer;font-size:18px;color:var(--text-3)">✕</button>
+        </div>
+      </div>
+      <div id="day-sheet-body" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 16px"></div>
+    </div>
+  </div>
+
+  <!-- DRAG GHOST (follows finger during drag) -->
+  <div id="drag-ghost" style="display:none;position:fixed;z-index:999;pointer-events:none;opacity:0.85;transform:scale(1.05);transition:transform 0.1s">
+    <div style="background:var(--brand);color:white;border-radius:12px;padding:10px 14px;font-size:12px;font-weight:700;font-family:'Syne',sans-serif;box-shadow:0 8px 24px rgba(24,71,240,0.4);white-space:nowrap;max-width:200px;overflow:hidden;text-overflow:ellipsis" id="drag-ghost-label">Post</div>
+  </div>
 
     <!-- ANALYZE -->
     <div class="screen" id="screen-analyze">
@@ -1023,6 +1067,9 @@ var lastGenerateInput = null;
 var approvedPosts = [];
 var postImages = {}; // platform → DALL-E image URL
 var calOffset = 0;
+var calAllEntries = [];   // all schedule entries loaded
+var calSelectedDate = null; // 'YYYY-MM-DD' of selected day
+var dragState = null;     // { entryId, label, startX, startY, ghost }
 var currentPlan = 'free';
 var currentEntitlements = {};
 var connections = [];
@@ -2047,74 +2094,379 @@ function buildCalendar(year, month, scheduledDays) {
   }
 }
 
+// ─── Platform dot colours ──────────────────────────────────────────────────
+var PLAT_COLOR = { ig:'#E1306C', li:'#0A66C2', x:'#1DA1F2', fb:'#1877F2', tt:'#010101', yt:'#FF0000', pin:'#E60023' };
+
 function getCalDate() {
-  var d = new Date();
-  d.setDate(1);
-  d.setMonth(d.getMonth() + calOffset);
-  return d;
+  var d = new Date(); d.setDate(1); d.setMonth(d.getMonth() + calOffset); return d;
 }
 
+function toDateStr(d) {
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function buildCalendar(year, month, entriesByDay) {
+  // entriesByDay: Map<day_number, entry[]>
+  var calGrid = document.getElementById('cal-grid');
+  calGrid.innerHTML = '';
+  var today = new Date();
+  var firstDay = new Date(year, month, 1).getDay();
+  var daysInMonth = new Date(year, month+1, 0).getDate();
+
+  // Empty cells before 1st
+  for (var i = 0; i < firstDay; i++) {
+    calGrid.appendChild(Object.assign(document.createElement('div'), {className:'cal-cell',style:'cursor:default'}));
+  }
+
+  for (var day = 1; day <= daysInMonth; day++) {
+    var cell = document.createElement('div');
+    cell.className = 'cal-cell';
+    cell.dataset.day = day;
+    cell.dataset.datestr = year + '-' + String(month+1).padStart(2,'0') + '-' + String(day).padStart(2,'0');
+
+    var isToday = (year === today.getFullYear() && month === today.getMonth() && day === today.getDate());
+    if (isToday) cell.classList.add('today');
+    if (calSelectedDate === cell.dataset.datestr) cell.classList.add('selected');
+
+    var dayEntries = entriesByDay.get(day) || [];
+    var dotsHtml = '';
+    if (dayEntries.length) {
+      // Show up to 5 coloured dots — deduplicate by platform
+      var seenPlats = new Set();
+      var dots = dayEntries.filter(function(e) {
+        if (seenPlats.has(e.network)) return false;
+        seenPlats.add(e.network); return true;
+      }).slice(0, 5);
+      dotsHtml = '<div class="cal-dots">' + dots.map(function(e) {
+        var c = PLAT_COLOR[e.network] || '#888';
+        return '<div class="cal-dot" style="background:' + c + '"></div>';
+      }).join('') + '</div>';
+    }
+
+    cell.innerHTML = '<span class="day-num">' + day + '</span>' + dotsHtml;
+    cell.addEventListener('click', function(ev) { onDayTap(this); });
+
+    // Touch drag — long-press on a cell that has posts to pick up the first post
+    cell.addEventListener('touchstart', onCellTouchStart, { passive: true });
+    calGrid.appendChild(cell);
+  }
+}
+
+// Tap a day → show its posts in schedule list + highlight
+function onDayTap(cell) {
+  if (dragState) return; // ignore taps during drag
+  var dateStr = cell.dataset.datestr;
+  calSelectedDate = dateStr;
+
+  // Highlight selected cell
+  document.querySelectorAll('.cal-cell.selected').forEach(function(c) { c.classList.remove('selected'); });
+  if (!cell.classList.contains('today')) cell.classList.add('selected');
+
+  // Filter entries for this day
+  var dayEntries = calAllEntries.filter(function(e) {
+    if (!e.scheduled_at) return false;
+    return toDateStr(new Date(e.scheduled_at)) === dateStr;
+  });
+
+  var label = document.getElementById('cal-selected-label');
+  var heading = document.getElementById('schedule-list-heading');
+  var d = new Date(dateStr + 'T12:00:00');
+  var dayLabel = d.toLocaleDateString(undefined, {weekday:'long', month:'long', day:'numeric'});
+
+  if (dayEntries.length > 0) {
+    label.style.display = 'block';
+    label.textContent = dayLabel + ' — ' + dayEntries.length + ' post' + (dayEntries.length !== 1 ? 's' : '');
+    heading.textContent = 'Posts for ' + d.toLocaleDateString(undefined, {month:'short', day:'numeric'});
+    renderScheduleList(dayEntries, dateStr);
+  } else {
+    label.style.display = 'block';
+    label.textContent = dayLabel + ' — no posts';
+    heading.textContent = 'Upcoming Posts';
+    openDaySheet(dateStr);
+  }
+}
+
+// ─── Day detail sheet ────────────────────────────────────────────────────────
+function openDaySheet(dateStr) {
+  var d = new Date(dateStr + 'T12:00:00');
+  var dayLabel = d.toLocaleDateString(undefined, {weekday:'long', month:'long', day:'numeric'});
+  document.getElementById('day-sheet-title').textContent = dayLabel;
+
+  var dayEntries = calAllEntries.filter(function(e) {
+    if (!e.scheduled_at) return false;
+    return toDateStr(new Date(e.scheduled_at)) === dateStr;
+  });
+  document.getElementById('day-sheet-count').textContent = dayEntries.length + ' post' + (dayEntries.length !== 1 ? 's' : '');
+
+  var body = document.getElementById('day-sheet-body');
+  if (!dayEntries.length) {
+    body.innerHTML = '<div style="text-align:center;padding:32px 16px">'
+      + '<div style="font-size:32px;margin-bottom:8px">📝</div>'
+      + '<div style="font-size:14px;font-weight:600;margin-bottom:6px">No posts on this day</div>'
+      + '<div style="font-size:13px;color:var(--text-2)">Tap Add Post to schedule something here.</div></div>';
+  } else {
+    body.innerHTML = dayEntries.map(function(e) { return renderDaySheetItem(e); }).join('');
+  }
+
+  document.getElementById('day-sheet').style.display = 'block';
+  window._daySheetDate = dateStr;
+}
+
+function renderDaySheetItem(e) {
+  var netMeta = PLAT_META[e.network] || { emoji:'📢', bg:'#f5f7ff', label: e.network || 'Post' };
+  var timeStr = e.scheduled_at ? new Date(e.scheduled_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : 'Unscheduled';
+  var statusPill = e.status === 'published' ? '<span class="pill success" style="font-size:10px">Published</span>'
+    : e.status === 'scheduled' ? '<span class="pill gray" style="font-size:10px">Scheduled</span>'
+    : '<span class="pill warn" style="font-size:10px">Pending</span>';
+  var snippet = (e.content_summary || '').slice(0, 140);
+  if ((e.content_summary || '').length > 140) snippet += '…';
+
+  return '<div class="sched-item" id="ds-item-' + e.id + '" style="padding:14px 4px">'
+    + '<div style="width:36px;height:36px;border-radius:10px;background:' + netMeta.bg + ';display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">' + netMeta.emoji + '</div>'
+    + '<div style="flex:1;min-width:0">'
+    + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">'
+    + '<span style="font-weight:600;font-size:13px">' + escapeHtml(netMeta.label) + '</span>'
+    + '<span style="font-size:12px;color:var(--text-3)">' + timeStr + '</span>'
+    + statusPill + '</div>'
+    + (snippet ? '<div style="font-size:13px;color:var(--text-2);line-height:1.5;margin-bottom:8px">' + escapeHtml(snippet) + '</div>' : '')
+    + '<div class="sched-item-actions">'
+    + '<button class="sched-action-btn" onclick="editScheduledPost(\'' + e.id + '\')" style="min-height:36px"><i class="ti ti-edit" style="font-size:12px"></i> Edit time</button>'
+    + '<button class="sched-action-btn danger" onclick="deleteScheduledPost(\'' + e.id + '\')" style="min-height:36px"><i class="ti ti-trash" style="font-size:12px"></i> Delete</button>'
+    + '</div></div></div>';
+}
+
+function closeDaySheet() {
+  document.getElementById('day-sheet').style.display = 'none';
+}
+
+function openAddPostForDay() {
+  closeDaySheet();
+  switchTo('create');
+  document.getElementById('gen-section').style.display = 'block';
+  document.querySelector('.hero-banner') && (document.querySelector('.hero-banner').style.display = 'none');
+  if (window._daySheetDate) {
+    // Pre-fill custom date in the scheduling sheet
+    window._prefilledDate = window._daySheetDate;
+  }
+  showToast('Generate a post then schedule it for ' + (window._daySheetDate ? new Date(window._daySheetDate + 'T12:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'}) : 'that day') + '.');
+}
+
+// Edit scheduled time
+function editScheduledPost(entryId) {
+  var entry = calAllEntries.find(function(e) { return e.id === entryId; });
+  if (!entry) return;
+  var newDateTime = prompt('New date/time (e.g. 2026-06-15T09:00):',
+    entry.scheduled_at ? entry.scheduled_at.slice(0,16) : '');
+  if (!newDateTime) return;
+  reschedulePost(entryId, new Date(newDateTime).toISOString());
+}
+
+async function reschedulePost(entryId, newIsoDate) {
+  try {
+    var r = await api('PATCH', '/api/schedule/' + entryId, { scheduledAt: newIsoDate });
+    if (r.status !== 200) { showToast('Could not reschedule. Try again.', true); return; }
+    showToast('Post rescheduled.');
+    closeDaySheet();
+    await refreshSchedule();
+  } catch(e) { showToast('Network error.', true); }
+}
+
+async function deleteScheduledPost(entryId) {
+  if (!confirm('Delete this scheduled post?')) return;
+  try {
+    var r = await api('DELETE', '/api/schedule/' + entryId);
+    if (r.status !== 200) { showToast('Could not delete. Try again.', true); return; }
+    showToast('Post deleted.');
+    closeDaySheet();
+    await refreshSchedule();
+  } catch(e) { showToast('Network error.', true); }
+}
+
+// ─── Touch drag & drop ───────────────────────────────────────────────────────
+var LONG_PRESS_MS = 450;
+var longPressTimer = null;
+
+function onCellTouchStart(ev) {
+  var cell = ev.currentTarget;
+  var dateStr = cell.dataset.datestr;
+  if (!dateStr) return;
+
+  var dayEntries = calAllEntries.filter(function(e) {
+    return e.scheduled_at && toDateStr(new Date(e.scheduled_at)) === dateStr;
+  });
+  if (!dayEntries.length) return; // nothing to drag from this cell
+
+  longPressTimer = setTimeout(function() {
+    startDrag(dayEntries[0], ev.touches[0]);
+  }, LONG_PRESS_MS);
+}
+
+function startDrag(entry, touch) {
+  var netMeta = PLAT_META[entry.network] || { label: entry.network || 'Post' };
+  var label = netMeta.label + ': ' + (entry.content_summary || 'Post').slice(0, 40);
+  var ghost = document.getElementById('drag-ghost');
+  document.getElementById('drag-ghost-label').textContent = label;
+  ghost.style.display = 'block';
+  ghost.style.left = (touch.clientX - 100) + 'px';
+  ghost.style.top = (touch.clientY - 30) + 'px';
+
+  dragState = { entryId: entry.id, label: label };
+
+  document.addEventListener('touchmove', onDragMove, { passive: false });
+  document.addEventListener('touchend', onDragEnd);
+  document.addEventListener('touchcancel', cancelDrag);
+  showToast('Drag to a new day to reschedule', false);
+}
+
+function onDragMove(ev) {
+  if (!dragState) return;
+  ev.preventDefault();
+  var t = ev.touches[0];
+  var ghost = document.getElementById('drag-ghost');
+  ghost.style.left = (t.clientX - 100) + 'px';
+  ghost.style.top = (t.clientY - 30) + 'px';
+
+  // Highlight cell under finger
+  document.querySelectorAll('.cal-cell.drag-over').forEach(function(c) { c.classList.remove('drag-over'); });
+  var el = document.elementFromPoint(t.clientX, t.clientY);
+  var cell = el && el.closest('.cal-cell[data-datestr]');
+  if (cell) cell.classList.add('drag-over');
+}
+
+function onDragEnd(ev) {
+  if (!dragState) return;
+  var t = ev.changedTouches[0];
+  var el = document.elementFromPoint(t.clientX, t.clientY);
+  var cell = el && el.closest('.cal-cell[data-datestr]');
+  var targetDate = cell && cell.dataset.datestr;
+
+  document.querySelectorAll('.cal-cell.drag-over').forEach(function(c) { c.classList.remove('drag-over'); });
+  document.getElementById('drag-ghost').style.display = 'none';
+
+  var entryId = dragState.entryId;
+  dragState = null;
+  document.removeEventListener('touchmove', onDragMove);
+  document.removeEventListener('touchend', onDragEnd);
+  document.removeEventListener('touchcancel', cancelDrag);
+
+  if (targetDate) {
+    // Keep the original time, swap the date
+    var entry = calAllEntries.find(function(e) { return e.id === entryId; });
+    var origTime = entry && entry.scheduled_at ? new Date(entry.scheduled_at) : new Date();
+    var newDate = new Date(targetDate + 'T' + String(origTime.getHours()).padStart(2,'0') + ':' + String(origTime.getMinutes()).padStart(2,'0') + ':00');
+    reschedulePost(entryId, newDate.toISOString());
+  }
+}
+
+function cancelDrag() {
+  document.getElementById('drag-ghost').style.display = 'none';
+  document.querySelectorAll('.cal-cell.drag-over').forEach(function(c) { c.classList.remove('drag-over'); });
+  dragState = null;
+  document.removeEventListener('touchmove', onDragMove);
+  document.removeEventListener('touchend', onDragEnd);
+  document.removeEventListener('touchcancel', cancelDrag);
+}
+
+// Cancel long press on lift/move
+document.addEventListener('touchend', function() { clearTimeout(longPressTimer); longPressTimer = null; });
+document.addEventListener('touchmove', function() { clearTimeout(longPressTimer); longPressTimer = null; }, { passive: true });
+
+// ─── Refresh ─────────────────────────────────────────────────────────────────
 async function refreshSchedule() {
   var d = getCalDate();
   document.getElementById('cal-month-label').textContent = MONTHS[d.getMonth()] + ' ' + d.getFullYear();
 
   try {
-    var r = await api('GET', '/api/schedule?limit=100');
-    var entries = (r.status === 200 && r.data.entries) ? r.data.entries : [];
+    var r = await api('GET', '/api/schedule?limit=200');
+    calAllEntries = (r.status === 200 && r.data.entries) ? r.data.entries : [];
 
-    var scheduledDays = new Set();
-    entries.forEach(function(e) {
-      if (e.scheduled_at) {
-        var eDate = new Date(e.scheduled_at);
-        if (eDate.getFullYear() === d.getFullYear() && eDate.getMonth() === d.getMonth()) {
-          scheduledDays.add(eDate.getDate());
-        }
+    // Build map: day_number → entries[] for current month
+    var entriesByDay = new Map();
+    calAllEntries.forEach(function(e) {
+      if (!e.scheduled_at) return;
+      var eDate = new Date(e.scheduled_at);
+      if (eDate.getFullYear() === d.getFullYear() && eDate.getMonth() === d.getMonth()) {
+        var day = eDate.getDate();
+        if (!entriesByDay.has(day)) entriesByDay.set(day, []);
+        entriesByDay.get(day).push(e);
       }
     });
 
-    buildCalendar(d.getFullYear(), d.getMonth(), scheduledDays);
-    renderScheduleList(entries);
+    buildCalendar(d.getFullYear(), d.getMonth(), entriesByDay);
+
+    // If a day is selected, re-render its list
+    if (calSelectedDate) {
+      var dayEntries = calAllEntries.filter(function(e) {
+        return e.scheduled_at && toDateStr(new Date(e.scheduled_at)) === calSelectedDate;
+      });
+      if (dayEntries.length) {
+        var heading = document.getElementById('schedule-list-heading');
+        var dd = new Date(calSelectedDate + 'T12:00:00');
+        heading.textContent = 'Posts for ' + dd.toLocaleDateString(undefined, {month:'short', day:'numeric'});
+        renderScheduleList(dayEntries, calSelectedDate);
+        return;
+      }
+    }
+
+    // Default: show all upcoming
+    document.getElementById('schedule-list-heading').textContent = 'Upcoming Posts';
+    renderScheduleList(calAllEntries);
   } catch(e) {
-    buildCalendar(d.getFullYear(), d.getMonth(), new Set());
+    buildCalendar(d.getFullYear(), d.getMonth(), new Map());
     document.getElementById('schedule-list').innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-3);font-size:13px">Connect to the server to load your schedule.</div>';
   }
 }
 
-function renderScheduleList(entries) {
+function renderScheduleList(entries, forDate) {
   var container = document.getElementById('schedule-list');
   if (!entries.length) {
+    var dateHint = forDate ? ' for ' + new Date(forDate + 'T12:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'}) : '';
     container.innerHTML = '<div style="text-align:center;padding:24px 16px">'
       + '<div style="font-size:28px;margin-bottom:8px">📅</div>'
-      + '<div style="font-weight:600;font-size:15px;margin-bottom:6px">No posts scheduled yet</div>'
+      + '<div style="font-weight:600;font-size:15px;margin-bottom:6px">No posts scheduled' + dateHint + '</div>'
       + '<div style="color:var(--text-2);font-size:13px;margin-bottom:16px">Generate content on the Create tab, approve it, and schedule — your posts will appear here.</div>'
       + '<button onclick="switchTo(\'create\')" style="background:var(--brand);color:white;border:none;border-radius:12px;padding:12px 24px;font-family:\'Syne\',sans-serif;font-weight:700;font-size:14px;cursor:pointer">Create your first post →</button>'
       + '</div>';
     return;
   }
-  var upcoming = entries.slice(0, 10);
-  container.innerHTML = upcoming.map(function(e) {
-    var netMeta = PLAT_META[e.network] || { emoji: '📢', bg: '#f5f7ff', label: e.network || 'Post' };
+  var shown = entries.slice(0, 20);
+  container.innerHTML = shown.map(function(e) {
+    var netMeta = PLAT_META[e.network] || { emoji:'📢', bg:'#f5f7ff', label: e.network || 'Post' };
     var timeStr = e.scheduled_at ? new Date(e.scheduled_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : '—';
-    var statusPill = e.status === 'live' ? '<span class="pill success">Live</span>'
-      : e.status === 'scheduled' ? '<span class="pill gray">Scheduled</span>'
-      : '<span class="pill warn">Pending</span>';
-    return '<div class="sched-item">'
+    var dateStr2 = e.scheduled_at ? new Date(e.scheduled_at).toLocaleDateString(undefined,{month:'short',day:'numeric'}) : 'Unscheduled';
+    var statusPill = e.status === 'published' ? '<span class="pill success" style="font-size:10px">Published</span>'
+      : e.status === 'scheduled' ? '<span class="pill gray" style="font-size:10px">Scheduled</span>'
+      : '<span class="pill warn" style="font-size:10px">Pending</span>';
+    return '<div class="sched-item" onclick="openDaySheet(\'' + toDateStr(new Date(e.scheduled_at || new Date())) + '\')" style="cursor:pointer">'
       + '<div class="sched-time">' + timeStr + '</div>'
       + '<div class="sched-plat" style="background:' + netMeta.bg + '">' + netMeta.emoji + '</div>'
-      + '<div class="sched-info" style="flex:1">'
-      + '<div class="title">' + escapeHtml((e.content_summary || netMeta.label + ' Post').slice(0, 120)) + ((e.content_summary || '').length > 120 ? '…' : '') + '</div>'
-      + '<div class="sub">' + (e.scheduled_at ? new Date(e.scheduled_at).toLocaleDateString() : 'Unscheduled') + ' · ' + (e.network || 'post') + '</div>'
+      + '<div class="sched-info" style="flex:1;min-width:0">'
+      + '<div class="title">' + escapeHtml((e.content_summary || netMeta.label + ' Post').slice(0, 80)) + ((e.content_summary || '').length > 80 ? '…' : '') + '</div>'
+      + '<div class="sub">' + dateStr2 + ' · ' + escapeHtml(netMeta.label) + '</div>'
       + '</div>'
       + statusPill + '</div>';
   }).join('');
+  if (entries.length > 20) {
+    container.innerHTML += '<div style="text-align:center;padding:12px;color:var(--text-3);font-size:12px">+ ' + (entries.length - 20) + ' more</div>';
+  }
 }
 
 document.getElementById('cal-prev').addEventListener('click', function() {
-  calOffset--;
+  calOffset--; calSelectedDate = null;
+  document.getElementById('cal-selected-label').style.display = 'none';
+  document.getElementById('schedule-list-heading').textContent = 'Upcoming Posts';
   refreshSchedule();
 });
 document.getElementById('cal-next').addEventListener('click', function() {
-  calOffset++;
+  calOffset++; calSelectedDate = null;
+  document.getElementById('cal-selected-label').style.display = 'none';
+  document.getElementById('schedule-list-heading').textContent = 'Upcoming Posts';
+  refreshSchedule();
+});
+document.getElementById('cal-today-btn').addEventListener('click', function() {
+  calOffset = 0; calSelectedDate = null;
+  document.getElementById('cal-selected-label').style.display = 'none';
+  document.getElementById('schedule-list-heading').textContent = 'Upcoming Posts';
   refreshSchedule();
 });
 document.getElementById('refresh-schedule-link').addEventListener('click', refreshSchedule);

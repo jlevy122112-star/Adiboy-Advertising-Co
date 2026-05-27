@@ -48,6 +48,8 @@ import {
 import {
   insertScheduleEntry,
   listScheduleEntriesByTenant,
+  updateScheduleEntryFields,
+  deleteScheduleEntry,
 } from "./db/schedule-entry.js";
 import { getMvpBrandConfig, upsertMvpBrandConfig } from "./db/brand-profile.js";
 import { getAnalyticsSummary } from "./db/analytics-snapshot.js";
@@ -415,6 +417,45 @@ const server = createServer(async (req, res) => {
       return;
     }
     json(req, res, 201, { entry: result.row });
+    return;
+  }
+
+  // ── PATCH /api/schedule/:id — reschedule or update fields ─────────────────
+  if (req.method === "PATCH" && path.startsWith("/api/schedule/")) {
+    const entryId = path.slice("/api/schedule/".length);
+    if (!entryId) { json(req, res, 400, { error: "missing_id" }); return; }
+    let body: unknown;
+    try { body = await readBody(req); } catch { json(req, res, 413, { error: "payload_too_large" }); return; }
+    const b = (typeof body === "object" && body !== null) ? body as Record<string, unknown> : {};
+    const result = await updateScheduleEntryFields({
+      tenantId: auth.tenantId,
+      scheduleEntryId: entryId,
+      contentSummary: typeof b.contentSummary === "string" ? b.contentSummary : null,
+      network: typeof b.network === "string" ? b.network : null,
+      scheduledAt: typeof b.scheduledAt === "string" ? b.scheduledAt : null,
+      videoOptions: null,
+      metadata: null,
+    });
+    if (!result.ok) {
+      if (result.code === "no_database") { json(req, res, 503, { error: "database_required" }); return; }
+      if (result.code === "not_found") { json(req, res, 404, { error: "not_found" }); return; }
+      json(req, res, 500, { error: "db_error" }); return;
+    }
+    json(req, res, 200, { entry: result.row });
+    return;
+  }
+
+  // ── DELETE /api/schedule/:id ──────────────────────────────────────────────
+  if (req.method === "DELETE" && path.startsWith("/api/schedule/")) {
+    const entryId = path.slice("/api/schedule/".length);
+    if (!entryId) { json(req, res, 400, { error: "missing_id" }); return; }
+    const result = await deleteScheduleEntry({ tenantId: auth.tenantId, scheduleEntryId: entryId });
+    if (!result.ok) {
+      if (result.code === "no_database") { json(req, res, 503, { error: "database_required" }); return; }
+      if (result.code === "not_found") { json(req, res, 404, { error: "not_found" }); return; }
+      json(req, res, 500, { error: "db_error" }); return;
+    }
+    json(req, res, 200, { deleted: true });
     return;
   }
 

@@ -103,7 +103,7 @@ export async function handleAuthRequest(req: IncomingMessage, res: ServerRespons
     const parsed = SignupBodySchema.safeParse(body);
     if (!parsed.success) {
       // Surface WEAK_PASSWORD specifically so the client can show targeted hint
-      const weakPw = parsed.error.issues.some((i: { path: (string | number)[] }) => i.path.includes("password"));
+      const weakPw = parsed.error.issues.some((i) => (i.path as (string | number)[]).includes("password"));
       json(res, 400, {
         error: weakPw ? AuthErrorCode.WEAK_PASSWORD : "invalid_body",
         issues: parsed.error.issues,
