@@ -772,6 +772,59 @@
     <button class="publish-btn" id="publish-btn"><i class="ti ti-rocket" aria-hidden="true"></i> Publish Posts</button>
   </div>
 
+  <!-- BRAND EDITOR SHEET -->
+  <div id="brand-editor-overlay" style="display:none;position:fixed;inset:0;z-index:210;background:rgba(0,0,0,0.55)" onclick="if(event.target===this)closeBrandEditor()">
+    <div id="brand-editor-sheet" style="position:absolute;bottom:0;left:0;right:0;background:white;border-radius:20px 20px 0 0;max-height:88vh;overflow-y:auto;padding:0 0 32px">
+      <div style="padding:16px 20px 0;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:white;border-bottom:0.5px solid var(--border);padding-bottom:14px;z-index:1">
+        <div>
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:18px;color:var(--text-1)">Edit Brand Profile</div>
+          <div style="font-size:12px;color:var(--text-3);margin-top:2px">Changes apply to all future AI generation</div>
+        </div>
+        <button onclick="closeBrandEditor()" style="background:none;border:none;font-size:22px;color:var(--text-3);cursor:pointer;padding:4px;line-height:1">✕</button>
+      </div>
+      <div style="padding:16px 20px 0">
+        <!-- Identity -->
+        <div style="font-size:11px;font-weight:700;color:var(--text-3);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:8px">Identity</div>
+        <div class="form-field"><label>Brand / Business name</label><input type="text" id="be-name" placeholder="e.g. Adiboy Advertising Co." /></div>
+        <div class="form-field"><label>Primary brand color</label><input type="text" id="be-color" placeholder="#1847F0" /></div>
+        <div class="form-field"><label>3 words that describe your brand</label><input type="text" id="be-words" placeholder="e.g. Bold, Creative, Results-driven" /></div>
+        <!-- Business type -->
+        <div style="font-size:11px;font-weight:700;color:var(--text-3);letter-spacing:0.8px;text-transform:uppercase;margin:14px 0 8px">Business Type</div>
+        <div style="display:flex;gap:8px;margin-bottom:4px">
+          <div class="plat-chip be-type-opt" data-val="product" onclick="selectBeType(this)">Product</div>
+          <div class="plat-chip be-type-opt" data-val="service" onclick="selectBeType(this)">Service</div>
+          <div class="plat-chip be-type-opt" data-val="both" onclick="selectBeType(this)">Both</div>
+        </div>
+        <!-- Industry -->
+        <div style="font-size:11px;font-weight:700;color:var(--text-3);letter-spacing:0.8px;text-transform:uppercase;margin:14px 0 8px">Industry</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px">
+          <div class="plat-chip be-ind-opt" data-val="tech" onclick="selectBeInd(this)">Tech &amp; SaaS</div>
+          <div class="plat-chip be-ind-opt" data-val="retail" onclick="selectBeInd(this)">Retail &amp; E-commerce</div>
+          <div class="plat-chip be-ind-opt" data-val="health" onclick="selectBeInd(this)">Health &amp; Wellness</div>
+          <div class="plat-chip be-ind-opt" data-val="creative" onclick="selectBeInd(this)">Creative &amp; Agency</div>
+          <div class="plat-chip be-ind-opt" data-val="other" onclick="selectBeInd(this)">Other</div>
+        </div>
+        <!-- Messaging -->
+        <div style="font-size:11px;font-weight:700;color:var(--text-3);letter-spacing:0.8px;text-transform:uppercase;margin:14px 0 8px">Messaging</div>
+        <div class="form-field"><label>Problem you solve</label><textarea id="be-problem" placeholder="e.g. Spending hours writing social posts with no real strategy..."></textarea></div>
+        <div class="form-field"><label>Your solution</label><textarea id="be-solution" placeholder="e.g. AI-powered content that sounds like you, posted in seconds..."></textarea></div>
+        <div class="form-field"><label>Outcome customers get</label><textarea id="be-outcome" placeholder="e.g. More followers, more leads, less time on content..."></textarea></div>
+        <!-- Contact -->
+        <div style="font-size:11px;font-weight:700;color:var(--text-3);letter-spacing:0.8px;text-transform:uppercase;margin:14px 0 8px">Contact</div>
+        <div class="form-field"><label>Website</label><input type="url" id="be-website" placeholder="https://yourbrand.com" /></div>
+        <div class="form-field"><label>Phone</label><input type="tel" id="be-phone" placeholder="+1 (555) 000-0000" /></div>
+        <div class="form-field"><label>Email</label><input type="email" id="be-email" placeholder="hello@yourbrand.com" /></div>
+        <div class="form-field"><label>Instagram handle</label><input type="text" id="be-instagram" placeholder="@yourbrand" /></div>
+        <div class="form-field"><label>Address (optional)</label><input type="text" id="be-address" placeholder="123 Main St, New Orleans, LA" /></div>
+        <!-- Save -->
+        <div id="be-err" style="display:none;background:#FEE2E2;border-radius:8px;padding:10px 12px;font-size:13px;color:#991B1B;margin-bottom:12px"></div>
+        <button id="be-save-btn" onclick="saveBrandEditor()" style="width:100%;background:var(--brand);color:white;border:none;border-radius:14px;padding:16px;font-family:'Syne',sans-serif;font-weight:700;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.15s">
+          <i class="ti ti-check" aria-hidden="true"></i> Save Changes
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- PRICING MODAL -->
   <div id="pricing-overlay" style="display:none" class="modal-overlay" onclick="if(event.target===this)closePricing()">
     <div class="modal-sheet">
@@ -921,22 +974,61 @@ setInterval(updateClock, 30000);
 // ─────────────────────────────────────────────────
 // API HELPERS
 // ─────────────────────────────────────────────────
-async function api(method, path, body) {
-  var opts = {
-    method: method,
-    headers: { 'Content-Type': 'application/json' }
-  };
-  if (authToken) opts.headers['Authorization'] = 'Bearer ' + authToken;
-  if (body !== undefined) opts.body = JSON.stringify(body);
-  var res = await fetch(API_BASE + path, opts);
-  var data;
-  try { data = await res.json(); } catch(e) { data = {}; }
-  if (res.status === 401) {
-    logout();
-    throw new Error('unauthorized');
+// ─────────────────────────────────────────────────
+// API HELPER — timeout, 429 retry, X-Request-ID
+// ─────────────────────────────────────────────────
+var API_TIMEOUT_MS = 30000;
+
+async function api(method, path, body, opts) {
+  opts = opts || {};
+  var headers = { 'Content-Type': 'application/json' };
+  if (authToken) headers['Authorization'] = 'Bearer ' + authToken;
+  if (opts.idempotencyKey) headers['Idempotency-Key'] = opts.idempotencyKey;
+
+  var controller = new AbortController();
+  var timer = setTimeout(function() { controller.abort(); }, API_TIMEOUT_MS);
+
+  var fetchOpts = { method: method, headers: headers, signal: controller.signal };
+  if (body !== undefined) fetchOpts.body = JSON.stringify(body);
+
+  try {
+    var res = await fetch(API_BASE + path, fetchOpts);
+    clearTimeout(timer);
+    var data;
+    try { data = await res.json(); } catch(e) { data = {}; }
+
+    if (res.status === 401) { logout(); throw new Error('unauthorized'); }
+
+    // 429 — respect Retry-After header if provided, auto-retry once
+    if (res.status === 429 && !opts._retried) {
+      var retryAfter = parseInt(res.headers.get('Retry-After') || '5', 10);
+      await new Promise(function(r) { setTimeout(r, retryAfter * 1000); });
+      return api(method, path, body, { ...opts, _retried: true });
+    }
+
+    return { status: res.status, data: data, requestId: res.headers.get('X-Request-ID') };
+  } catch(e) {
+    clearTimeout(timer);
+    if (e.name === 'AbortError') throw new ApiError('Request timed out. Check your connection.', 'timeout');
+    throw e;
   }
-  return { status: res.status, data: data };
 }
+
+function ApiError(message, code) {
+  this.message = message;
+  this.code = code || 'network_error';
+  this.name = 'ApiError';
+}
+ApiError.prototype = Object.create(Error.prototype);
+
+// Global unhandled promise rejection — surface to user gracefully
+window.addEventListener('unhandledrejection', function(e) {
+  if (e.reason && e.reason.message === 'unauthorized') return; // already handled
+  var msg = e.reason instanceof ApiError ? e.reason.message : 'An unexpected error occurred.';
+  console.error('[unhandled]', e.reason);
+  showToast(msg, true);
+  e.preventDefault();
+});
 
 function saveToken(token) {
   authToken = token;
@@ -947,6 +1039,8 @@ function logout() {
   authToken = '';
   localStorage.removeItem('mp_token');
   localStorage.removeItem('mp_onboarded');
+  stopNotifPolling();
+  clearNotifications();
   showAuthOverlay();
 }
 
@@ -1035,6 +1129,8 @@ function handleLogout() { logout(); }
 function onAuthSuccess() {
   loadBrandProfile();
   loadPlan();
+  loadConnectionsSilent(); // restore connected-platform state on every load
+  startNotifPolling();
   var pendingNet = window._pendingConnected;
   window._pendingConnected = null;
   var billingSuccess = window._billingSuccess;
@@ -1092,7 +1188,101 @@ async function saveBrandProfile(profileData) {
 }
 
 function openEditBrand() {
-  showToast('Brand editor coming in v1.1');
+  // Populate fields from current in-memory brandProfile
+  document.getElementById('be-name').value      = brandProfile.brandName   || '';
+  document.getElementById('be-color').value     = brandProfile.brandColor  || '';
+  document.getElementById('be-words').value     = brandProfile.brandWords  || '';
+  document.getElementById('be-problem').value   = brandProfile.problem     || '';
+  document.getElementById('be-solution').value  = brandProfile.solution    || '';
+  document.getElementById('be-outcome').value   = brandProfile.outcome     || '';
+  document.getElementById('be-website').value   = brandProfile.website     || '';
+  document.getElementById('be-phone').value     = brandProfile.phone       || '';
+  document.getElementById('be-email').value     = brandProfile.email       || '';
+  document.getElementById('be-instagram').value = brandProfile.instagram   || '';
+  document.getElementById('be-address').value   = brandProfile.address     || '';
+
+  document.querySelectorAll('.be-type-opt').forEach(function(el) {
+    el.classList.toggle('sel', el.dataset.val === (brandProfile.businessType || 'product'));
+  });
+  document.querySelectorAll('.be-ind-opt').forEach(function(el) {
+    el.classList.toggle('sel', el.dataset.val === (brandProfile.industry || 'tech'));
+  });
+
+  document.getElementById('be-err').style.display = 'none';
+  var btn = document.getElementById('be-save-btn');
+  btn.disabled = false;
+  btn.innerHTML = '<i class="ti ti-check" aria-hidden="true"></i> Save Changes';
+  document.getElementById('brand-editor-overlay').style.display = 'block';
+}
+
+function closeBrandEditor() {
+  document.getElementById('brand-editor-overlay').style.display = 'none';
+}
+
+function selectBeType(el) {
+  document.querySelectorAll('.be-type-opt').forEach(function(e) { e.classList.remove('sel'); });
+  el.classList.add('sel');
+}
+
+function selectBeInd(el) {
+  document.querySelectorAll('.be-ind-opt').forEach(function(e) { e.classList.remove('sel'); });
+  el.classList.add('sel');
+}
+
+async function saveBrandEditor() {
+  var btn = document.getElementById('be-save-btn');
+  var errEl = document.getElementById('be-err');
+  errEl.style.display = 'none';
+
+  var businessType = (document.querySelector('.be-type-opt.sel') || {}).dataset?.val || 'product';
+  var industry     = (document.querySelector('.be-ind-opt.sel')  || {}).dataset?.val || 'other';
+
+  var payload = {
+    brandName:    document.getElementById('be-name').value.trim(),
+    brandColor:   document.getElementById('be-color').value.trim(),
+    brandWords:   document.getElementById('be-words').value.trim(),
+    businessType,
+    industry,
+    problem:      document.getElementById('be-problem').value.trim(),
+    solution:     document.getElementById('be-solution').value.trim(),
+    outcome:      document.getElementById('be-outcome').value.trim(),
+    website:      document.getElementById('be-website').value.trim(),
+    phone:        document.getElementById('be-phone').value.trim(),
+    email:        document.getElementById('be-email').value.trim(),
+    instagram:    document.getElementById('be-instagram').value.trim(),
+    address:      document.getElementById('be-address').value.trim(),
+  };
+
+  if (!payload.brandName) {
+    errEl.textContent = 'Brand name is required.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner" style="width:14px;height:14px;border-width:2px;margin:0 4px;display:inline-block;vertical-align:middle"></div> Saving…';
+
+  try {
+    var r = await api('POST', '/api/brand-profile', payload);
+    if (r.status !== 200) throw new Error(r.data?.error || 'save_failed');
+
+    // Update in-memory profile
+    brandProfile = { ...brandProfile, ...payload };
+
+    // Refresh settings display
+    var name = payload.brandName || 'Your Brand';
+    document.getElementById('settings-brand-name').textContent = name;
+    var initials = name.split(' ').slice(0, 2).map(function(w) { return w[0] || ''; }).join('').toUpperCase() || 'MP';
+    document.getElementById('settings-avatar').textContent = initials;
+
+    closeBrandEditor();
+    showToast('Brand profile saved ✓');
+  } catch(e) {
+    errEl.textContent = 'Failed to save. Check your connection and try again.';
+    errEl.style.display = 'block';
+    btn.disabled = false;
+    btn.innerHTML = '<i class="ti ti-check" aria-hidden="true"></i> Save Changes';
+  }
 }
 
 // ─────────────────────────────────────────────────
@@ -1479,13 +1669,76 @@ function editPost(plat) {
   content.focus();
 }
 
-function rejectPost(plat) {
+async function rejectPost(plat) {
   var post = document.getElementById('post-' + plat);
   if (!post) return;
-  post.style.opacity = '0.5';
-  setTimeout(function() { post.style.opacity = '1'; }, 300);
+
+  // Remove from approved list
   var idx = approvedPosts.indexOf(plat);
   if (idx > -1) approvedPosts.splice(idx, 1);
+
+  if (!lastGenerateInput) {
+    showToast('Generate posts first, then use Redo.', true);
+    return;
+  }
+
+  // Show loading state on the card
+  var contentEl = document.getElementById('post-content-' + plat);
+  if (contentEl) contentEl.innerHTML = '<div style="display:flex;align-items:center;gap:8px;color:var(--text-3);font-size:13px;padding:8px 0"><div class="spinner" style="width:14px;height:14px;border-width:2px;display:inline-block"></div> Regenerating…</div>';
+
+  // Clear old image
+  var imgWrap = document.getElementById('img-wrap-' + plat);
+  if (imgWrap) imgWrap.innerHTML = '<div class="img-skeleton"><div class="img-skel-shimmer"></div></div>';
+  delete postImages[plat];
+
+  var redoInput = { ...lastGenerateInput, platforms: [plat] };
+
+  try {
+    var r = await api('POST', '/api/generate', redoInput);
+    if (r.status === 403 && r.data?.error === 'plan_required') {
+      if (contentEl) contentEl.textContent = 'Upgrade to Pro to regenerate.';
+      openPricing();
+      return;
+    }
+    if (r.status !== 200 || !r.data?.posts?.length) {
+      if (contentEl) contentEl.textContent = 'Regeneration failed. Try again.';
+      showToast('Redo failed. Try again.', true);
+      return;
+    }
+
+    var newPost = r.data.posts[0];
+    var meta = PLAT_META[plat] || { max: 5000 };
+
+    // Rebuild content element
+    var hashtagHtml = newPost.hashtags && newPost.hashtags.length
+      ? '<div class="hashtags">' + newPost.hashtags.join(' ') + '</div>' : '';
+    if (contentEl) contentEl.innerHTML = newPost.content + (hashtagHtml ? '<br>' + hashtagHtml : '');
+
+    // Update global posts array
+    var existingIdx = generatedPosts.findIndex(function(p) { return p.platform === plat; });
+    if (existingIdx >= 0) generatedPosts[existingIdx] = newPost;
+    else generatedPosts.push(newPost);
+
+    // Update video script if platform supports it
+    var newScripts = r.data.videoScripts || [];
+    var newScript = newScripts.find(function(s) { return s.platform === plat; });
+    if (newScript) {
+      var existingScriptIdx = generatedVideoScripts.findIndex(function(s) { return s.platform === plat; });
+      if (existingScriptIdx >= 0) generatedVideoScripts[existingScriptIdx] = newScript;
+      else generatedVideoScripts.push(newScript);
+
+      var scriptWrap = document.getElementById('video-script-wrap-' + plat);
+      if (scriptWrap) scriptWrap.outerHTML = renderVideoScriptToggle(plat, newScript);
+    }
+
+    // Kick off new image generation for this platform
+    loadImagesInBackground({ ...redoInput, platforms: [plat] });
+
+    showToast('Post regenerated ✓');
+  } catch(e) {
+    if (contentEl) contentEl.textContent = 'Error regenerating. Check connection.';
+    showToast('Redo error. Check connection.', true);
+  }
 }
 
 // ─────────────────────────────────────────────────
@@ -1585,6 +1838,8 @@ document.getElementById('publish-btn').addEventListener('click', async function(
     btn.disabled = false;
     btn.innerHTML = '<i class="ti ti-rocket"></i> Publish Posts';
 
+    // Refresh calendar immediately so dots appear without waiting for navigation
+    refreshSchedule();
     setTimeout(function() {
       switchTo('plan');
     }, 2500);
@@ -1998,6 +2253,101 @@ async function openBillingOrPricing() {
 }
 
 // ─────────────────────────────────────────────────
+// CONNECTION STATE — load silently on every app start
+// ─────────────────────────────────────────────────
+async function loadConnectionsSilent() {
+  try {
+    var r = await api('GET', '/oauth/connections');
+    if (r.status === 200 && Array.isArray(r.data.connections)) {
+      connections = r.data.connections;
+      updateConnectionsSubLabel();
+    }
+  } catch(e) { /* silent — network may not be ready */ }
+}
+
+function updateConnectionsSubLabel() {
+  var sub = document.getElementById('connections-sub');
+  if (!sub) return;
+  if (!connections.length) { sub.textContent = 'Connect to publish live'; return; }
+  var names = connections.slice(0, 3).map(function(c) { return c.network; }).join(', ');
+  sub.textContent = connections.length + ' connected: ' + names;
+}
+
+// ─────────────────────────────────────────────────
+// IN-APP NOTIFICATIONS
+// ─────────────────────────────────────────────────
+var notifications = [];
+var notifPollHandle = null;
+
+function pushNotification(msg, type) {
+  // type: 'info' | 'success' | 'warn' | 'error'
+  type = type || 'info';
+  var n = { id: Date.now() + Math.random(), msg: msg, type: type, ts: new Date() };
+  notifications.unshift(n);
+  if (notifications.length > 50) notifications.pop();
+  updateNotifBadge();
+  showToast(msg, type === 'error' || type === 'warn');
+}
+
+function updateNotifBadge() {
+  var dot = document.getElementById('notif-dot');
+  if (dot) dot.style.display = notifications.length ? 'block' : 'none';
+}
+
+function clearNotifications() {
+  notifications = [];
+  updateNotifBadge();
+}
+
+/** Poll active autonomous runs every 30s; fire notifications when state changes. */
+var _lastRunStates = {};
+
+async function pollActiveRuns() {
+  if (!authToken) return;
+  try {
+    var r = await api('GET', '/api/autonomous/runs?state=active&limit=10');
+    if (r.status !== 200) return;
+    var runs = r.data.runs || [];
+
+    runs.forEach(function(run) {
+      var prev = _lastRunStates[run.runId];
+      _lastRunStates[run.runId] = run.state;
+      if (!prev) return; // first time seeing it, no notification needed
+
+      if (prev !== run.state) {
+        if (run.state === 'completed') pushNotification('🚀 Autonomous run completed! ' + (run.progress.percentComplete || 100) + '% done.', 'success');
+        else if (run.state === 'awaiting_user') pushNotification('⚠️ Autonomous run needs your attention.', 'warn');
+        else if (run.state === 'failed') pushNotification('❌ Autonomous run failed: ' + (run.failureKind || 'unknown'), 'error');
+      }
+    });
+
+    // Also poll blocking runs once
+    var r2 = await api('GET', '/api/autonomous/runs?state=blocking&limit=10');
+    if (r2.status === 200) {
+      (r2.data.runs || []).forEach(function(run) {
+        var prev = _lastRunStates[run.runId];
+        _lastRunStates[run.runId] = run.state;
+        if (!prev) {
+          // First time seeing a blocking run — it needs attention
+          pushNotification('⚠️ A campaign is waiting for your review.', 'warn');
+        }
+      });
+    }
+  } catch(e) { /* silent — poll will retry */ }
+}
+
+function startNotifPolling() {
+  if (notifPollHandle) return;
+  pollActiveRuns(); // immediate check on login
+  notifPollHandle = setInterval(pollActiveRuns, 30000);
+}
+
+function stopNotifPolling() {
+  if (notifPollHandle) { clearInterval(notifPollHandle); notifPollHandle = null; }
+  _lastRunStates = {};
+}
+
+// ─────────────────────────────────────────────────
 // CONNECTED PLATFORMS
 // ─────────────────────────────────────────────────
 function openConnections() {
@@ -2022,6 +2372,7 @@ async function loadConnections() {
     connections = [];
   }
   renderConnections();
+  updateConnectionsSubLabel(); // keep Settings row in sync
 }
 
 function renderConnections() {
