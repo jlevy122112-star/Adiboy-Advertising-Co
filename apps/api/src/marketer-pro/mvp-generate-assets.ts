@@ -5,8 +5,8 @@
  *   generateVideoScripts(input)  — fast, text-only, included in /api/generate response
  *   generateImages(input)        — slow (DALL-E 3, 30-60s), called from /api/generate-images
  *
- * Images use OpenAI-hosted URLs (60-min TTL). Upload to S3 before that window
- * when live publishing is implemented.
+ * Images use OpenAI-hosted URLs (60-min TTL). mvp-publisher.ts uploads to S3
+ * (via s3-upload.ts) before passing the URL to platform APIs.
  *
  * Platform specs sourced from content-asset-formats.ts catalog + DALL-E 3 size constraints.
  * DALL-E 3 only supports three sizes: 1024×1024 | 1792×1024 | 1024×1792

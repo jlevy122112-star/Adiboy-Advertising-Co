@@ -18,6 +18,7 @@ import {
   refreshSocialCredential,
   type SocialCredentialRow,
 } from "../db/social-credentials.js";
+import { uploadImageToS3 } from "./s3-upload.js";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -324,12 +325,25 @@ export async function publishPost(tenantId: string, input: MvpPublishInput): Pro
   const optimized = optimizeContent(input.platform, input.content, input.hashtags ?? []);
   const alt = input.altText ?? input.topic ?? input.content.slice(0, 200);
 
+  // Upload temporary DALL-E URL to S3 for a permanent public URL before hitting platform APIs.
+  // Falls back to the original URL if S3 is not configured — works for immediate publishes
+  // within the 60-min DALL-E TTL window.
+  let imageUrl = input.imageUrl;
+  if (imageUrl) {
+    const s3Url = await uploadImageToS3(imageUrl, input.platform);
+    if (s3Url) {
+      imageUrl = s3Url;
+    } else {
+      optimized.warnings.push("s3_upload_skipped:using_temporary_dalle_url_60min_ttl");
+    }
+  }
+
   switch (input.platform) {
-    case "ig": return publishInstagram(tenantId, optimized, input.imageUrl ?? "", alt);
-    case "fb": return publishFacebook(tenantId, optimized, input.imageUrl);
+    case "ig": return publishInstagram(tenantId, optimized, imageUrl ?? "", alt);
+    case "fb": return publishFacebook(tenantId, optimized, imageUrl);
     case "x":  return publishX(tenantId, optimized);
     case "li": return publishLinkedIn(tenantId, optimized);
-    case "tt": return publishTikTok(tenantId, optimized, input.imageUrl);
+    case "tt": return publishTikTok(tenantId, optimized, imageUrl);
   }
 }
 
