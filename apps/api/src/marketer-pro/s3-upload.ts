@@ -1,6 +1,7 @@
 /**
- * S3 image upload — fetches a temporary URL (e.g. DALL-E 60-min TTL) and
- * puts it into the configured S3 bucket as a permanent, publicly-readable object.
+ * S3 image upload — fetches a temporary URL (e.g. DALL-E 60-min TTL),
+ * resizes + converts to WebP at exact platform pixel spec, then uploads
+ * to S3 as a permanent, publicly-readable object.
  *
  * Env vars:
  *   AWS_ACCESS_KEY_ID      required
@@ -16,11 +17,63 @@
  * but platforms that require a long-lived URL (Instagram, TikTok) will warn.
  */
 
+import sharp from "sharp";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { randomUUID } from "node:crypto";
 
 const FETCH_TIMEOUT_MS = 30_000;
 const UPLOAD_TIMEOUT_MS = 30_000;
+
+// ── Exact platform pixel specs ─────────────────────────────────────────────
+// Source: each platform's official developer/content guidelines.
+// DALL-E 3 generates at the nearest supported size (1024×1024 | 1792×1024 | 1024×1792);
+// sharp resizes to the exact spec before S3 upload so every stored asset
+// is publish-ready at the correct dimensions.
+
+const PLATFORM_DIMENSIONS: Record<string, { width: number; height: number }> = {
+  ig:  { width: 1080, height: 1080 }, // Instagram feed — 1:1 square
+  li:  { width: 1200, height: 627  }, // LinkedIn shared image — 1.91:1
+  x:   { width: 1200, height: 675  }, // X (Twitter) card — 16:9
+  fb:  { width: 1200, height: 630  }, // Facebook OG / feed — 1.91:1
+  tt:  { width: 1080, height: 1920 }, // TikTok cover — 9:16 vertical
+  // Story / Reel formats (same as TikTok vertical)
+  ig_story:  { width: 1080, height: 1920 },
+  ig_reel:   { width: 1080, height: 1920 },
+  fb_story:  { width: 1080, height: 1920 },
+  // YouTube thumbnail
+  yt:  { width: 1280, height: 720  }, // YouTube thumbnail — 16:9
+  // Pinterest
+  pin: { width: 1000, height: 1500 }, // Pinterest standard — 2:3
+  // LinkedIn Story
+  li_story: { width: 1080, height: 1920 },
+};
+
+// WebP at 85% quality — matches DEFAULT_IMAGE_OPTIMIZATION in the contract package.
+// Cover fit: crops to fill exact dimensions from centre — no letterboxing, no distortion.
+const OUTPUT_QUALITY = 85;
+
+async function resizeForPlatform(
+  buffer: Buffer,
+  platform: string,
+): Promise<{ data: Buffer; contentType: string }> {
+  const dims = PLATFORM_DIMENSIONS[platform];
+  let pipeline = sharp(buffer)
+    .rotate();                // auto-orient from EXIF (EXIF stripped by .webp() output below)
+
+  if (dims) {
+    pipeline = pipeline.resize(dims.width, dims.height, {
+      fit: "cover",           // crop to fill — no black bars
+      position: "centre",     // centre-crop keeps the main subject
+      withoutEnlargement: false, // allow upscale (e.g. 1024→1080 for IG)
+    });
+  }
+
+  const data = await pipeline
+    .webp({ quality: OUTPUT_QUALITY, effort: 4 })
+    .toBuffer();
+
+  return { data, contentType: "image/webp" };
+}
 
 function getS3Client(): S3Client | null {
   const region = process.env.AWS_REGION?.trim() || "us-east-1";
@@ -40,16 +93,10 @@ function getS3Config(): { bucket: string; prefix: string; publicBase: string } |
   return { bucket, prefix, publicBase };
 }
 
-function mimeFromUrl(url: string): string {
-  const ext = url.split("?")[0]?.split(".").pop()?.toLowerCase();
-  if (ext === "png") return "image/png";
-  if (ext === "webp") return "image/webp";
-  return "image/jpeg";
-}
-
 /**
- * Download a temporary image URL and upload it to S3.
- * Returns the permanent public URL or null if S3 is not configured / fetch fails.
+ * Download a temporary image URL, resize + convert to WebP at exact platform
+ * pixel spec, then upload to S3 as a permanent public asset.
+ * Returns the permanent public URL or null if S3 is not configured / fails.
  */
 export async function uploadImageToS3(
   temporaryUrl: string,
@@ -62,22 +109,41 @@ export async function uploadImageToS3(
   // Download the image
   const fetchController = new AbortController();
   const fetchTimer = setTimeout(() => fetchController.abort(), FETCH_TIMEOUT_MS);
-  let imageBuffer: ArrayBuffer;
-  let contentType: string;
+  let rawBuffer: Buffer;
   try {
     const res = await fetch(temporaryUrl, { signal: fetchController.signal });
     if (!res.ok) return null;
-    contentType = res.headers.get("content-type") ?? mimeFromUrl(temporaryUrl);
-    imageBuffer = await res.arrayBuffer();
+    rawBuffer = Buffer.from(await res.arrayBuffer());
   } catch {
     return null;
   } finally {
     clearTimeout(fetchTimer);
   }
 
+  // Resize to exact platform spec + convert to WebP
+  let processedBuffer: Buffer;
+  let contentType: string;
+  try {
+    const result = await resizeForPlatform(rawBuffer, platform);
+    processedBuffer = result.data;
+    contentType = result.contentType;
+  } catch {
+    // If sharp fails (corrupt image, etc.) fall back to raw upload
+    processedBuffer = rawBuffer;
+    contentType = "image/jpeg";
+  }
+
+  // Verify dimensions for logging
+  let finalDims = "";
+  try {
+    const meta = await sharp(processedBuffer).metadata();
+    finalDims = `${meta.width}x${meta.height}`;
+  } catch { /* non-critical */ }
+
   // Upload to S3
-  const ext = contentType.includes("png") ? "png" : contentType.includes("webp") ? "webp" : "jpg";
-  const key = `${cfg.prefix}${platform}/${randomUUID()}.${ext}`;
+  const key = `${cfg.prefix}${platform}/${randomUUID()}.webp`;
+  const dims = PLATFORM_DIMENSIONS[platform];
+  const dimsLabel = dims ? `${dims.width}x${dims.height}` : "original";
 
   const uploadController = new AbortController();
   const uploadTimer = setTimeout(() => uploadController.abort(), UPLOAD_TIMEOUT_MS);
@@ -85,11 +151,18 @@ export async function uploadImageToS3(
     await s3.send(new PutObjectCommand({
       Bucket: cfg.bucket,
       Key: key,
-      Body: new Uint8Array(imageBuffer),
+      Body: processedBuffer,
       ContentType: contentType,
       ACL: "public-read",
       CacheControl: "public, max-age=31536000, immutable",
-      Metadata: { platform, source: "dalle3" },
+      Metadata: {
+        platform,
+        source: "dalle3",
+        targetDimensions: dimsLabel,
+        actualDimensions: finalDims,
+        format: "webp",
+        quality: String(OUTPUT_QUALITY),
+      },
     }), { abortSignal: uploadController.signal });
   } catch {
     return null;
@@ -99,3 +172,4 @@ export async function uploadImageToS3(
 
   return `${cfg.publicBase}/${key}`;
 }
+
