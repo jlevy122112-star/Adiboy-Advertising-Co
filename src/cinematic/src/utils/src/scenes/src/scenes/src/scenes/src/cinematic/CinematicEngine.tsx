@@ -87,9 +87,23 @@ export const CinematicEngine: React.FC = () => {
 
   setRequestId(result.requestId);
 
-  // Begin polling
-  pollLoop(result.requestId);
-}, [dispatch]);
+const pollLoop = async (id: string) => {
+  const interval = setInterval(async () => {
+    const status = await pollGenerationStatus(id);
+
+    if (status.status === "complete") {
+      clearInterval(interval);
+      setBackendDone(true);
+      dispatch({ type: "BACKEND_DONE", payload: status.artifacts });
+    }
+
+    if (status.status === "error") {
+      clearInterval(interval);
+      dispatch({ type: "GENERATION_FAILED", payload: { message: status.error } });
+    }
+  }, 1200);
+};
+
 
   // Dummy pipeline timing for Ticket #1
   useEffect(() => {
