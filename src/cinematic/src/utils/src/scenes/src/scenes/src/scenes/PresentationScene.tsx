@@ -1,3 +1,4 @@
+
 <PresentationScene
   state={machine.state}
   dispatch={dispatch}
@@ -10,8 +11,11 @@ import { LottiePlayer } from "../components/animations/LottiePlayer";
 
 interface PresentationSceneProps {
   state: string;
-  dispatch: (event: { type: string; payload?: any }) => void;
+  dispatch: any;
   onComplete: () => void;
+  artifacts: any[];
+}
+
 }
 
 export const PresentationScene: React.FC<PresentationSceneProps> = ({
@@ -35,9 +39,12 @@ export const PresentationScene: React.FC<PresentationSceneProps> = ({
     }
   }, [slamDone, stampDone, dispatch, onComplete]);
 
-  const handleArtifactClick = (artifact: any) => {
-    dispatch({ type: "ARTIFACT_SELECTED", payload: artifact });
-  };
+{artifacts.map(a => (
+  <div key={a.id} onClick={() => handleArtifactClick(a)}>
+    {a.title}
+  </div>
+))}
+
 
   return (
     <div
