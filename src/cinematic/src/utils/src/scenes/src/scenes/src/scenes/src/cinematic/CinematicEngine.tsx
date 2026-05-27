@@ -1,3 +1,7 @@
+const [requestId, setRequestId] = useState<string | null>(null);
+const [backendDone, setBackendDone] = useState(false);
+
+import { generateContent, pollGenerationStatus } from "../services/generationService";
 import { preloadAssets } from "../utils/assetPreloader";
 
 export const CinematicEngine: React.FC = () => {
@@ -71,9 +75,21 @@ export const CinematicEngine: React.FC = () => {
     setMachine((prev) => transition(prev, event));
   }, []);
 
-  const startGeneration = useCallback(() => {
-    dispatch({ type: "START_GENERATION" });
-  }, [dispatch]);
+  const startGeneration = useCallback(async (payload: any) => {
+  dispatch({ type: "START_GENERATION" });
+
+  const result = await generateContent(payload);
+
+  if (result.status === "error") {
+    dispatch({ type: "GENERATION_FAILED", payload: { message: result.error } });
+    return;
+  }
+
+  setRequestId(result.requestId);
+
+  // Begin polling
+  pollLoop(result.requestId);
+}, [dispatch]);
 
   // Dummy pipeline timing for Ticket #1
   useEffect(() => {
