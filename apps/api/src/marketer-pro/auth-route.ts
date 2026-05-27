@@ -101,7 +101,15 @@ export async function handleAuthRequest(req: IncomingMessage, res: ServerRespons
 
     const body = await readBody(req);
     const parsed = SignupBodySchema.safeParse(body);
-    if (!parsed.success) { json(res, 400, { error: "invalid_body", issues: parsed.error.issues }); return; }
+    if (!parsed.success) {
+      // Surface WEAK_PASSWORD specifically so the client can show targeted hint
+      const weakPw = parsed.error.issues.some((i: { path: (string | number)[] }) => i.path.includes("password"));
+      json(res, 400, {
+        error: weakPw ? AuthErrorCode.WEAK_PASSWORD : "invalid_body",
+        issues: parsed.error.issues,
+      });
+      return;
+    }
 
     const { tenantId, email, password } = parsed.data;
     const existing = await getUserByEmail(tenantId, email);

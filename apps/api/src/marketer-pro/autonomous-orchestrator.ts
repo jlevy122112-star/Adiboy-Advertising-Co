@@ -356,10 +356,11 @@ async function orchestrateRun(
   // ── scheduling → ready_to_publish ─────────────────────────────────────────
   run = await save(advance(run, "ready_to_publish", "schedule_entries_queued"));
 
-  // Persist schedule entries to DB
+  // Persist schedule entries to DB — full content in contentSummary, hashtags in metadata
   for (const { plannedPost, posts } of generatedPosts) {
     for (const post of posts) {
-      const summary = `[${post.platform.toUpperCase()}] ${plannedPost.topic.slice(0, 100)} — ${post.content.slice(0, 200)}`;
+      // content_summary holds the full generated copy (TEXT has no length limit)
+      const summary = `[${post.platform.toUpperCase()}] ${plannedPost.topic} — ${post.content}`;
       await insertScheduleEntry({
         tenantId,
         scheduleEntryId: randomUUID(),
@@ -368,6 +369,7 @@ async function orchestrateRun(
         status: "scheduled",
         contentSummary: summary,
         scheduledAt: plannedPost.scheduledAt,
+        metadata: post.hashtags.length > 0 ? { hashtags: post.hashtags } : null,
       });
     }
   }

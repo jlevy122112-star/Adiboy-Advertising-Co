@@ -62,6 +62,8 @@ export type InsertScheduleEntryInput = {
   readonly status: string;
   readonly contentSummary: string | null;
   readonly scheduledAt: string | null;
+  /** Optional PostMetadata — hashtags[], mentions[], altText, platform extras. */
+  readonly metadata?: Record<string, unknown> | null;
 };
 
 export type InsertScheduleEntryResult =
@@ -105,15 +107,17 @@ export async function insertScheduleEntry(
     }
   }
 
+  const metaJson = (input.metadata ?? null);
   try {
     const rows = await sql<ScheduleEntryRow[]>`
       INSERT INTO schedule_entries
         (tenant_id, id, campaign_id, network, status, content_summary, scheduled_at,
-         created_at, updated_at)
+         metadata, created_at, updated_at)
       VALUES
         (${input.tenantId}, ${input.scheduleEntryId}, ${input.campaignId},
          ${input.network}, ${input.status}, ${input.contentSummary},
          ${input.scheduledAt}::timestamptz,
+         ${metaJson !== null ? sql.json(metaJson as unknown as Parameters<typeof sql.json>[0]) : null},
          now(), now())
       RETURNING id, tenant_id, campaign_id, network, status, content_summary,
                 scheduled_at, video_options, metadata, created_at, updated_at

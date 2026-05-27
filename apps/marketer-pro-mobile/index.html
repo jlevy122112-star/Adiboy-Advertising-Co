@@ -750,7 +750,7 @@
         </div>
         <div class="auth-field">
           <label>Password</label>
-          <input type="password" id="signup-password" placeholder="8+ characters" />
+          <input type="password" id="signup-password" placeholder="8+ chars, upper, lower, digit" />
         </div>
         <button class="auth-btn" id="signup-btn">Create Account</button>
         <div class="auth-switch">Already have an account? <a onclick="showLogin()">Sign in</a></div>
@@ -1106,7 +1106,10 @@ document.getElementById('signup-btn').addEventListener('click', async function()
   var errEl = document.getElementById('signup-err');
   errEl.classList.remove('show');
   if (!tenant || !email || !pw) { errEl.textContent = 'All fields are required.'; errEl.classList.add('show'); return; }
-  if (pw.length < 8) { errEl.textContent = 'Password must be 8+ characters.'; errEl.classList.add('show'); return; }
+  if (!/^.{8,}$/.test(pw) || !/[A-Z]/.test(pw) || !/[a-z]/.test(pw) || !/[0-9]/.test(pw)) {
+    errEl.textContent = 'Password must be 8+ characters with an uppercase letter, a lowercase letter, and a digit.';
+    errEl.classList.add('show'); return;
+  }
   btn.disabled = true; btn.textContent = 'Creating account...';
   try {
     var res = await fetch(API_BASE + '/auth/signup', {
@@ -1115,7 +1118,13 @@ document.getElementById('signup-btn').addEventListener('click', async function()
       body: JSON.stringify({ tenantId: tenant, email: email, password: pw })
     });
     var data = await res.json();
-    if (!res.ok) { errEl.textContent = data.error || 'Signup failed.'; errEl.classList.add('show'); return; }
+    if (!res.ok) {
+      var msg = data.error === 'weak_password'
+        ? 'Password must be 8+ characters with an uppercase letter, a lowercase letter, and a digit.'
+        : data.error === 'email_taken' ? 'An account with that email already exists.'
+        : data.error || 'Signup failed.';
+      errEl.textContent = msg; errEl.classList.add('show'); return;
+    }
     saveToken(data.tokens.accessToken);
     hideAuthOverlay();
     onAuthSuccess();

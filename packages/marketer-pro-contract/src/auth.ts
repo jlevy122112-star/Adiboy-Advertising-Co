@@ -14,10 +14,27 @@ export const UserSchema = z.object({
 });
 export type User = z.infer<typeof UserSchema>;
 
+/**
+ * Password must be 8–128 chars, with at least one uppercase letter,
+ * one lowercase letter, and one digit.
+ * The WEAK_PASSWORD error code is returned when this fails.
+ */
+export function isStrongPassword(pw: string): boolean {
+  return pw.length >= 8 && /[A-Z]/.test(pw) && /[a-z]/.test(pw) && /[0-9]/.test(pw);
+}
+export const PASSWORD_STRENGTH_MESSAGE =
+  "Password must be at least 8 characters and include an uppercase letter, a lowercase letter, and a digit.";
+
+const strongPassword = z
+  .string()
+  .min(8, PASSWORD_STRENGTH_MESSAGE)
+  .max(128)
+  .refine(isStrongPassword, PASSWORD_STRENGTH_MESSAGE);
+
 export const SignupBodySchema = z.object({
   tenantId: z.string().min(1),
   email: z.string().email(),
-  password: z.string().min(8).max(128),
+  password: strongPassword,
 });
 export type SignupBody = z.infer<typeof SignupBodySchema>;
 
@@ -48,7 +65,7 @@ export const PasswordResetRequestBodySchema = z.object({
 
 export const PasswordResetBodySchema = z.object({
   token: z.string().min(1),
-  password: z.string().min(8).max(128),
+  password: strongPassword,
 });
 
 export const JwtPayloadSchema = z.object({

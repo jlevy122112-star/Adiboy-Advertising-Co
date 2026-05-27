@@ -62,6 +62,8 @@ export {
   PasswordResetBodySchema,
   JwtPayloadSchema,
   AuthErrorCode,
+  isStrongPassword,
+  PASSWORD_STRENGTH_MESSAGE,
   type User,
   type UserRole,
   type SignupBody,
