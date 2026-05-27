@@ -15,12 +15,10 @@ export const PresentationScene: React.FC<PresentationSceneProps> = ({
   const [slamDone, setSlamDone] = useState(false);
   const [stampDone, setStampDone] = useState(false);
 
-  // Fake artifacts for now — backend will replace these later
-  const artifacts = [
-    { id: "1", title: "Primary Copy", type: "copy" },
-    { id: "2", title: "Image Variation", type: "image" },
-    { id: "3", title: "Hashtags", type: "hashtags" },
-  ];
+ const artifacts = (state === "artifacts_ready" && (dispatch as any).lastArtifacts)
+  ? (dispatch as any).lastArtifacts
+  : [];
+
 
   useEffect(() => {
     // When slam + stamp are done, notify cinematic engine
