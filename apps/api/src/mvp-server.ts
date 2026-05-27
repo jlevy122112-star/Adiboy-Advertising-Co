@@ -59,6 +59,8 @@ import { startAutonomousRun, applyUserAction } from "./marketer-pro/autonomous-o
 import { getAutonomousRun, listAutonomousRuns } from "./db/autonomous-run.js";
 import { DEFAULT_AUTONOMY_POLICY, runProgress } from "@home-link/marketer-pro-contract";
 import { publishAll, type MvpPublishInput } from "./marketer-pro/mvp-publisher.js";
+import { createDeletionRequest, getDeletionRequest, cancelDeletionRequest } from "./db/account-deletion.js";
+import { getPostgresClient } from "./db/postgres.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const FRONTEND_HTML_PATH = join(__dirname, "../../marketer-pro-mobile/index.html");
@@ -189,6 +191,18 @@ const server = createServer(async (req, res) => {
   // ── Serve frontend ────────────────────────────────────────────────────────
   if (req.method === "GET" && (path === "/" || path === "/index.html")) {
     serveFrontend(res);
+    return;
+  }
+
+  // ── Health check (no auth, for uptime monitors) ───────────────────────────
+  if (req.method === "GET" && path === "/health") {
+    const sql = getPostgresClient();
+    let dbOk = false;
+    if (sql) {
+      try { await sql`SELECT 1`; dbOk = true; } catch { /* db unavailable */ }
+    }
+    const status = dbOk ? 200 : 503;
+    json(req, res, status, { ok: dbOk, ts: new Date().toISOString(), version: process.env.npm_package_version ?? "unknown" });
     return;
   }
 
@@ -620,6 +634,63 @@ const server = createServer(async (req, res) => {
       console.error(JSON.stringify(safeLogCtx({ level: "error", event: "mvp_publish_error", tenantId: auth.tenantId, requestId, message: String(e) })));
       json(req, res, 500, { error: "publish_failed", requestId });
     }
+    return;
+  }
+
+  // ── GET /api/account/export — GDPR data export ───────────────────────────
+  if (req.method === "GET" && path === "/api/account/export") {
+    const sql = getPostgresClient();
+    if (!sql) { json(req, res, 503, { error: "database_unavailable" }); return; }
+    try {
+      const [scheduleRows, brandRows, runRows] = await Promise.all([
+        sql`SELECT id, network, status, content_summary, scheduled_at, created_at FROM schedule_entries WHERE tenant_id = ${auth.tenantId} ORDER BY created_at DESC LIMIT 1000`,
+        sql`SELECT id, profile_json, created_at, updated_at FROM brand_profiles WHERE tenant_id = ${auth.tenantId} LIMIT 1`,
+        sql`SELECT run_id, state, created_at, updated_at FROM autonomous_runs WHERE workspace_id = ${auth.tenantId} ORDER BY created_at DESC LIMIT 100`,
+      ]);
+      const payload = JSON.stringify({
+        exportedAt: new Date().toISOString(),
+        tenantId: auth.tenantId,
+        userId: auth.userId,
+        scheduledPosts: scheduleRows,
+        brandProfile: brandRows[0] ?? null,
+        autonomousRuns: runRows,
+      }, null, 2);
+      res.writeHead(200, {
+        "Content-Type": "application/json",
+        "Content-Disposition": `attachment; filename="marketer-pro-export-${new Date().toISOString().slice(0,10)}.json"`,
+        "Content-Length": Buffer.byteLength(payload),
+      });
+      res.end(payload);
+    } catch (e) {
+      json(req, res, 500, { error: "export_failed", requestId });
+    }
+    return;
+  }
+
+  // ── POST /api/account/delete-request — GDPR account deletion ─────────────
+  if (req.method === "POST" && path === "/api/account/delete-request") {
+    const result = await createDeletionRequest({
+      workspaceId: auth.tenantId,
+      requestedByUserId: auth.userId,
+      scheduleDelayHours: 72, // 72-hour grace period
+    });
+    if (!result) { json(req, res, 500, { error: "deletion_request_failed" }); return; }
+    json(req, res, 201, result);
+    return;
+  }
+
+  // ── GET /api/account/delete-request ──────────────────────────────────────
+  if (req.method === "GET" && path === "/api/account/delete-request") {
+    const result = await getDeletionRequest(auth.tenantId);
+    if (!result) { json(req, res, 404, { error: "no_pending_deletion" }); return; }
+    json(req, res, 200, result);
+    return;
+  }
+
+  // ── DELETE /api/account/delete-request — cancel pending deletion ──────────
+  if (req.method === "DELETE" && path === "/api/account/delete-request") {
+    await cancelDeletionRequest(auth.tenantId);
+    json(req, res, 200, { cancelled: true });
     return;
   }
 

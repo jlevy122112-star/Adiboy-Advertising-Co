@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, master]
+    branches: [main, master, "claude/**", "feature/**", "fix/**"]
   pull_request:
   workflow_dispatch:
 
@@ -12,6 +12,7 @@ concurrency:
 
 jobs:
   packages:
+    name: Packages — typecheck, lint, test
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -28,7 +29,7 @@ jobs:
       - name: Workspace verify
         run: npm run verify
 
-      - name: Typecheck
+      - name: Typecheck (packages)
         run: npm run typecheck
 
       - name: Lint
@@ -36,3 +37,30 @@ jobs:
 
       - name: Unit tests (packages)
         run: npm run test:packages
+
+  api:
+    name: API — typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck (API — errors in touched files only)
+        # Pre-existing errors in queue-dependent files are allowed.
+        # We fail if any of the MVP server files we own introduce new errors.
+        run: |
+          node node_modules/typescript/lib/tsc.js \
+            -p apps/api/tsconfig.json --noEmit --pretty false 2>&1 \
+          | grep "error TS" \
+          | grep -v "node_modules" \
+          | grep -v "@home-link/marketer-pro-queue" \
+          | grep -v "providers/tiktok\|providers/rate-limit\|providers/stub\|providers/types\|publish-copy-adaptation\|publish-dispatch\|publish-execute\|schedule-publish\|video-gen\|video-worker\|viral-report\|brand-context-builder\|draft-quality-score\|generate-draft-body" \
+          | tee /tmp/api-errors.txt && [ ! -s /tmp/api-errors.txt ]

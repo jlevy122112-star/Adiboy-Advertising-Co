@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="theme-color" content="#1847F0"/>
 <title>MarketerPro</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.33.0/dist/tabler-icons.min.css"/>
 <style>
@@ -16,6 +19,23 @@
   --nav-h:68px;--top-h:60px;--r:16px;
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;width:100%;overflow:hidden;}
+body{background:#0D1A3A;}
+
+/* On real phones: full-screen, no fake device frame */
+@media (max-width:430px) {
+  #app-shell{
+    width:100%!important;height:100%!important;border-radius:0!important;
+    margin:0!important;border:none!important;box-shadow:none!important;
+    /* iOS safe areas — notch top, home indicator bottom */
+    padding-top:env(safe-area-inset-top);
+    padding-bottom:env(safe-area-inset-bottom);
+    padding-left:env(safe-area-inset-left);
+    padding-right:env(safe-area-inset-right);
+  }
+  .status-bar{display:none!important;}
+}
+
 #app-shell{
   font-family:'DM Sans',sans-serif;background:var(--surface);
   width:390px;height:820px;border-radius:40px;overflow:hidden;
@@ -33,13 +53,13 @@
 .top-bar .notif{position:relative;cursor:pointer;}
 .top-bar .notif-dot{position:absolute;top:-2px;right:-2px;width:8px;height:8px;background:var(--danger);border-radius:50%;border:1.5px solid white;}
 .top-bar .right-actions{display:flex;gap:12px;align-items:center;}
-.screen-area{flex:1;overflow-y:auto;overflow-x:hidden;background:var(--surface);scrollbar-width:none;}
+.screen-area{flex:1;overflow-y:auto;overflow-x:hidden;background:var(--surface);scrollbar-width:none;-webkit-overflow-scrolling:touch;touch-action:pan-y;}
 .screen-area::-webkit-scrollbar{display:none;}
 .screen{display:none;animation:fadeUp 0.25s ease;}
 .screen.active{display:block;}
 @keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
-.bottom-nav{height:var(--nav-h);background:var(--card);border-top:0.5px solid var(--border);display:grid;grid-template-columns:repeat(4,1fr);align-items:center;flex-shrink:0;padding-bottom:8px;}
-.nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:8px 4px 4px;transition:all 0.18s;}
+.bottom-nav{height:var(--nav-h);background:var(--card);border-top:0.5px solid var(--border);display:grid;grid-template-columns:repeat(4,1fr);align-items:center;flex-shrink:0;padding-bottom:8px;padding-bottom:max(8px,env(safe-area-inset-bottom));}
+.nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:8px 4px 4px;transition:all 0.18s;min-height:44px;min-width:44px;justify-content:center;}
 .nav-item i{font-size:22px;color:var(--text-3);transition:all 0.18s;}
 .nav-item span{font-size:10px;color:var(--text-3);font-weight:500;transition:all 0.18s;letter-spacing:0.3px;}
 .nav-item.active i{color:var(--brand);}
@@ -74,7 +94,7 @@
 /* FORM */
 .form-field{margin-bottom:12px;}
 .form-field label{display:block;font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:5px;letter-spacing:0.3px;text-transform:uppercase;}
-.form-field textarea,.form-field select,.form-field input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:14px;color:var(--text-1);font-family:'DM Sans',sans-serif;outline:none;transition:border 0.15s;}
+.form-field textarea,.form-field select,.form-field input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;font-size:16px;color:var(--text-1);font-family:'DM Sans',sans-serif;outline:none;transition:border 0.15s;-webkit-appearance:none;appearance:none;}
 .form-field textarea:focus,.form-field select:focus,.form-field input:focus{border-color:var(--brand);}
 .form-field textarea{resize:none;height:72px;}
 .gen-action-btn{width:100%;background:var(--brand);color:white;border:none;border-radius:14px;padding:16px;font-family:'Syne',sans-serif;font-weight:700;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:8px;transition:all 0.15s;}
@@ -90,7 +110,7 @@
 .post-content{padding:12px 14px;font-size:13px;color:var(--text-1);line-height:1.6;}
 .post-content .hashtags{color:var(--brand);margin-top:6px;font-size:12px;}
 .post-actions{display:flex;gap:8px;padding:10px 14px;background:#FAFBFF;}
-.post-btn{flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);background:white;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;transition:all 0.12s;font-family:'DM Sans',sans-serif;}
+.post-btn{flex:1;padding:10px 8px;min-height:44px;border-radius:8px;border:1px solid var(--border);background:white;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;transition:all 0.12s;font-family:'DM Sans',sans-serif;}
 .post-btn.approve{background:var(--accent-light);border-color:#A7F3D0;color:#047857;}
 .post-btn.approve:hover{background:#A7F3D0;}
 .post-btn.edit{color:var(--brand);border-color:var(--brand-light);}
@@ -204,7 +224,7 @@
 .profile-hero .edit-btn{margin-left:auto;background:rgba(255,255,255,0.15);border:none;border-radius:10px;padding:8px 12px;color:white;font-size:12px;font-weight:600;cursor:pointer;}
 .settings-group{margin:0 20px 16px;}
 .settings-group-label{font-size:11px;font-weight:700;color:var(--text-3);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:8px;padding-left:4px;}
-.settings-row{display:flex;align-items:center;gap:12px;padding:13px 14px;background:var(--card);border-radius:12px;margin-bottom:2px;cursor:pointer;border:0.5px solid var(--border);transition:all 0.12s;}
+.settings-row{display:flex;align-items:center;gap:12px;padding:13px 14px;min-height:44px;background:var(--card);border-radius:12px;margin-bottom:2px;cursor:pointer;border:0.5px solid var(--border);transition:all 0.12s;}
 .settings-row:hover{background:var(--brand-light);}
 .settings-row i{font-size:20px;color:var(--brand);width:24px;}
 .settings-row .sr-label{font-size:14px;color:var(--text-1);font-weight:500;flex:1;}
@@ -229,7 +249,7 @@
 .ob-option.sel .ob-check::after{content:'✓';color:white;font-size:11px;font-weight:700;}
 .ob-option .ob-opt-label{font-size:15px;font-weight:500;color:var(--text-1);}
 .ob-option .ob-opt-sub{font-size:12px;color:var(--text-3);margin-top:1px;}
-.ob-input{width:100%;border:1.5px solid var(--border);border-radius:12px;padding:13px 14px;font-size:15px;color:var(--text-1);font-family:'DM Sans',sans-serif;outline:none;margin-bottom:10px;transition:border 0.15s;background:var(--surface);}
+.ob-input{width:100%;border:1.5px solid var(--border);border-radius:12px;padding:13px 14px;font-size:16px;color:var(--text-1);font-family:'DM Sans',sans-serif;outline:none;margin-bottom:10px;transition:border 0.15s;background:var(--surface);-webkit-appearance:none;appearance:none;}
 .ob-input:focus{border-color:var(--brand);background:white;}
 .ob-footer{padding:16px 24px 24px;background:white;flex-shrink:0;border-top:0.5px solid var(--border);}
 .ob-next-btn{width:100%;background:var(--brand);color:white;border:none;border-radius:16px;padding:18px;font-family:'Syne',sans-serif;font-weight:700;font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.15s;}
@@ -246,7 +266,7 @@
 .auth-title{font-family:'Syne',sans-serif;font-weight:700;font-size:20px;color:var(--text-1);margin-bottom:20px;}
 .auth-field{margin-bottom:14px;}
 .auth-field label{display:block;font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:5px;letter-spacing:0.3px;text-transform:uppercase;}
-.auth-field input{width:100%;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:13px 14px;font-size:15px;color:var(--text-1);font-family:'DM Sans',sans-serif;outline:none;transition:border 0.15s;}
+.auth-field input{width:100%;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:13px 14px;font-size:16px;color:var(--text-1);font-family:'DM Sans',sans-serif;outline:none;transition:border 0.15s;-webkit-appearance:none;appearance:none;}
 .auth-field input:focus{border-color:var(--brand);background:white;}
 .auth-btn{width:100%;background:var(--brand);color:white;border:none;border-radius:14px;padding:16px;font-family:'Syne',sans-serif;font-weight:700;font-size:16px;cursor:pointer;margin-top:8px;transition:all 0.15s;}
 .auth-btn:hover{background:#1138C8;}
@@ -582,9 +602,50 @@
             <i class="ti ti-chevron-right sr-chevron" aria-hidden="true"></i>
           </div>
         </div>
+        <div class="settings-group">
+          <div class="settings-group-label">Data &amp; Privacy</div>
+          <div class="settings-row" onclick="exportAccountData()">
+            <i class="ti ti-download" aria-hidden="true"></i>
+            <div style="flex:1"><div class="sr-label">Export My Data</div><div class="sr-sub">Download all your posts and brand data</div></div>
+            <i class="ti ti-chevron-right sr-chevron" aria-hidden="true"></i>
+          </div>
+          <div class="settings-row" onclick="openDeleteAccount()">
+            <i class="ti ti-trash" style="color:var(--danger)" aria-hidden="true"></i>
+            <div style="flex:1"><div class="sr-label" style="color:var(--danger)">Delete Account</div><div class="sr-sub">Permanently delete your account and data</div></div>
+            <i class="ti ti-chevron-right sr-chevron" aria-hidden="true"></i>
+          </div>
+        </div>
       </div>
     </div>
 
+  </div>
+
+  <!-- COOKIE CONSENT BANNER -->
+  <div id="cookie-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9999;background:#1a1a2e;color:white;padding:16px 20px;border-top:1px solid rgba(255,255,255,0.1)">
+    <div style="max-width:600px;margin:0 auto">
+      <div style="font-size:13px;margin-bottom:10px;line-height:1.5">
+        We use essential cookies to keep you signed in and make the app work. By continuing, you agree to our
+        <a href="/privacy" style="color:#6B8FFF;text-decoration:underline" target="_blank">Privacy Policy</a>.
+      </div>
+      <div style="display:flex;gap:10px">
+        <button onclick="acceptCookies()" style="flex:1;background:var(--brand);color:white;border:none;border-radius:10px;padding:10px;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;cursor:pointer">Accept</button>
+        <button onclick="acceptCookies()" style="background:transparent;color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.2);border-radius:10px;padding:10px 16px;font-size:13px;cursor:pointer">Dismiss</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DELETE ACCOUNT CONFIRMATION SHEET -->
+  <div id="delete-account-sheet" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,0.6)" onclick="if(event.target===this)closeDeleteAccount()">
+    <div style="position:absolute;bottom:0;left:0;right:0;background:white;border-radius:20px 20px 0 0;padding:24px 20px 40px">
+      <div style="text-align:center;margin-bottom:20px">
+        <div style="font-size:40px;margin-bottom:8px">⚠️</div>
+        <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:18px;color:var(--danger)">Delete Account</div>
+        <div style="font-size:13px;color:var(--text-2);margin-top:6px;line-height:1.5">This will permanently delete your account, all posts, brand data, and cancel any active subscriptions.<br><br>You have <strong>72 hours</strong> to cancel this request.</div>
+      </div>
+      <div id="delete-account-error" style="display:none;background:#FEF2F2;border:1px solid #FCA5A5;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:var(--danger)"></div>
+      <button id="confirm-delete-btn" onclick="confirmDeleteAccount()" style="width:100%;background:var(--danger);color:white;border:none;border-radius:14px;padding:14px;font-family:'Syne',sans-serif;font-weight:700;font-size:15px;cursor:pointer;margin-bottom:10px">Yes, Delete My Account</button>
+      <button onclick="closeDeleteAccount()" style="width:100%;background:transparent;color:var(--text-2);border:1.5px solid var(--border);border-radius:14px;padding:14px;font-family:'Syne',sans-serif;font-weight:600;font-size:15px;cursor:pointer">Cancel</button>
+    </div>
   </div>
 
   <!-- AUTONOMOUS PANEL (slide-up sheet) -->
@@ -1054,6 +1115,72 @@ function logout() {
   // Tell server to clear the httpOnly cookie
   fetch(API_BASE + '/auth/logout', { method: 'POST', credentials: 'include' }).catch(function(){});
   showAuthOverlay();
+}
+
+// ─────────────────────────────────────────────────
+// COOKIE CONSENT
+// ─────────────────────────────────────────────────
+function initCookieBanner() {
+  if (!localStorage.getItem('mp_cookie_consent')) {
+    document.getElementById('cookie-banner').style.display = 'block';
+  }
+}
+function acceptCookies() {
+  localStorage.setItem('mp_cookie_consent', '1');
+  document.getElementById('cookie-banner').style.display = 'none';
+}
+
+// ─────────────────────────────────────────────────
+// DATA EXPORT
+// ─────────────────────────────────────────────────
+async function exportAccountData() {
+  showToast('Preparing your data export…');
+  try {
+    var res = await fetch(API_BASE + '/api/account/export', { credentials: 'include' });
+    if (!res.ok) { showToast('Export failed. Please try again.', true); return; }
+    var blob = await res.blob();
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'marketer-pro-export-' + new Date().toISOString().slice(0,10) + '.json';
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('Export downloaded.');
+  } catch(e) {
+    showToast('Export failed. Check your connection.', true);
+  }
+}
+
+// ─────────────────────────────────────────────────
+// DELETE ACCOUNT
+// ─────────────────────────────────────────────────
+function openDeleteAccount() {
+  document.getElementById('delete-account-error').style.display = 'none';
+  document.getElementById('delete-account-sheet').style.display = 'block';
+}
+function closeDeleteAccount() {
+  document.getElementById('delete-account-sheet').style.display = 'none';
+}
+async function confirmDeleteAccount() {
+  var btn = document.getElementById('confirm-delete-btn');
+  var errEl = document.getElementById('delete-account-error');
+  btn.disabled = true;
+  btn.textContent = 'Submitting…';
+  errEl.style.display = 'none';
+  try {
+    var res = await fetch(API_BASE + '/api/account/delete-request', { method: 'POST', credentials: 'include' });
+    var data = await res.json();
+    if (!res.ok) { errEl.textContent = data.error || 'Request failed.'; errEl.style.display = 'block'; return; }
+    closeDeleteAccount();
+    showToast('Deletion scheduled. You have 72 hours to cancel in Settings.');
+    setTimeout(logout, 3000);
+  } catch(e) {
+    errEl.textContent = 'Network error. Please try again.';
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Yes, Delete My Account';
+  }
 }
 
 // ─────────────────────────────────────────────────
@@ -2504,6 +2631,8 @@ async function disconnectPlatform(network) {
 // INIT
 // ─────────────────────────────────────────────────
 (function init() {
+  initCookieBanner();
+
   // Handle OAuth redirect back from social platform
   var urlParams = new URLSearchParams(window.location.search);
   var connectedNet = urlParams.get('connected');
