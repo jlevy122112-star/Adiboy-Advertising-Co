@@ -1069,8 +1069,20 @@ document.getElementById('gen-btn').addEventListener('click', async function() {
       cta: document.getElementById('f-cta').value,
       hashtagStrategy: document.getElementById('f-hashtag').value,
       urgency: document.getElementById('f-urgency').value,
-      brandName: brandProfile.brandName || '',
-      brandVoice: brandProfile.brandWords || '',
+      // Full brand context — server merges with DB; these are the client-side fallback
+      brandName:       brandProfile.brandName    || '',
+      brandVoice:      brandProfile.brandWords   || '',
+      brandColor:      brandProfile.brandColor   || '',
+      businessType:    brandProfile.businessType || '',
+      industry:        brandProfile.industry     || '',
+      problem:         brandProfile.problem      || '',
+      solution:        brandProfile.solution     || '',
+      outcome:         brandProfile.outcome      || '',
+      website:         brandProfile.website      || '',
+      phone:           brandProfile.phone        || '',
+      contactEmail:    brandProfile.email        || '',
+      instagramHandle: brandProfile.instagram    || '',
+      address:         brandProfile.address      || '',
     });
 
     if (r.status === 403 && r.data.error === 'plan_required') {

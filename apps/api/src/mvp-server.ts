@@ -47,6 +47,7 @@ import {
   insertScheduleEntry,
   listScheduleEntriesByTenant,
 } from "./db/schedule-entry.js";
+import { getMvpBrandConfig, upsertMvpBrandConfig } from "./db/brand-profile.js";
 import { getAnalyticsSummary } from "./db/analytics-snapshot.js";
 import { marketerEntitlementsForPlan } from "@home-link/marketer-pro-contract";
 import { getWorkspacePlan } from "./db/workspace-billing.js";
@@ -118,15 +119,28 @@ const GeneratePostsBodyShape = {
     const b = body as Record<string, unknown>;
     if (!Array.isArray(b.platforms) || !b.platforms.length) return null;
     if (typeof b.topic !== "string" || !b.topic.trim()) return null;
+    const str = (k: string) => typeof b[k] === "string" && b[k] ? String(b[k]) : undefined;
     return {
       platforms: (b.platforms as unknown[]).filter((p): p is string => typeof p === "string"),
       topic: String(b.topic),
-      contentGoal: typeof b.contentGoal === "string" ? b.contentGoal : "Build brand awareness",
-      cta: typeof b.cta === "string" ? b.cta : "Learn more",
-      hashtagStrategy: typeof b.hashtagStrategy === "string" ? b.hashtagStrategy : "Broad reach (10–15 hashtags)",
-      urgency: typeof b.urgency === "string" ? b.urgency : "Normal",
-      brandName: typeof b.brandName === "string" ? b.brandName : undefined,
-      brandVoice: typeof b.brandVoice === "string" ? b.brandVoice : undefined,
+      contentGoal: str("contentGoal") ?? "Build brand awareness",
+      cta: str("cta") ?? "Learn more",
+      hashtagStrategy: str("hashtagStrategy") ?? "Broad reach (10–15 hashtags)",
+      urgency: str("urgency") ?? "Normal",
+      // brand fields from client (supplemented server-side from DB below)
+      brandName: str("brandName"),
+      brandVoice: str("brandVoice"),
+      brandColor: str("brandColor"),
+      businessType: str("businessType"),
+      industry: str("industry"),
+      problem: str("problem"),
+      solution: str("solution"),
+      outcome: str("outcome"),
+      website: str("website"),
+      phone: str("phone"),
+      contactEmail: str("contactEmail"),
+      instagramHandle: str("instagramHandle"),
+      address: str("address"),
     };
   },
 };
@@ -229,8 +243,26 @@ const server = createServer(async (req, res) => {
       json(req, res, 400, { error: "validation_error", message: "platforms[] and topic are required" });
       return;
     }
+    // Server-side brand injection — DB is authoritative; client fields are fallback
+    const dbBrand = await getMvpBrandConfig(auth.tenantId);
+    const brandedInput: GeneratePostsInput = {
+      ...input,
+      brandName:      dbBrand?.brandName      ?? input.brandName,
+      brandVoice:     dbBrand?.brandWords     ?? input.brandVoice,
+      brandColor:     dbBrand?.brandColor     ?? input.brandColor,
+      businessType:   dbBrand?.businessType   ?? input.businessType,
+      industry:       dbBrand?.industry       ?? input.industry,
+      problem:        dbBrand?.problem        ?? input.problem,
+      solution:       dbBrand?.solution       ?? input.solution,
+      outcome:        dbBrand?.outcome        ?? input.outcome,
+      website:        dbBrand?.website        ?? input.website,
+      phone:          dbBrand?.phone          ?? input.phone,
+      contactEmail:   dbBrand?.email          ?? input.contactEmail,
+      instagramHandle: dbBrand?.instagram     ?? input.instagramHandle,
+      address:        dbBrand?.address        ?? input.address,
+    };
     try {
-      const posts = await generatePosts(input);
+      const posts = await generatePosts(brandedInput);
       json(req, res, 200, { posts });
     } catch (err) {
       console.error(JSON.stringify({ level: "error", event: "mvp_generate_error", message: String(err) }));
@@ -290,9 +322,12 @@ const server = createServer(async (req, res) => {
 
   // ── GET /api/brand-profile ────────────────────────────────────────────────
   if (req.method === "GET" && path === "/api/brand-profile") {
-    const params = new URLSearchParams({ tenantId: auth.tenantId, profileId: auth.tenantId });
-    const outcome = await executeGetBrandProfileRequestFromSearchParams(params);
-    json(req, res, outcome.status, outcome.body);
+    const config = await getMvpBrandConfig(auth.tenantId);
+    if (!config) {
+      json(req, res, 404, { error: "not_found" });
+      return;
+    }
+    json(req, res, 200, { profile: config });
     return;
   }
 
@@ -306,9 +341,17 @@ const server = createServer(async (req, res) => {
       return;
     }
     const b = typeof body === "object" && body !== null ? (body as Record<string, unknown>) : {};
-    const wrapped = { tenantId: auth.tenantId, profile: { ...(b as object), profileId: auth.tenantId } };
-    const outcome = await executeUpsertBrandProfileRequest(wrapped);
-    json(req, res, outcome.status, outcome.body);
+    // Persist MVP brand config directly (bypasses complex BrandIntelligenceProfileSchema)
+    const result = await upsertMvpBrandConfig(auth.tenantId, b);
+    if (!result.ok) {
+      if (result.reason === "no_database") {
+        json(req, res, 503, { error: "database_required" });
+        return;
+      }
+      json(req, res, 500, { error: "db_error" });
+      return;
+    }
+    json(req, res, 200, { profile: { ...b, profileId: auth.tenantId } });
     return;
   }
 

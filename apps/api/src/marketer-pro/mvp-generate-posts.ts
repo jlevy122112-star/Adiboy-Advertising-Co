@@ -21,8 +21,20 @@ export type GeneratePostsInput = {
   cta: string;
   hashtagStrategy: string;
   urgency: string;
+  // Full brand context — every field from the MVP brand profile
   brandName?: string;
-  brandVoice?: string;
+  brandVoice?: string;       // 3 personality words
+  brandColor?: string;
+  businessType?: string;     // product | service | both
+  industry?: string;
+  problem?: string;          // customer pain the brand solves
+  solution?: string;         // how the brand solves it
+  outcome?: string;          // results customers get
+  website?: string;
+  phone?: string;
+  contactEmail?: string;
+  instagramHandle?: string;
+  address?: string;
 };
 
 // ─── Full platform optimization spec ────────────────────────────────────────
@@ -233,14 +245,31 @@ function buildPrompt(input: GeneratePostsInput): string {
       ? `\nUrgency framing: ${input.urgency} — reflect this in the copy's energy and word choice.`
       : "";
 
-  const brandSection =
-    input.brandName || input.brandVoice
-      ? `
-## Brand Context (inject into every post — generic content is a failure)
-${input.brandName ? `- Brand name: ${input.brandName}` : ""}
-${input.brandVoice ? `- Brand voice / personality words: ${input.brandVoice} — every post must reflect these words in tone, word choice, and style` : ""}
+  const hasBrand = [
+    input.brandName, input.brandVoice, input.problem,
+    input.solution, input.outcome, input.industry,
+  ].some(Boolean);
+
+  const brandSection = hasBrand
+    ? `
+## Brand Context — INJECT INTO EVERY POST (generic content is a product failure)
+The AI must use these brand facts to make every post sound like THIS specific brand,
+not a generic template. Reference the brand's specific problem, solution, and outcome
+in the copy — not abstract marketing language.
+${input.brandName       ? `- Brand name: ${input.brandName}` : ""}
+${input.industry        ? `- Industry: ${input.industry}` : ""}
+${input.businessType    ? `- Business type: ${input.businessType}` : ""}
+${input.brandVoice      ? `- Brand personality (3 words): ${input.brandVoice} — every post must feel like these words. If the words say "bold, fun, irreverent" the copy should be bold, fun, and irreverent. Not safe. Not generic.` : ""}
+${input.problem         ? `- Customer pain we solve: ${input.problem} — reference this pain in the copy to show we understand the audience` : ""}
+${input.solution        ? `- Our solution: ${input.solution} — weave this in naturally, not as a sales pitch` : ""}
+${input.outcome         ? `- What customers get: ${input.outcome} — use this as the emotional hook and benefit statement` : ""}
+${input.website         ? `- Website: ${input.website}` : ""}
+${input.phone           ? `- Phone: ${input.phone}` : ""}
+${input.contactEmail    ? `- Email: ${input.contactEmail}` : ""}
+${input.instagramHandle ? `- Instagram: @${input.instagramHandle.replace(/^@/, "")}` : ""}
+${input.address         ? `- Location: ${input.address}` : ""}
 `
-      : "";
+    : "";
 
   return `You are an expert social media strategist and copywriter who writes fully optimized, ready-to-publish content. You never write generic or template-sounding copy — every post is crafted to maximize reach, engagement, and conversion on its specific platform.
 

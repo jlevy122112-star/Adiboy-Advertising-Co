@@ -101,6 +101,71 @@ export async function getBrandProfile(
   }
 }
 
+// ─── MVP raw brand config (bypasses BrandIntelligenceProfile schema) ─────────
+// The MVP onboarding collects simple key-value brand data (brandName, problem,
+// solution, etc.) that doesn't map to the full BrandIntelligenceProfileSchema.
+// These functions store/retrieve that data as-is so brand context is persisted
+// across sessions and injected into every AI generation call.
+
+export type MvpBrandConfig = {
+  brandName?: string;
+  brandColor?: string;
+  brandWords?: string;
+  businessType?: string;
+  industry?: string;
+  problem?: string;
+  solution?: string;
+  outcome?: string;
+  website?: string;
+  phone?: string;
+  email?: string;
+  instagram?: string;
+  address?: string;
+  [key: string]: unknown;
+};
+
+const MVP_BRAND_PROFILE_ID = "__mvp__";
+
+export async function upsertMvpBrandConfig(
+  tenantId: string,
+  config: MvpBrandConfig,
+): Promise<{ ok: true } | { ok: false; reason: string }> {
+  const sql = getPostgresClient();
+  if (!sql) return { ok: false, reason: "no_database" };
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const bodyJson = JSON.parse(JSON.stringify(config)) as any;
+    await sql`
+      INSERT INTO brand_profiles (tenant_id, profile_id, body, updated_at)
+      VALUES (${tenantId}, ${MVP_BRAND_PROFILE_ID}, ${sql.json(bodyJson)}, now())
+      ON CONFLICT (tenant_id, profile_id)
+      DO UPDATE SET body = EXCLUDED.body, updated_at = now()
+    `;
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, reason: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+export async function getMvpBrandConfig(
+  tenantId: string,
+): Promise<MvpBrandConfig | null> {
+  const sql = getPostgresClient();
+  if (!sql) return null;
+  try {
+    const rows = await sql<{ body: unknown }[]>`
+      SELECT body FROM brand_profiles
+      WHERE tenant_id = ${tenantId} AND profile_id = ${MVP_BRAND_PROFILE_ID}
+      LIMIT 1
+    `;
+    const raw = rows[0]?.body;
+    if (raw == null || typeof raw !== "object") return null;
+    return raw as MvpBrandConfig;
+  } catch {
+    return null;
+  }
+}
+
 /** Gets the most-recently-updated brand profile for a tenant (no profileId required). */
 export type GetLatestBrandProfileResolve =
   | { readonly ok: true; readonly profile: BrandIntelligenceProfile }
