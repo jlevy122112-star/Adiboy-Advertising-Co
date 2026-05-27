@@ -15,6 +15,23 @@ export function securityHeaders(res: ServerResponse): void {
   res.setHeader("X-XSS-Protection", "1; mode=block");
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
   res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+  // CSP: allow same-origin scripts/styles + external CDNs the frontend needs.
+  // 'unsafe-inline' required for the inline JS/CSS in the single-file mobile app.
+  // Tighten to nonces when the frontend moves to separate JS bundles.
+  res.setHeader(
+    "Content-Security-Policy",
+    [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline'",
+      "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com",
+      "font-src 'self' https://cdn.jsdelivr.net https://fonts.gstatic.com",
+      "img-src 'self' data: blob: https:",          // S3, DALL-E, CDN images
+      "connect-src 'self'",                          // all API calls are same-origin
+      "frame-ancestors 'none'",                      // no embedding in iframes
+      "base-uri 'self'",
+      "form-action 'self' https://checkout.stripe.com", // Stripe checkout redirect
+    ].join("; "),
+  );
 }
 
 export function extractBearerToken(req: IncomingMessage): string | null {

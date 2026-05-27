@@ -101,6 +101,36 @@ function optimizeContent(
   return { text: tagStr ? `${body}${sep}${tagStr}` : body, warnings };
 }
 
+// ─── Retry / backoff helper ───────────────────────────────────────────────────
+
+const RETRY_DELAYS_MS = [0, 800, 2400]; // attempt 1 immediate, 2 after 0.8s, 3 after 2.4s
+
+/**
+ * Retry a fetch-based API call up to 3 times with exponential backoff.
+ * Only retries on 429 (rate limit) or 5xx (server error) — never on 4xx auth failures.
+ */
+async function withRetry<T>(
+  fn: () => Promise<{ status: number; body: T }>,
+): Promise<{ status: number; body: T }> {
+  let last!: { status: number; body: T };
+  for (let attempt = 0; attempt < RETRY_DELAYS_MS.length; attempt++) {
+    if (attempt > 0) await new Promise(r => setTimeout(r, RETRY_DELAYS_MS[attempt]));
+    last = await fn();
+    const { status } = last;
+    if (status < 500 && status !== 429) return last; // success or non-retryable client error
+  }
+  return last;
+}
+
+async function fetchJson<T>(
+  url: string,
+  init: RequestInit,
+): Promise<{ status: number; body: T }> {
+  const res = await fetch(url, init);
+  const body = await res.json().catch(() => ({})) as T;
+  return { status: res.status, body };
+}
+
 // ─── Credential helper ────────────────────────────────────────────────────────
 
 async function freshCred(tenantId: string, network: string): Promise<SocialCredentialRow | null> {
@@ -112,6 +142,20 @@ async function freshCred(tenantId: string, network: string): Promise<SocialCrede
     if (r.ok) row = { ...row, access_token: r.accessToken };
   }
   return row;
+}
+
+// ── SSRF guard for image URLs passed to platform APIs ─────────────────────────
+// Platform APIs (Meta, TikTok) will fetch imageUrl server-to-server.
+// Validate it's a public HTTPS URL — not an internal address.
+function isSafePublicUrl(url: string): boolean {
+  try {
+    const u = new URL(url);
+    if (u.protocol !== "https:") return false;
+    const h = u.hostname;
+    if (h === "localhost" || h === "127.0.0.1") return false;
+    if (/^(10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|169\.254\.)/.test(h)) return false;
+    return true;
+  } catch { return false; }
 }
 
 function err(platform: MvpPlatform, detail: string, optimized: OptimizedContent): MvpPublishResult {
@@ -126,26 +170,28 @@ function ok(platform: MvpPlatform, externalId: string | undefined, detail: strin
 
 const GV = "v19.0";
 
+type FbJson = { id?: string; error?: { message: string } };
+
 async function igCreateContainer(
   token: string, igUserId: string, imageUrl: string, caption: string, alt: string,
-): Promise<{ id?: string; error?: { message: string } }> {
-  const res = await fetch(`https://graph.facebook.com/${GV}/${igUserId}/media`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ image_url: imageUrl, caption, accessibility_caption: alt.slice(0, 500), access_token: token }),
-  });
-  return res.json().catch(() => ({})) as Promise<{ id?: string; error?: { message: string } }>;
+): Promise<FbJson> {
+  const { body } = await withRetry(() => fetchJson<FbJson>(
+    `https://graph.facebook.com/${GV}/${igUserId}/media`,
+    { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ image_url: imageUrl, caption, accessibility_caption: alt.slice(0, 500), access_token: token }) },
+  ));
+  return body;
 }
 
 async function igPublishContainer(
   token: string, igUserId: string, creationId: string,
-): Promise<{ id?: string; error?: { message: string } }> {
-  const res = await fetch(`https://graph.facebook.com/${GV}/${igUserId}/media_publish`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ creation_id: creationId, access_token: token }),
-  });
-  return res.json().catch(() => ({})) as Promise<{ id?: string; error?: { message: string } }>;
+): Promise<FbJson> {
+  const { body } = await withRetry(() => fetchJson<FbJson>(
+    `https://graph.facebook.com/${GV}/${igUserId}/media_publish`,
+    { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ creation_id: creationId, access_token: token }) },
+  ));
+  return body;
 }
 
 async function publishInstagram(
@@ -189,23 +235,17 @@ async function publishFacebook(
 
   try {
     if (imageUrl) {
-      const res = await fetch(`${base}/photos`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: imageUrl, caption: optimized.text, access_token: token }),
-      });
-      const j = (await res.json().catch(() => ({}))) as { id?: string; error?: { message: string } };
-      if (!res.ok || j.error) return err(p, `fb_photo_error:${j.error?.message ?? res.status}`, optimized);
+      const { status, body: j } = await withRetry(() => fetchJson<FbJson>(`${base}/photos`,
+        { method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: imageUrl, caption: optimized.text, access_token: token }) }));
+      if (status >= 400 || j.error) return err(p, `fb_photo_error:${j.error?.message ?? status}`, optimized);
       return ok(p, j.id, "facebook_photo_published", optimized);
     }
 
-    const res = await fetch(`${base}/feed`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: optimized.text, access_token: token }),
-    });
-    const j = (await res.json().catch(() => ({}))) as { id?: string; error?: { message: string } };
-    if (!res.ok || j.error) return err(p, `fb_feed_error:${j.error?.message ?? res.status}`, optimized);
+    const { status, body: j } = await withRetry(() => fetchJson<FbJson>(`${base}/feed`,
+      { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: optimized.text, access_token: token }) }));
+    if (status >= 400 || j.error) return err(p, `fb_feed_error:${j.error?.message ?? status}`, optimized);
     return ok(p, j.id, "facebook_published", optimized);
   } catch (e) {
     return err(p, `fb_error:${String(e).slice(0, 200)}`, optimized);
@@ -224,13 +264,13 @@ async function publishX(
   if (!token) return err(p, "x_no_credentials", optimized);
 
   try {
-    const res = await fetch("https://api.twitter.com/2/tweets", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ text: optimized.text }),
-    });
-    const j = (await res.json().catch(() => ({}))) as { data?: { id: string }; errors?: { message: string }[] };
-    if (!res.ok || j.errors?.length) return err(p, `x_error:${j.errors?.[0]?.message ?? res.status}`, optimized);
+    type XJson = { data?: { id: string }; errors?: { message: string }[] };
+    const { status, body: j } = await withRetry(() => fetchJson<XJson>(
+      "https://api.twitter.com/2/tweets",
+      { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ text: optimized.text }) },
+    ));
+    if (status >= 400 || j.errors?.length) return err(p, `x_error:${j.errors?.[0]?.message ?? status}`, optimized);
     return ok(p, j.data?.id, "x_published", optimized);
   } catch (e) {
     return err(p, `x_error:${String(e).slice(0, 200)}`, optimized);
@@ -262,17 +302,14 @@ async function publishLinkedIn(
   };
 
   try {
-    const res = await fetch("https://api.linkedin.com/v2/ugcPosts", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-        "X-Restli-Protocol-Version": "2.0.0",
-      },
-      body: JSON.stringify(body),
-    });
-    const j = (await res.json().catch(() => ({}))) as { id?: string; message?: string };
-    if (!res.ok) return err(p, `li_error:${j.message ?? res.status}`, optimized);
+    type LiJson = { id?: string; message?: string };
+    const { status, body: j } = await withRetry(() => fetchJson<LiJson>(
+      "https://api.linkedin.com/v2/ugcPosts",
+      { method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", "X-Restli-Protocol-Version": "2.0.0" },
+        body: JSON.stringify(body) },
+    ));
+    if (status >= 400) return err(p, `li_error:${j.message ?? status}`, optimized);
     return ok(p, j.id, "linkedin_published", optimized);
   } catch (e) {
     return err(p, `li_error:${String(e).slice(0, 200)}`, optimized);
@@ -305,13 +342,13 @@ async function publishTikTok(
   };
 
   try {
-    const res = await fetch("https://open.tiktokapis.com/v2/post/publish/content/init/", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json; charset=UTF-8" },
-      body: JSON.stringify(body),
-    });
-    const j = (await res.json().catch(() => ({}))) as { data?: { publish_id: string }; error?: { message: string } };
-    if (!res.ok || j.error) return err(p, `tt_error:${j.error?.message ?? res.status}`, optimized);
+    type TtJson = { data?: { publish_id: string }; error?: { message: string } };
+    const { status, body: j } = await withRetry(() => fetchJson<TtJson>(
+      "https://open.tiktokapis.com/v2/post/publish/content/init/",
+      { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json; charset=UTF-8" },
+        body: JSON.stringify(body) },
+    ));
+    if (status >= 400 || j.error) return err(p, `tt_error:${j.error?.message ?? status}`, optimized);
     return ok(p, j.data?.publish_id ? `tiktok:${j.data.publish_id}` : undefined, "tiktok_published", optimized);
   } catch (e) {
     return err(p, `tt_error:${String(e).slice(0, 200)}`, optimized);
@@ -324,8 +361,11 @@ export async function publishPost(tenantId: string, input: MvpPublishInput): Pro
   const optimized = optimizeContent(input.platform, input.content, input.hashtags ?? []);
   const alt = input.altText ?? input.topic ?? input.content.slice(0, 200);
 
-  // imageUrl is already a permanent S3 URL — uploaded at generation time in generateImages().
-  const imageUrl = input.imageUrl;
+  // imageUrl must be a public HTTPS URL — validate before passing to platform APIs
+  const imageUrl = input.imageUrl && isSafePublicUrl(input.imageUrl) ? input.imageUrl : undefined;
+  if (input.imageUrl && !imageUrl) {
+    optimized.warnings.push("image_url_blocked:not_a_safe_public_https_url");
+  }
 
   switch (input.platform) {
     case "ig": return publishInstagram(tenantId, optimized, imageUrl ?? "", alt);

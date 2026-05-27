@@ -24,6 +24,41 @@ import { randomUUID } from "node:crypto";
 const FETCH_TIMEOUT_MS = 30_000;
 const UPLOAD_TIMEOUT_MS = 30_000;
 
+// ── SSRF allowlist ─────────────────────────────────────────────────────────────
+// Only fetch images from domains we trust. Prevents server-side request forgery
+// if a malicious URL somehow reaches this function.
+const ALLOWED_IMAGE_HOSTNAMES = new Set([
+  "oaidalleapiprodscus.blob.core.windows.net", // DALL-E 3 temporary URLs
+  "oaidalle3apiprodscus.blob.core.windows.net",
+  "oaidalleprodscus.blob.core.windows.net",
+  "cdn.openai.com",
+]);
+
+// Also allow the configured S3 bucket hostname at runtime
+function getAllowedHostnames(): Set<string> {
+  const s = new Set(ALLOWED_IMAGE_HOSTNAMES);
+  const bucket = process.env.MARKETER_S3_BUCKET?.trim();
+  const region = process.env.AWS_REGION?.trim() || "us-east-1";
+  if (bucket) s.add(`${bucket}.s3.${region}.amazonaws.com`);
+  const custom = process.env.MARKETER_S3_PUBLIC_URL?.trim();
+  if (custom) {
+    try { s.add(new URL(custom).hostname); } catch { /* ignore */ }
+  }
+  return s;
+}
+
+function isSafeImageUrl(url: string): boolean {
+  try {
+    const u = new URL(url);
+    if (u.protocol !== "https:") return false;           // https only
+    if (u.hostname === "localhost" || u.hostname === "127.0.0.1") return false;
+    if (u.hostname.startsWith("169.254.") || u.hostname.startsWith("10.") || u.hostname.startsWith("192.168.")) return false;
+    return getAllowedHostnames().has(u.hostname);
+  } catch {
+    return false;
+  }
+}
+
 // ── Exact platform pixel specs ─────────────────────────────────────────────
 // Source: each platform's official developer/content guidelines.
 // DALL-E 3 generates at the nearest supported size (1024×1024 | 1792×1024 | 1024×1792);
@@ -105,6 +140,12 @@ export async function uploadImageToS3(
   const s3 = getS3Client();
   const cfg = getS3Config();
   if (!s3 || !cfg) return null;
+
+  // SSRF guard — only fetch from known-safe domains
+  if (!isSafeImageUrl(temporaryUrl)) {
+    console.warn(JSON.stringify({ level: "warn", event: "s3_upload_blocked_ssrf", platform }));
+    return null;
+  }
 
   // Download the image
   const fetchController = new AbortController();
