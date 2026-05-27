@@ -410,7 +410,7 @@
                 <div class="acp-dot g"></div>
               </div>
               <div class="acp-badge">⬡ Autonomous Mode</div>
-              <div class="acp-mode" id="acp-mode-label">STANDBY</div>
+              <div class="acp-mode" id="acp-mode-label">UNARMED</div>
             </div>
             <div class="acp-body">
               <div class="acp-switch-wrap">
@@ -1200,7 +1200,7 @@ function toggleAutoMode() {
     btn.classList.add('armed-launch');
   } else {
     panel.classList.remove('armed');
-    document.getElementById('acp-mode-label').textContent = 'STANDBY';
+    document.getElementById('acp-mode-label').textContent = 'UNARMED';
     document.getElementById('acp-r1').textContent = 'AWAITING AUTHORIZATION';
     document.getElementById('acp-r3').textContent = scope;
     document.getElementById('acp-r4').textContent = platCount + ' PLATFORMS';
