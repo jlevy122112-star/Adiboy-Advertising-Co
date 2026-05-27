@@ -1,0 +1,32 @@
+CREATE TABLE IF NOT EXISTS tenant_usage (
+  tenant_id uuid PRIMARY KEY REFERENCES tenants(id) ON DELETE CASCADE,
+  ai_generations int NOT NULL DEFAULT 0,
+  posts_published int NOT NULL DEFAULT 0,
+  storage_bytes bigint NOT NULL DEFAULT 0,
+  period_start timestamp with time zone NOT NULL DEFAULT date_trunc('month', now())
+);
+
+-- helper to ensure current month row exists
+CREATE OR REPLACE FUNCTION ensure_tenant_usage_row(p_tenant_id uuid)
+RETURNS void AS $$
+BEGIN
+  INSERT INTO tenant_usage (tenant_id, period_start)
+  VALUES (p_tenant_id, date_trunc('month', now()))
+  ON CONFLICT (tenant_id) DO UPDATE
+  SET period_start = CASE
+    WHEN date_trunc('month', tenant_usage.period_start) < date_trunc('month', now())
+      THEN date_trunc('month', now())
+    ELSE tenant_usage.period_start
+  END,
+  ai_generations = CASE
+    WHEN date_trunc('month', tenant_usage.period_start) < date_trunc('month', now())
+      THEN 0
+    ELSE tenant_usage.ai_generations
+  END,
+  posts_published = CASE
+    WHEN date_trunc('month', tenant_usage.period_start) < date_trunc('month', now())
+      THEN 0
+    ELSE tenant_usage.posts_published
+  END;
+END;
+$$ LANGUAGE plpgsql;
