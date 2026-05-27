@@ -62,12 +62,14 @@ async function handleCheckout(req: IncomingMessage, res: ServerResponse): Promis
   if (!stripe) return json(res, 503, { error: "billing_not_configured" });
 
   const raw = await readBody(req);
-  const body = JSON.parse(raw.toString("utf8") || "{}") as { priceId?: string; annual?: boolean };
+  const body = JSON.parse(raw.toString("utf8") || "{}") as { priceId?: string; plan?: string; annual?: boolean };
 
-  const priceId = body.priceId
-    ?? (body.annual
-        ? (process.env.STRIPE_PRICE_PRO_ANNUAL ?? "price_pro_annual")
-        : (process.env.STRIPE_PRICE_PRO_MONTHLY ?? "price_pro_monthly"));
+  const isEnterprise = body.plan === "enterprise";
+  const priceId = body.priceId ?? (
+    isEnterprise
+      ? (body.annual ? (process.env.STRIPE_PRICE_ENT_ANNUAL ?? "price_ent_annual") : (process.env.STRIPE_PRICE_ENT_MONTHLY ?? "price_ent_monthly"))
+      : (body.annual ? (process.env.STRIPE_PRICE_PRO_ANNUAL ?? "price_pro_annual")  : (process.env.STRIPE_PRICE_PRO_MONTHLY ?? "price_pro_monthly"))
+  );
 
   const billing = await getWorkspaceBilling(auth.tenantId);
   const customerId = billing?.stripe_customer_id ?? undefined;

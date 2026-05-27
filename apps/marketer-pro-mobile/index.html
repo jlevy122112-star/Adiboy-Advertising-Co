@@ -1037,12 +1037,20 @@ function onAuthSuccess() {
   loadPlan();
   var pendingNet = window._pendingConnected;
   window._pendingConnected = null;
+  var billingSuccess = window._billingSuccess;
+  window._billingSuccess = false;
   if (!localStorage.getItem('mp_onboarded')) {
     showOnboarding();
   } else {
     refreshSchedule();
     loadAnalytics();
-    if (pendingNet) {
+    if (billingSuccess) {
+      setTimeout(function() {
+        loadPlan(); // re-fetch plan after Stripe webhook has a moment to fire
+        showToast('🎉 Welcome to Pro! AI generation and publishing are now unlocked.');
+        switchTo('settings');
+      }, 1000);
+    } else if (pendingNet) {
       setTimeout(function() {
         switchTo('settings');
         openConnections();
@@ -1960,7 +1968,7 @@ async function handleCheckout(planKey) {
   var btn = document.getElementById(btnId);
   if (btn) { btn.disabled = true; btn.textContent = 'Redirecting...'; }
   try {
-    var r = await api('POST', '/billing/checkout', { annual: planToggleMode === 'annual' });
+    var r = await api('POST', '/billing/checkout', { plan: planKey, annual: planToggleMode === 'annual' });
     if (r.status === 503) {
       showToast('Billing not configured. Add Stripe keys to .env', true);
       return;
@@ -2084,12 +2092,19 @@ async function disconnectPlatform(network) {
 // INIT
 // ─────────────────────────────────────────────────
 (function init() {
-  // Handle OAuth redirect back from social platform (popup may have closed on /connections?connected=meta)
+  // Handle OAuth redirect back from social platform
   var urlParams = new URLSearchParams(window.location.search);
   var connectedNet = urlParams.get('connected');
   if (connectedNet) {
     window._pendingConnected = connectedNet;
     history.replaceState({}, '', '/');
+  }
+
+  // Handle Stripe checkout success redirect — /#/billing-success?session_id=...
+  var hash = window.location.hash || '';
+  if (hash.startsWith('#/billing-success')) {
+    history.replaceState({}, '', '/');
+    window._billingSuccess = true;
   }
 
   if (authToken) {
