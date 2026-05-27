@@ -15,14 +15,16 @@ import {
   signRefreshToken,
   signPasswordResetToken,
   verifyPasswordResetToken,
+  signEmailVerificationToken,
+  verifyEmailVerificationToken,
   verifyRefreshToken,
   ACCESS_TOKEN_TTL_S_EXPORT as ACCESS_TTL,
   REFRESH_TOKEN_TTL_S_EXPORT as REFRESH_TTL,
 } from "./auth/jwt.js";
-import { sendPasswordResetEmail } from "./auth/mailer.js";
+import { sendPasswordResetEmail, sendEmailVerification } from "./auth/mailer.js";
 import { authRateLimit, checkLoginLockout, recordLoginFailure, clearLoginFailures } from "./auth/rate-limit.js";
 import { requireAuth, securityHeaders } from "./auth/middleware.js";
-import { getUserByEmail, getUserById, insertUser, updateUserPassword } from "../db/users.js";
+import { getUserByEmail, getUserById, insertUser, updateUserPassword, verifyUserEmail } from "../db/users.js";
 import {
   insertRefreshToken,
   getRefreshToken,
@@ -122,7 +124,28 @@ export async function handleAuthRequest(req: IncomingMessage, res: ServerRespons
 
     const tokens = await issueTokenPair(userId, tenantId, email, "member");
     setSessionCookie(res, tokens.accessToken);
+
+    // Fire-and-forget verification email (non-blocking)
+    const appOrigin = process.env.APP_ORIGIN?.trim() ?? "https://marketerpro.com";
+    signEmailVerificationToken(userId, tenantId).then(async (verifyToken) => {
+      const verifyUrl = `${appOrigin}/verify-email?token=${encodeURIComponent(verifyToken)}`;
+      await sendEmailVerification(email, verifyUrl);
+    }).catch(() => { /* non-fatal */ });
+
     json(res, 201, { user: { id: user.id, email: user.email, role: user.role, tenantId }, tokens });
+    return;
+  }
+
+  // GET /auth/verify-email?token=...
+  if (req.method === "GET" && pathname === "/auth/verify-email") {
+    const token = new URL(req.url ?? "", "http://x").searchParams.get("token") ?? "";
+    const claims = await verifyEmailVerificationToken(token);
+    if (!claims) { json(res, 400, { error: "invalid_or_expired_token" }); return; }
+    await verifyUserEmail(claims.userId);
+    // Redirect to app with verified=1 flag
+    const appOrigin = process.env.APP_ORIGIN?.trim() ?? "https://marketerpro.com";
+    res.writeHead(302, { Location: `${appOrigin}/?verified=1` });
+    res.end();
     return;
   }
 
