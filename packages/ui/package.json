@@ -1,0 +1,7 @@
+﻿{
+  "name": "@marketer-pro/ui",
+  "version": "0.0.1",
+  "main": "src/index.ts",
+  "scripts": {},
+  "dependencies": {}
+}

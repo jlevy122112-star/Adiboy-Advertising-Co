@@ -1,0 +1,11 @@
+{
+  "name": "@marketer-pro/mobile-client",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  }
+}

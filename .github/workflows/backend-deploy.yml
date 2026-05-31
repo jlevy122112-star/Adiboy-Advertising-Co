@@ -1,0 +1,108 @@
+name: Backend Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/backend/**'
+      - '.github/workflows/backend-deploy.yml'
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '20'
+  PNPM_VERSION: '8'
+
+jobs:
+  # ── Type check + lint ─────────────────────────────────────────────────────────
+  check:
+    name: Type check and lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Type check
+        run: pnpm --filter @marketer-pro/backend type-check
+
+  # ── Build ─────────────────────────────────────────────────────────────────────
+  build:
+    name: Build backend
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm --filter @marketer-pro/backend build
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-dist
+          path: apps/backend/dist
+          retention-days: 1
+
+  # ── Deploy ────────────────────────────────────────────────────────────────────
+  deploy:
+    name: Deploy to production
+    needs: build
+    runs-on: ubuntu-latest
+    environment: production
+    concurrency:
+      group: backend-deploy
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-dist
+          path: dist
+
+      - name: Deploy
+        # Replace this step with your hosting provider's deploy action.
+        # Examples:
+        #   Railway:  railwayapp/railway-action
+        #   Render:   curl to Render deploy hook
+        #   Fly.io:   superfly/flyctl-actions
+        #   AWS ECS:  aws-actions/amazon-ecs-deploy-task-definition
+        run: |
+          echo "Deploy step — configure with your hosting provider"
+          echo "Available secrets: DEPLOY_HOOK_URL, DATABASE_URL, SUPABASE_URL, SUPABASE_ANON_KEY"
+        env:
+          DEPLOY_HOOK_URL:    ${{ secrets.DEPLOY_HOOK_URL }}
+          DATABASE_URL:       ${{ secrets.DATABASE_URL }}
+          SUPABASE_URL:       ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY:  ${{ secrets.SUPABASE_ANON_KEY }}
+
+      - name: Notify on success
+        if: success()
+        run: echo "Backend deployed successfully to production"
+
+      - name: Notify on failure
+        if: failure()
+        run: echo "Backend deployment failed — check logs"

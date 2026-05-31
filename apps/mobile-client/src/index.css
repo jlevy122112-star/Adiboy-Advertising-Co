@@ -1,0 +1,154 @@
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@300;400;500;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=JetBrains+Mono:wght@400;500&family=Courier+Prime:wght@400;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-void-950: #020408;
+  --color-void-900: #050810;
+  --color-void-800: #0a0f1e;
+  --color-desk-900: #0d1117;
+  --color-desk-800: #161b27;
+  --color-classified: #c9a84c;
+  --color-classified-glow: rgba(201, 168, 76, 0.15);
+  --color-reactor: #1e90ff;
+  --color-reactor-glow: rgba(30, 144, 255, 0.15);
+
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: var(--color-void-900);
+  color: #e2e8f0;
+  font-family: 'DM Sans', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
+}
+
+/* Prevent iOS rubber-band scroll */
+body {
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+  touch-action: manipulation;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(201, 168, 76, 0.3);
+  border-radius: 2px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(201, 168, 76, 0.5);
+}
+
+/* ─── Desk atmosphere ─── */
+.desk-scanline::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.04) 2px,
+    rgba(0, 0, 0, 0.04) 4px
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ─── Classified text stamp effect ─── */
+.text-classified-stamp {
+  font-family: 'Bebas Neue', sans-serif;
+  letter-spacing: 0.15em;
+  color: var(--color-classified);
+  text-shadow: 0 0 12px rgba(201, 168, 76, 0.4);
+}
+
+/* ─── Glow borders ─── */
+.border-classified-glow {
+  border-color: rgba(201, 168, 76, 0.3);
+  box-shadow: 0 0 0 1px rgba(201, 168, 76, 0.1), inset 0 0 20px rgba(201, 168, 76, 0.03);
+}
+
+.border-reactor-glow {
+  border-color: rgba(30, 144, 255, 0.3);
+  box-shadow: 0 0 0 1px rgba(30, 144, 255, 0.1), inset 0 0 20px rgba(30, 144, 255, 0.03);
+}
+
+/* ─── Panel glass effect ─── */
+.panel-glass {
+  background: linear-gradient(135deg, rgba(13, 17, 23, 0.95) 0%, rgba(10, 15, 30, 0.98) 100%);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* ─── Tap highlight removal for mobile ─── */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ─── Safe area handling for notched phones ─── */
+.safe-top {
+  padding-top: env(safe-area-inset-top);
+}
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.safe-left {
+  padding-left: env(safe-area-inset-left);
+}
+.safe-right {
+  padding-right: env(safe-area-inset-right);
+}
+
+/* ─── Noise texture overlay ─── */
+.noise-overlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  opacity: 0.4;
+  z-index: 1;
+}
+
+/* ─── Selection styling ─── */
+::selection {
+  background: rgba(201, 168, 76, 0.25);
+  color: #e8c96b;
+}
+
+/* ─── Focus ring ─── */
+:focus-visible {
+  outline: 2px solid rgba(201, 168, 76, 0.6);
+  outline-offset: 2px;
+}
+
+/* ─── Capacitor status bar spacing ─── */
+@supports (padding: env(safe-area-inset-top)) {
+  .has-safe-area-top {
+    padding-top: max(env(safe-area-inset-top), 0px);
+  }
+}

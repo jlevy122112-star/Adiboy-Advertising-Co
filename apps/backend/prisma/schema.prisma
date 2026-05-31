@@ -1,0 +1,273 @@
+// Supabase uses PostgreSQL.
+// This Prisma schema mirrors the exact tables defined in the build document.
+// Run: npx prisma db push  OR  use the SQL migration in /infra/scripts/
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ── users ──────────────────────────────────
+model users {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  password_hash String
+  name          String
+  role          String    @default("user")
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
+}
+
+// ── workspaces ─────────────────────────────
+model workspaces {
+  id            String   @id @default(uuid())
+  owner_user_id String
+  name          String
+  created_at    DateTime @default(now())
+}
+
+// ── brands ─────────────────────────────────
+model brands {
+  id              String   @id @default(uuid())
+  workspace_id    String
+  name            String
+  industry        String?
+  logo_url        String?
+  primary_color   String?
+  secondary_color String?
+  created_at      DateTime @default(now())
+}
+
+// ── user_progress ──────────────────────────
+model user_progress {
+  id         String   @id @default(uuid())
+  user_id    String   @unique
+  level      Int      @default(1)
+  xp         Int      @default(0)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+// ── campaigns ──────────────────────────────
+model campaigns {
+  id           String   @id @default(uuid())
+  workspace_id String
+  brand_id     String?
+  name         String
+  objective    String
+  status       String   @default("draft")
+  start_date   DateTime?
+  end_date     DateTime?
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+}
+
+// ── campaign_channels ──────────────────────
+model campaign_channels {
+  id          String @id @default(uuid())
+  campaign_id String
+  channel     String
+}
+
+// ── campaign_metrics ───────────────────────
+model campaign_metrics {
+  id          String   @id @default(uuid())
+  campaign_id String
+  impressions Int      @default(0)
+  reach       Int      @default(0)
+  clicks      Int      @default(0)
+  conversions Int      @default(0)
+  spend       Float    @default(0)
+  roas        Float    @default(0)
+  updated_at  DateTime @updatedAt
+}
+
+// ── content_items ──────────────────────────
+model content_items {
+  id           String    @id @default(uuid())
+  campaign_id  String
+  channel      String
+  type         String
+  title        String
+  status       String    @default("draft")
+  scheduled_at DateTime?
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @updatedAt
+}
+
+// ── content_variants ───────────────────────
+model content_variants {
+  id         String   @id @default(uuid())
+  content_id String
+  copy       String
+  media_url  String?
+  created_at DateTime @default(now())
+}
+
+// ── content_status_history ─────────────────
+model content_status_history {
+  id         String   @id @default(uuid())
+  content_id String
+  status     String
+  changed_at DateTime @default(now())
+  changed_by String?
+}
+
+// ── tasks ──────────────────────────────────
+model tasks {
+  id           String    @id @default(uuid())
+  workspace_id String
+  campaign_id  String?
+  content_id   String?
+  title        String
+  description  String?
+  priority     String    @default("medium")
+  status       String    @default("todo")
+  due_date     DateTime?
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @updatedAt
+}
+
+// ── task_dependencies ──────────────────────
+model task_dependencies {
+  id                String @id @default(uuid())
+  task_id           String
+  depends_on_task_id String
+}
+
+// ── task_activity_log ──────────────────────
+model task_activity_log {
+  id        String   @id @default(uuid())
+  task_id   String
+  user_id   String
+  action    String
+  timestamp DateTime @default(now())
+}
+
+// ── task_suggestions ───────────────────────
+model task_suggestions {
+  id              String   @id @default(uuid())
+  user_id         String
+  suggestion_type String
+  payload         Json
+  created_at      DateTime @default(now())
+}
+
+// ── metrics_raw ────────────────────────────
+model metrics_raw {
+  id           String   @id @default(uuid())
+  workspace_id String
+  provider     String
+  external_id  String?
+  payload      Json
+  fetched_at   DateTime @default(now())
+}
+
+// ── metrics_aggregated ─────────────────────
+model metrics_aggregated {
+  id           String   @id @default(uuid())
+  workspace_id String
+  campaign_id  String?
+  content_id   String?
+  channel      String
+  date         DateTime
+  impressions  Int      @default(0)
+  reach        Int      @default(0)
+  clicks       Int      @default(0)
+  conversions  Int      @default(0)
+  spend        Float    @default(0)
+  roas         Float    @default(0)
+  created_at   DateTime @default(now())
+}
+
+// ── integrations ───────────────────────────
+model integrations {
+  id            String    @id @default(uuid())
+  workspace_id  String
+  provider      String
+  access_token  String
+  refresh_token String?
+  expires_at    DateTime?
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
+
+  @@unique([workspace_id, provider])
+}
+
+// ── unlocks ────────────────────────────────
+model unlocks {
+  id          String   @id @default(uuid())
+  user_id     String
+  scene_key   String
+  unlocked_at DateTime @default(now())
+
+  @@unique([user_id, scene_key])
+}
+
+// ── achievements ───────────────────────────
+model achievements {
+  id           String   @id @default(uuid())
+  user_id      String
+  achievement  String
+  unlocked_at  DateTime @default(now())
+}
+
+// ── cosmetics ──────────────────────────────
+model cosmetics {
+  id          String   @id @default(uuid())
+  user_id     String
+  item_key    String
+  unlocked_at DateTime @default(now())
+}
+
+// ── lootboxes ──────────────────────────────
+model lootboxes {
+  id         String   @id @default(uuid())
+  user_id    String
+  opened     Boolean  @default(false)
+  contents   Json
+  created_at DateTime @default(now())
+}
+
+// ── generations ────────────────────────────
+model generations {
+  id           String   @id @default(uuid())
+  user_id      String
+  workspace_id String
+  brief        Json
+  artifacts    Json
+  created_at   DateTime @default(now())
+}
+
+// ── password_reset_tokens ──────────────────
+model password_reset_tokens {
+  id         String   @id @default(uuid())
+  user_id    String
+  token      String   @unique
+  expires_at DateTime
+  created_at DateTime @default(now())
+}
+
+// ── notifications ──────────────────────────
+model notifications {
+  id         String   @id @default(uuid())
+  user_id    String
+  type       String
+  title      String
+  message    String
+  priority   String   @default("routine")
+  read       Boolean  @default(false)
+  created_at DateTime @default(now())
+}
+
+// ── ai_insights ────────────────────────────
+model ai_insights {
+  id           String   @id @default(uuid())
+  workspace_id String
+  insight      String
+  created_at   DateTime @default(now())
+}
