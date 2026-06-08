@@ -1,0 +1,51 @@
+export const theme = {
+  colors: {
+    brand: '#6366f1',
+    brandDark: '#4f46e5',
+    brandLight: '#818cf8',
+    surface: '#0a0a0f',
+    surface1: '#111118',
+    surface2: '#18181f',
+    surface3: '#1f1f28',
+    surface4: '#26263a',
+    gold: '#f59e0b',
+    success: '#10b981',
+    warning: '#f59e0b',
+    danger: '#ef4444',
+    text: '#f8fafc',
+    textMuted: '#94a3b8',
+    textFaint: '#475569',
+    border: 'rgba(255,255,255,0.08)',
+    borderStrong: 'rgba(255,255,255,0.16)',
+  },
+  glass: {
+    background: 'rgba(255,255,255,0.04)',
+    backgroundHover: 'rgba(255,255,255,0.07)',
+    border: '1px solid rgba(255,255,255,0.08)',
+    shadow: '0 4px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08)',
+  },
+  desk: {
+    surface: 'linear-gradient(180deg, #2d1b6b 0%, #1a1035 50%, #0d0820 100%)',
+    ambient: 'radial-gradient(ellipse at 50% 0%, rgba(99,102,241,0.2) 0%, transparent 60%)',
+    floorColor: '#0a0814',
+    wallColor: '#0e0c1a',
+  },
+  radius: {
+    sm: '8px',
+    md: '12px',
+    lg: '16px',
+    xl: '24px',
+    full: '9999px',
+  },
+  spacing: {
+    xs: '4px',
+    sm: '8px',
+    md: '16px',
+    lg: '24px',
+    xl: '32px',
+    '2xl': '48px',
+    '3xl': '64px',
+  },
+} as const
+
+export type Theme = typeof theme
